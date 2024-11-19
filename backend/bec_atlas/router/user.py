@@ -1,0 +1,45 @@
+from typing import Annotated
+
+from bec_atlas.authentication import create_access_token, get_current_user, verify_password
+from bec_atlas.datasources.scylladb import scylladb_schema as schema
+from bec_atlas.models import User
+from bec_atlas.router.base_router import BaseRouter
+from fastapi import APIRouter, Depends
+from fastapi.exceptions import HTTPException
+from fastapi.security import OAuth2PasswordRequestForm
+
+
+class UserRouter(BaseRouter):
+    def __init__(self, prefix="/api/v1", datasources=None):
+        super().__init__(prefix, datasources)
+        self.scylla = self.datasources.datasources.get("scylla")
+        self.router = APIRouter(prefix=prefix)
+        self.router.add_api_route("/user/me", self.user_me, methods=["GET"])
+        self.router.add_api_route("/user/login", self.user_login, methods=["POST"], dependencies=[])
+        self.router.add_api_route(
+            "/user/login/form", self.form_login, methods=["POST"], dependencies=[]
+        )
+
+    async def user_me(self, user: User = Depends(get_current_user)):
+        data = schema.User.objects.filter(email=user.email)
+        if data.count() == 0:
+            raise HTTPException(status_code=404, detail="User not found")
+        return data.first()
+
+    async def form_login(self, form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
+        out = await self.user_login(form_data.username, form_data.password)
+        return {"access_token": out, "token_type": "bearer"}
+
+    async def user_login(self, username: str, password: str):
+        result = schema.User.objects.filter(email=username)
+        if result.count() == 0:
+            raise HTTPException(status_code=404, detail="User not found")
+        user: schema.User = result.first()
+        credentials = schema.UserCredentials.objects.filter(user_id=user.user_id)
+        if credentials.count() == 0:
+            raise HTTPException(status_code=404, detail="User not found")
+        user_credentials = credentials.first()
+        if not verify_password(password, user_credentials.password):
+            raise HTTPException(status_code=401, detail="Invalid password")
+
+        return create_access_token(data={"groups": list(user.groups), "email": user.email})

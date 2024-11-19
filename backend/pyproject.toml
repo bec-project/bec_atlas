@@ -1,0 +1,92 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "bec_atlas"
+version = "0.0.0"
+description = "BEC Atlas"
+requires-python = ">=3.10"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering",
+]
+dependencies = [
+    "fastapi[standard]",
+    "pyjwt",
+    "pwdlib[argon2]",
+    "scylla-driver",
+    "bec_lib",
+    "python-socketio[asyncio_client]",
+]
+
+
+[project.optional-dependencies]
+dev = [
+    "coverage~=7.0",
+    "pytest-random-order~=1.1",
+    "pytest-timeout~=2.2",
+    "pytest~=8.0",
+]
+
+
+[project.urls]
+"Bug Tracker" = "https://gitlab.psi.ch/bec/bec_atlas/issues"
+Homepage = "https://gitlab.psi.ch/bec/bec_atlas"
+
+[tool.hatch.build.targets.wheel]
+include = ["*"]
+exclude = ["docs/**", "tests/**"]
+
+[tool.hatch.build.targets.sdist]
+include = ["*"]
+exclude = ["docs/**", "tests/**"]
+
+[tool.black]
+line-length = 100
+skip-magic-trailing-comma = true
+
+[tool.isort]
+profile = "black"
+line_length = 100
+multi_line_output = 3
+include_trailing_comma = true
+known_first_party = ["bec_widgets"]
+
+[tool.semantic_release]
+build_command = "python -m build"
+version_toml = ["pyproject.toml:project.version"]
+
+[tool.semantic_release.commit_author]
+env = "GIT_COMMIT_AUTHOR"
+default = "semantic-release <semantic-release>"
+
+[tool.semantic_release.commit_parser_options]
+allowed_tags = [
+    "build",
+    "chore",
+    "ci",
+    "docs",
+    "feat",
+    "fix",
+    "perf",
+    "style",
+    "refactor",
+    "test",
+]
+minor_tags = ["feat"]
+patch_tags = ["fix", "perf"]
+default_bump_level = 0
+
+[tool.semantic_release.remote]
+name = "origin"
+type = "gitlab"
+ignore_token_for_push = false
+
+[tool.semantic_release.remote.token]
+env = "GL_TOKEN"
+
+[tool.semantic_release.publish]
+dist_glob_patterns = ["dist/*"]
+upload_to_vcs_release = true
