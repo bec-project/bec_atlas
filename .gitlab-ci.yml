@@ -1,0 +1,33 @@
+stages:
+  - test
+
+variables:
+  SCYLLA_HOST: scylla
+  SCYLLA_PORT: 9042
+  SCYLLA_KEYSPACE: test_bec_atlas
+
+services:
+  - name: scylladb/scylla:latest
+    alias: scylla
+
+before_script:
+  # Install dependencies
+  - apt-get update && apt-get install -y python3-pip
+  - pip3 install -r requirements.txt
+
+  # Check if ScyllaDB is ready (retry until successful)
+  - |
+    echo "Waiting for ScyllaDB to be ready..."
+    until python3 -c "import cassandra; cluster = cassandra.cluster.Cluster([f'{SCYLLA_HOST}:{SCYLLA_PORT}']); session = cluster.connect(); session.set_keyspace('${SCYLLA_KEYSPACE}');" 2>/dev/null; do
+      echo "ScyllaDB is not ready yet, retrying in 5 seconds..."
+      sleep 5
+    done
+    echo "ScyllaDB is up and running."
+
+test:
+  stage: test
+  script:
+    # Now that ScyllaDB is ready, we can run tests
+    - python3 -c "import cassandra; cluster = cassandra.cluster.Cluster([f'{SCYLLA_HOST}:{SCYLLA_PORT}']); session = cluster.connect(); session.set_keyspace('${SCYLLA_KEYSPACE}'); result = session.execute('SELECT * FROM your_table LIMIT 1'); print(result)"
+    # Assuming pytest is used to run the actual tests
+    - pytest tests/
