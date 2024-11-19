@@ -22,7 +22,7 @@ before_script:
   #     sleep 5
   #   done
   #   echo "ScyllaDB is up and running."
-  - python ./backend/ci/healthchecks.py
+  - python -u ./backend/ci/healthchecks.py
 
 
 test:
