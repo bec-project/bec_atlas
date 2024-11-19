@@ -1,7 +1,7 @@
-from bec_atlas.authentication import get_current_user
-from bec_atlas.models import User
-from bec_atlas.router.base_router import BaseRouter
 from fastapi import APIRouter, Depends
+
+from bec_atlas.authentication import get_current_user
+from bec_atlas.router.base_router import BaseRouter
 
 
 class ScanRouter(BaseRouter):

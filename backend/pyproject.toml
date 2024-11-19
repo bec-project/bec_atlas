@@ -52,7 +52,7 @@ profile = "black"
 line_length = 100
 multi_line_output = 3
 include_trailing_comma = true
-known_first_party = ["bec_widgets"]
+known_first_party = ["bec_atlas"]
 
 [tool.semantic_release]
 build_command = "python -m build"

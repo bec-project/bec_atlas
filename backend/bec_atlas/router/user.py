@@ -1,12 +1,12 @@
 from typing import Annotated
 
-from bec_atlas.authentication import create_access_token, get_current_user, verify_password
-from bec_atlas.datasources.scylladb import scylladb_schema as schema
-from bec_atlas.models import User
-from bec_atlas.router.base_router import BaseRouter
 from fastapi import APIRouter, Depends
 from fastapi.exceptions import HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
+
+from bec_atlas.authentication import create_access_token, get_current_user, verify_password
+from bec_atlas.datasources.scylladb import scylladb_schema as schema
+from bec_atlas.router.base_router import BaseRouter
 
 
 class UserRouter(BaseRouter):

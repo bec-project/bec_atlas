@@ -4,9 +4,10 @@ import json
 from typing import TYPE_CHECKING
 
 import socketio
-from bec_atlas.router.base_router import BaseRouter
 from bec_lib.endpoints import MessageEndpoints
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+
+from bec_atlas.router.base_router import BaseRouter
 
 if TYPE_CHECKING:
     from bec_lib.redis_connector import RedisConnector
