@@ -15,13 +15,15 @@ services:
 before_script:
   # Check if ScyllaDB is ready (retry until successful)
   - pip install ./backend
-  - |
-    echo "Waiting for ScyllaDB to be ready..."
-    until python -c "from cassandra.cluster import Cluster; cluster = Cluster(['scylla']); session = cluster.connect(); session.set_keyspace('test_bec_atlas');" 2>/dev/null; do
-      echo "ScyllaDB is not ready yet, retrying in 5 seconds..."
-      sleep 5
-    done
-    echo "ScyllaDB is up and running."
+  # - |
+  #   echo "Waiting for ScyllaDB to be ready..."
+  #   until python -c "from cassandra.cluster import Cluster; cluster = Cluster(['scylla']); session = cluster.connect(); session.set_keyspace('test_bec_atlas');" 2>/dev/null; do
+  #     echo "ScyllaDB is not ready yet, retrying in 5 seconds..."
+  #     sleep 5
+  #   done
+  #   echo "ScyllaDB is up and running."
+  - python ./backend/ci/healthchecks.py
+
 
 test:
   stage: test
