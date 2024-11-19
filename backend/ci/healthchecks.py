@@ -13,7 +13,6 @@ def wait_for_scylladb():
         try:
             cluster = Cluster([SCYLLA_HOST])
             session = cluster.connect()
-            session.set_keyspace(SCYLLA_KEYSPACE)
             print("Connected to ScyllaDB")
             break
         except Exception as e:
