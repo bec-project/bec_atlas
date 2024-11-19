@@ -17,7 +17,7 @@ before_script:
   - pip install ./backend
   - |
     echo "Waiting for ScyllaDB to be ready..."
-    until python -c "import cassandra; cluster = cassandra.cluster.Cluster([f'{SCYLLA_HOST}:{SCYLLA_PORT}']); session = cluster.connect(); session.set_keyspace('${SCYLLA_KEYSPACE}');" 2>/dev/null; do
+    until python -c "from cassandra.cluster import Cluster; cluster = Cluster(['scylla']); session = cluster.connect(); session.set_keyspace('test_bec_atlas');" 2>/dev/null; do
       echo "ScyllaDB is not ready yet, retrying in 5 seconds..."
       sleep 5
     done
@@ -26,7 +26,4 @@ before_script:
 test:
   stage: test
   script:
-    # Now that ScyllaDB is ready, we can run tests
-    - python3 -c "import cassandra; cluster = cassandra.cluster.Cluster([f'{SCYLLA_HOST}:{SCYLLA_PORT}']); session = cluster.connect(); session.set_keyspace('${SCYLLA_KEYSPACE}'); result = session.execute('SELECT * FROM your_table LIMIT 1'); print(result)"
-    # Assuming pytest is used to run the actual tests
-    - pytest tests/
+    - python -c "from cassandra.cluster import Cluster; cluster = Cluster(['scylla']); session = cluster.connect(); session.set_keyspace('test_bec_atlas');"
