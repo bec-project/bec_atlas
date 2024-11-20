@@ -4,10 +4,9 @@ import json
 from typing import TYPE_CHECKING
 
 import socketio
+from bec_atlas.router.base_router import BaseRouter
 from bec_lib.endpoints import MessageEndpoints
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-
-from bec_atlas.router.base_router import BaseRouter
 
 if TYPE_CHECKING:
     from bec_lib.redis_connector import RedisConnector
@@ -55,18 +54,19 @@ class RedisWebsocket:
         self.socket.on("register", self.redis_register)
         self.socket.on("disconnect", self.disconnect_client)
 
-    def connect_client(self, sid, environ):
+    def connect_client(self, sid, environ=None):
         print("Client connected")
         self.active_connections.add(sid)
 
-    def disconnect_client(self, sid, _environ):
+    def disconnect_client(self, sid, _environ=None):
         print("Client disconnected")
-        self.active_connections.pop(sid)
+        self.active_connections.remove(sid)
 
     async def redis_register(self, sid: str, msg: str):
         if sid not in self.active_connections:
             self.active_connections.add(sid)
         try:
+            print(msg)
             data = json.loads(msg)
         except json.JSONDecodeError:
             return

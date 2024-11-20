@@ -1,12 +1,17 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
-from fastapi.exceptions import HTTPException
-from fastapi.security import OAuth2PasswordRequestForm
-
 from bec_atlas.authentication import create_access_token, get_current_user, verify_password
 from bec_atlas.datasources.scylladb import scylladb_schema as schema
 from bec_atlas.router.base_router import BaseRouter
+from fastapi import APIRouter, Depends
+from fastapi.exceptions import HTTPException
+from fastapi.security import OAuth2PasswordRequestForm
+from pydantic import BaseModel
+
+
+class UserLoginRequest(BaseModel):
+    username: str
+    password: str
 
 
 class UserRouter(BaseRouter):
@@ -20,18 +25,19 @@ class UserRouter(BaseRouter):
             "/user/login/form", self.form_login, methods=["POST"], dependencies=[]
         )
 
-    async def user_me(self, user: User = Depends(get_current_user)):
+    async def user_me(self, user: schema.User = Depends(get_current_user)):
         data = schema.User.objects.filter(email=user.email)
         if data.count() == 0:
             raise HTTPException(status_code=404, detail="User not found")
         return data.first()
 
     async def form_login(self, form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
-        out = await self.user_login(form_data.username, form_data.password)
+        user_login = UserLoginRequest(username=form_data.username, password=form_data.password)
+        out = await self.user_login(user_login)
         return {"access_token": out, "token_type": "bearer"}
 
-    async def user_login(self, username: str, password: str):
-        result = schema.User.objects.filter(email=username)
+    async def user_login(self, user_login: UserLoginRequest):
+        result = schema.User.objects.filter(email=user_login.username)
         if result.count() == 0:
             raise HTTPException(status_code=404, detail="User not found")
         user: schema.User = result.first()
@@ -39,7 +45,7 @@ class UserRouter(BaseRouter):
         if credentials.count() == 0:
             raise HTTPException(status_code=404, detail="User not found")
         user_credentials = credentials.first()
-        if not verify_password(password, user_credentials.password):
+        if not verify_password(user_login.password, user_credentials.password):
             raise HTTPException(status_code=401, detail="Invalid password")
 
         return create_access_token(data={"groups": list(user.groups), "email": user.email})

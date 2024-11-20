@@ -19,6 +19,8 @@ dependencies = [
     "scylla-driver",
     "bec_lib",
     "python-socketio[asyncio_client]",
+    "libtmux",
+    "websocket-client",
 ]
 
 
@@ -28,8 +30,13 @@ dev = [
     "pytest-random-order~=1.1",
     "pytest-timeout~=2.2",
     "pytest~=8.0",
+    "pytest-docker",
+    "isort~=5.13, >=5.13.2",
 ]
 
+[project.scripts]
+bec-atlas-fastapi = "bec_atlas.main:main"
+bec-atlas = "bec_atlas.utils.launch:main"
 
 [project.urls]
 "Bug Tracker" = "https://gitlab.psi.ch/bec/bec_atlas/issues"

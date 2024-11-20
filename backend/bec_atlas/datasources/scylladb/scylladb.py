@@ -1,15 +1,12 @@
 import json
 import os
-import uuid
-from datetime import datetime
-
-from cassandra.cluster import Cluster
-from cassandra.cqlengine import columns, connection
-from cassandra.cqlengine.management import create_keyspace_simple, sync_table
-from pydantic import BaseModel
 
 from bec_atlas.authentication import get_password_hash
 from bec_atlas.datasources.scylladb import scylladb_schema as schema
+from cassandra.cluster import Cluster
+from cassandra.cqlengine import connection
+from cassandra.cqlengine.management import create_keyspace_simple, sync_table
+from pydantic import BaseModel
 
 
 class ScylladbDatasource:
@@ -71,8 +68,28 @@ class ScylladbDatasource:
         functional_accounts_file = os.path.join(
             os.path.dirname(__file__), "functional_accounts.json"
         )
-        with open(functional_accounts_file, "r", encoding="utf-8") as file:
-            functional_accounts = json.load(file)
+        if os.path.exists(functional_accounts_file):
+            with open(functional_accounts_file, "r", encoding="utf-8") as file:
+                functional_accounts = json.load(file)
+        else:
+            print("Functional accounts file not found. Using default demo accounts.")
+            # Demo accounts
+            functional_accounts = [
+                {
+                    "email": "admin@bec_atlas.ch",
+                    "password": "admin",
+                    "groups": ["demo"],
+                    "first_name": "Admin",
+                    "last_name": "Admin",
+                },
+                {
+                    "email": "jane.doe@bec_atlas.ch",
+                    "password": "atlas",
+                    "groups": ["demo_user"],
+                    "first_name": "Jane",
+                    "last_name": "Doe",
+                },
+            ]
 
         for account in functional_accounts:
             # check if the account already exists in the database

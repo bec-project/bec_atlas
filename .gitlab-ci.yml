@@ -9,20 +9,12 @@ variables:
   SCYLLA_KEYSPACE: test_bec_atlas
 
 services:
-  - name: scylladb/scylla:latest
+  - name: $CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX/scylladb/scylla:latest
     alias: scylla
 
 before_script:
-  # Check if ScyllaDB is ready (retry until successful)
   - pip install ./backend
-  # - |
-  #   echo "Waiting for ScyllaDB to be ready..."
-  #   until python -c "from cassandra.cluster import Cluster; cluster = Cluster(['scylla']); session = cluster.connect(); session.set_keyspace('test_bec_atlas');" 2>/dev/null; do
-  #     echo "ScyllaDB is not ready yet, retrying in 5 seconds..."
-  #     sleep 5
-  #   done
-  #   echo "ScyllaDB is up and running."
-  - python -u ./backend/ci/healthchecks.py
+  - python -u ./backend/ci/setup_database.py
 
 
 test:
