@@ -1,13 +1,14 @@
 import sys
 import time
 
-from cassandra.cluster import Cluster
+from cassandra.cluster import Cluster, Session
 
 SCYLLA_HOST = "scylla"
-SCYLLA_KEYSPACE = "test_bec_atlas"
+SCYLLA_PORT = 9042
+SCYLLA_KEYSPACE = "bec_atlas"
 
 
-def wait_for_scylladb(scylla_host: str = SCYLLA_HOST):
+def wait_for_scylladb(scylla_host: str = SCYLLA_HOST, scylla_port: int = SCYLLA_PORT):
     """
     Wait for ScyllaDB to be ready by trying to connect to it.
 
@@ -15,18 +16,21 @@ def wait_for_scylladb(scylla_host: str = SCYLLA_HOST):
         scylla_host(str): The ScyllaDB host.
     """
     print("Waiting for ScyllaDB to be ready...")
+    print(f"ScyllaDB host: {scylla_host}")
+    print(f"ScyllaDB port: {scylla_port}")
     while True:
         try:
-            cluster = Cluster([scylla_host])
+            cluster = Cluster([(scylla_host, scylla_port)])
+            # cluster = Cluster([scylla_host])
             session = cluster.connect()
             print("Connected to ScyllaDB")
-            break
+            return session
         except Exception as e:
             print(f"ScyllaDB not ready yet: {e}")
             time.sleep(5)
 
 
-def create_keyspace(scylla_host: str = SCYLLA_HOST, keyspace: str = SCYLLA_KEYSPACE):
+def create_keyspace(session: Session, keyspace: str = SCYLLA_KEYSPACE):
     """
     Create a new keyspace in ScyllaDB if it does not exist.
 
@@ -36,8 +40,8 @@ def create_keyspace(scylla_host: str = SCYLLA_HOST, keyspace: str = SCYLLA_KEYSP
     """
     print(f"Creating keyspace '{keyspace}' if not exists...")
     try:
-        cluster = Cluster([scylla_host])
-        session = cluster.connect()
+        # drop the keyspace if it exists
+        session.execute(f"DROP KEYSPACE IF EXISTS {keyspace}")
         session.execute(
             f"""
             CREATE KEYSPACE IF NOT EXISTS {keyspace}
@@ -50,11 +54,10 @@ def create_keyspace(scylla_host: str = SCYLLA_HOST, keyspace: str = SCYLLA_KEYSP
         sys.exit(1)
 
 
-def setup_database():
-    wait_for_scylladb()
-    create_keyspace()
+def setup_database(host: str = SCYLLA_HOST, port: int = SCYLLA_PORT):
+    session = wait_for_scylladb(scylla_host=host, scylla_port=port)
+    create_keyspace(session)
 
 
 if __name__ == "__main__":
-    wait_for_scylladb()
-    create_keyspace()
+    setup_database()

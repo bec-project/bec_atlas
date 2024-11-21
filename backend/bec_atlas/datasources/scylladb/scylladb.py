@@ -93,7 +93,8 @@ class ScylladbDatasource:
 
         for account in functional_accounts:
             # check if the account already exists in the database
-            password_hash = get_password_hash(account.pop("password"))
+            password = account.pop("password")
+            password_hash = get_password_hash(password)
             result = schema.User.objects.filter(email=account["email"])
             if result.count() > 0:
                 continue

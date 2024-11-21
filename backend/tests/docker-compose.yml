@@ -1,0 +1,6 @@
+version: '2'
+services:
+  scylla:
+    image: scylladb/scylla:latest
+    ports:
+      - "9070:9042"

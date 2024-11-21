@@ -6,18 +6,19 @@ stages:
 variables:
   SCYLLA_HOST: scylla
   SCYLLA_PORT: 9042
-  SCYLLA_KEYSPACE: test_bec_atlas
+  SCYLLA_KEYSPACE: bec_atlas
 
 services:
   - name: $CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX/scylladb/scylla:latest
     alias: scylla
 
-before_script:
-  - pip install ./backend
-  - python -u ./backend/ci/setup_database.py
+# before_script:
+#   - pip install ./backend
+#   - python -u ./backend/bec_atlas/utils/setup_database.py
 
 
 test:
   stage: test
   script:
-    - python -c "from cassandra.cluster import Cluster; cluster = Cluster(['scylla']); session = cluster.connect(); session.set_keyspace('test_bec_atlas');"
+    - pip install ./backend[dev]
+    - pytest --skip-docker --random-order ./backend/tests

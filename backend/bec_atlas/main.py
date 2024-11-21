@@ -12,10 +12,11 @@ CONFIG = {"redis": {"host": "localhost", "port": 6380}, "scylla": {"hosts": ["lo
 class AtlasApp:
     API_VERSION = "v1"
 
-    def __init__(self):
+    def __init__(self, config=None):
+        self.config = config or CONFIG
         self.app = FastAPI()
         self.prefix = f"/api/{self.API_VERSION}"
-        self.datasources = DatasourceManager(config=CONFIG)
+        self.datasources = DatasourceManager(config=self.config)
         self.register_event_handler()
         self.add_routers()
 
