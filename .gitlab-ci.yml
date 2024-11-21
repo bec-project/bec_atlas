@@ -75,8 +75,8 @@ backend_pytest:
   needs: []
   script:
     - pip install ./backend[dev]
-    - pip install coverage
-    - coverage run --concurrency=thread --source=./backend/bec_atlas -m pytest -v --junitxml=report.xml --skip-docker --random-order --full-trace ./backend/tests
+    - pip install coverage pytest-asyncio
+    - coverage run --concurrency=thread --source=./backend --omit=*/backend/tests/* -m pytest -v --junitxml=report.xml --skip-docker --random-order --full-trace ./backend/tests
     - coverage report
     - coverage xml
   coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
