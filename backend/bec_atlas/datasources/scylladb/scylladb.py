@@ -1,12 +1,13 @@
 import json
 import os
 
-from bec_atlas.authentication import get_password_hash
-from bec_atlas.datasources.scylladb import scylladb_schema as schema
 from cassandra.cluster import Cluster
 from cassandra.cqlengine import connection
 from cassandra.cqlengine.management import create_keyspace_simple, sync_table
 from pydantic import BaseModel
+
+from bec_atlas.authentication import get_password_hash
+from bec_atlas.datasources.scylladb import scylladb_schema as schema
 
 
 class ScylladbDatasource:
