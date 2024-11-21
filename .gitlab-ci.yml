@@ -1,24 +1,89 @@
 image: $CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX/python:3.11
 
-stages:
-  - test
-
 variables:
   SCYLLA_HOST: scylla
   SCYLLA_PORT: 9042
   SCYLLA_KEYSPACE: bec_atlas
 
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+    - if: '$CI_PIPELINE_SOURCE == "pipeline"'
+    - if: '$CI_PIPELINE_SOURCE == "parent_pipeline"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
+      when: never
+    - if: $CI_COMMIT_BRANCH
+  auto_cancel:
+    on_new_commit: interruptible
+
+stages:
+  - Formatter
+  - test 
+
+include:
+  - template: Security/Secret-Detection.gitlab-ci.yml
+
 services:
   - name: $CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX/scylladb/scylla:latest
     alias: scylla
 
-# before_script:
-#   - pip install ./backend
-#   - python -u ./backend/bec_atlas/utils/setup_database.py
+formatter:
+  stage: Formatter
+  needs: []
+  script:
+    - pip install black isort
+    - isort --check --diff --line-length=100 --profile=black --multi-line=3 --trailing-comma ./backend/bec_atlas
+    - black --check --diff --color --line-length=100 --skip-magic-trailing-comma ./backend/bec_atlas
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+    - if: '$CI_PIPELINE_SOURCE == "pipeline"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'  
+    - if: '$CI_PIPELINE_SOURCE == "parent_pipeline"'
+      when: never
+    - if: $CI_COMMIT_BRANCH
+  interruptible: true
 
+pylint:
+  stage: Formatter
+  needs: []
+  script:
+    - pip install pylint pylint-exit anybadge
+    - mkdir ./pylint
+    - pylint ./backend/bec_atlas --output-format=text | tee ./pylint/pylint.log || pylint-exit $?
+    - PYLINT_SCORE=$(sed -n 's/^Your code has been rated at \([-0-9.]*\)\/.*/\1/p' ./pylint/pylint.log)
+    - anybadge --label=Pylint --file=pylint/pylint.svg --value=$PYLINT_SCORE 2=red 4=orange 8=yellow 10=green
+    - echo "Pylint score is $PYLINT_SCORE"
+  artifacts:
+    paths:
+      - ./pylint/
+    expire_in: 1 week
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+    - if: '$CI_PIPELINE_SOURCE == "pipeline"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'  
+    - if: '$CI_PIPELINE_SOURCE == "parent_pipeline"'
+      when: never
+    - if: $CI_COMMIT_BRANCH
+  interruptible: true
 
-test:
+backend_pytest:
   stage: test
+  needs: []
   script:
     - pip install ./backend[dev]
-    - pytest --skip-docker --random-order ./backend/tests
+    - pip install coverage pytest-asyncio
+    - coverage run --concurrency=thread --source=./backend --omit=*/backend/tests/* -m pytest -v --junitxml=report.xml --skip-docker --random-order --full-trace ./backend/tests
+    - coverage report
+    - coverage xml
+  coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
+  artifacts:
+    reports:
+      junit: report.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
+  interruptible: true

@@ -1,10 +1,11 @@
 import socketio
 import uvicorn
+from fastapi import FastAPI
+
 from bec_atlas.datasources.datasource_manager import DatasourceManager
 from bec_atlas.router.redis_router import RedisRouter, RedisWebsocket
 from bec_atlas.router.scan_router import ScanRouter
 from bec_atlas.router.user import UserRouter
-from fastapi import FastAPI
 
 CONFIG = {"redis": {"host": "localhost", "port": 6380}, "scylla": {"hosts": ["localhost"]}}
 

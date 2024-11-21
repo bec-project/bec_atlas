@@ -1,5 +1,4 @@
 import os
-import socket
 
 import pytest
 from bec_atlas.main import AtlasApp
