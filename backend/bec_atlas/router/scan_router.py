@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Depends
-
 from bec_atlas.authentication import get_current_user
+from bec_atlas.datasources.scylladb import scylladb_schema as schema
 from bec_atlas.router.base_router import BaseRouter
+from fastapi import APIRouter, Depends
 
 
 class ScanRouter(BaseRouter):
@@ -12,7 +12,7 @@ class ScanRouter(BaseRouter):
         self.router.add_api_route("/scan", self.scan, methods=["GET"])
         self.router.add_api_route("/scan/{scan_id}", self.scan_with_id, methods=["GET"])
 
-    async def scan(self, current_user: User = Depends(get_current_user)):
+    async def scan(self, current_user: schema.User = Depends(get_current_user)):
         return self.scylla.get("scan", current_user=current_user)
 
     async def scan_with_id(self, scan_id: str):

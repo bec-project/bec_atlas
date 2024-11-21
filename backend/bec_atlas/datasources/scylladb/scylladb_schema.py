@@ -6,7 +6,7 @@ from cassandra.cqlengine.models import Model
 
 class User(Model):
     email = columns.Text(primary_key=True)
-    user_id = columns.UUID(default=uuid.uuid4())
+    user_id = columns.UUID(default=uuid.uuid4)
     first_name = columns.Text()
     last_name = columns.Text()
     groups = columns.Set(columns.Text)
