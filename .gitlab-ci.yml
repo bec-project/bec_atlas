@@ -28,6 +28,9 @@ include:
 services:
   - name: $CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX/scylladb/scylla:latest
     alias: scylla
+  - name: $CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX/redis:latest
+    alias: redis
+    command: ["redis-server", "--port", "6380"]
 
 formatter:
   stage: Formatter

@@ -16,6 +16,7 @@ class AtlasApp:
     def __init__(self, config=None):
         self.config = config or CONFIG
         self.app = FastAPI()
+        self.server = None
         self.prefix = f"/api/{self.API_VERSION}"
         self.datasources = DatasourceManager(config=self.config)
         self.register_event_handler()
@@ -41,11 +42,16 @@ class AtlasApp:
             self.app.include_router(self.user_router.router)
 
         if "redis" in self.datasources.datasources:
-            self.redis_websocket = RedisWebsocket(prefix=self.prefix, datasources=self.datasources)
+            self.redis_websocket = RedisWebsocket(
+                prefix=self.prefix, datasources=self.datasources, app=self
+            )
             self.app.mount("/", self.redis_websocket.app)
 
     def run(self, port=8000):
-        uvicorn.run(self.app, host="localhost", port=port)
+        config = uvicorn.Config(self.app, host="localhost", port=port)
+        self.server = uvicorn.Server(config=config)
+        self.server.run()
+        # uvicorn.run(self.app, host="localhost", port=port)
 
 
 def main():

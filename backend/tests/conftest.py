@@ -3,6 +3,9 @@ import os
 from typing import Iterator
 
 import pytest
+from bec_atlas.main import AtlasApp
+from bec_atlas.utils.setup_database import setup_database
+from fastapi.testclient import TestClient
 from pytest_docker.plugin import DockerComposeExecutor, Services
 
 
@@ -96,3 +99,47 @@ def docker_services(
         docker_cleanup,
     ) as docker_service:
         yield docker_service
+
+
+@pytest.fixture(scope="session")
+def scylla_container(docker_ip, docker_services):
+    host = docker_ip
+    if os.path.exists("/.dockerenv"):
+        # if we are running in the CI, scylla was started as 'scylla' service
+        host = "scylla"
+    if docker_services is None:
+        port = 9042
+    else:
+        port = docker_services.port_for("scylla", 9042)
+
+    setup_database(host=host, port=port)
+    return host, port
+
+
+@pytest.fixture(scope="session")
+def redis_container(docker_ip, docker_services):
+    host = docker_ip
+    if os.path.exists("/.dockerenv"):
+        # if we are running in the CI, scylla was started as 'scylla' service
+        host = "redis"
+    if docker_services is None:
+        port = 6380
+    else:
+        port = docker_services.port_for("redis", 6379)
+
+    return host, port
+
+
+@pytest.fixture(scope="session")
+def backend(scylla_container, redis_container):
+    scylla_host, scylla_port = scylla_container
+    redis_host, redis_port = redis_container
+    config = {
+        "scylla": {"hosts": [(scylla_host, scylla_port)]},
+        "redis": {"host": redis_host, "port": redis_port},
+    }
+
+    app = AtlasApp(config)
+
+    with TestClient(app.app) as _client:
+        yield _client, app
