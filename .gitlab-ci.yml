@@ -90,3 +90,32 @@ backend_pytest:
         coverage_format: cobertura
         path: coverage.xml
   interruptible: true
+
+semver:
+  stage: Deploy
+  needs: ["backend_pytest"]
+  script:
+    - git config --global user.name "ci_update_bot"
+    - git config --global user.email "ci_update_bot@bec.ch"
+    - git checkout "$CI_COMMIT_REF_NAME"
+    - git reset --hard origin/"$CI_COMMIT_REF_NAME"
+
+    # delete all local tags
+    - git tag -l | xargs git tag -d
+    - git fetch --tags
+    - git tag
+
+    # build and publish package
+    - pip install python-semantic-release==9.* wheel build twine
+    - export GL_TOKEN=$CI_UPDATES
+    - semantic-release -vv version
+
+    # # check if any artifacts were created
+    # - if [ ! -d dist ]; then echo No release will be made; exit 0; fi
+    # - twine upload dist/* -u __token__ -p $CI_PYPI_TOKEN --skip-existing
+    # - semantic-release publish
+
+  allow_failure: false
+  rules:
+    - if: '$CI_COMMIT_REF_NAME == "main" && $CI_PROJECT_PATH == "bec/bec_atlas"'
+  interruptible: true
