@@ -115,6 +115,7 @@ semver:
     # - twine upload dist/* -u __token__ -p $CI_PYPI_TOKEN --skip-existing
     - semantic-release publish
 
+
   allow_failure: false
   rules:
     - if: '$CI_COMMIT_REF_NAME == "main" && $CI_PROJECT_PATH == "bec/bec_atlas"'
