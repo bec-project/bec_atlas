@@ -21,6 +21,7 @@ workflow:
 stages:
   - Formatter
   - test 
+  - Deploy
 
 include:
   - template: Security/Secret-Detection.gitlab-ci.yml
