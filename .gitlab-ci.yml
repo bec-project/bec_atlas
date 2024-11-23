@@ -26,13 +26,6 @@ stages:
 include:
   - template: Security/Secret-Detection.gitlab-ci.yml
 
-services:
-  - name: $CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX/scylladb/scylla:latest
-    alias: scylla
-  - name: $CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX/redis:latest
-    alias: redis
-    command: ["redis-server", "--port", "6380"]
-
 formatter:
   stage: Formatter
   needs: []
@@ -75,6 +68,12 @@ pylint:
   interruptible: true
 
 backend_pytest:
+  services:
+    - name: $CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX/scylladb/scylla:latest
+      alias: scylla
+    - name: $CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX/redis:latest
+      alias: redis
+      command: ["redis-server", "--port", "6380"]
   stage: test
   needs: []
   script:
@@ -111,10 +110,10 @@ semver:
     - export GL_TOKEN=$CI_UPDATES
     - semantic-release -vv version
 
-    # # check if any artifacts were created
-    # - if [ ! -d dist ]; then echo No release will be made; exit 0; fi
+    # check if any artifacts were created
+    - if [ ! -d dist ]; then echo No release will be made; exit 0; fi
     # - twine upload dist/* -u __token__ -p $CI_PYPI_TOKEN --skip-existing
-    # - semantic-release publish
+    - semantic-release publish
 
   allow_failure: false
   rules:
