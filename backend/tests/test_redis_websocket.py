@@ -72,7 +72,7 @@ async def test_redis_websocket_multiple_disconnect_same_sid(backend_client):
 async def test_redis_websocket_register_wrong_endpoint_raises(backend_client):
     client, app = backend_client
     with mock.patch.object(app.redis_websocket.socket, "emit") as emit:
-        app.redis_websocket.socket.handlers["/"]["connect"]("sid")
+        await app.redis_websocket.socket.handlers["/"]["connect"]("sid")
         await app.redis_websocket.socket.handlers["/"]["register"](
             "sid", json.dumps({"endpoint": "wrong_endpoint"})
         )

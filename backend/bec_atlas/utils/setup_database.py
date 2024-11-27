@@ -26,6 +26,7 @@ def wait_for_scylladb(scylla_host: str = SCYLLA_HOST, scylla_port: int = SCYLLA_
             print("Connected to ScyllaDB")
             return session
         except Exception as e:
+            # breakpoint()
             print(f"ScyllaDB not ready yet: {e}")
             time.sleep(5)
 

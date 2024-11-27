@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 from datetime import datetime, timedelta
 from typing import Annotated
@@ -8,7 +10,7 @@ from fastapi.security import OAuth2PasswordBearer
 from jwt.exceptions import InvalidTokenError
 from pwdlib import PasswordHash
 
-from bec_atlas.datasources.scylladb import scylladb_schema as schema
+from bec_atlas.model import UserInfo
 
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
@@ -54,7 +56,7 @@ def decode_token(token: str):
         raise credentials_exception from exc
 
 
-async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]) -> schema.User:
+async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]) -> UserInfo:
     credentials_exception = HTTPException(
         status_code=401,
         detail="Could not validate credentials",
@@ -68,4 +70,4 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]) -> sch
             raise credentials_exception
     except Exception as exc:
         raise credentials_exception from exc
-    return schema.User(groups=groups, email=email)
+    return UserInfo(groups=groups, email=email)

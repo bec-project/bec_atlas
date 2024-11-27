@@ -3,11 +3,17 @@ import uvicorn
 from fastapi import FastAPI
 
 from bec_atlas.datasources.datasource_manager import DatasourceManager
+from bec_atlas.router.deployments_router import DeploymentsRouter
+from bec_atlas.router.realm_router import RealmRouter
 from bec_atlas.router.redis_router import RedisRouter, RedisWebsocket
 from bec_atlas.router.scan_router import ScanRouter
-from bec_atlas.router.user import UserRouter
+from bec_atlas.router.user_router import UserRouter
 
-CONFIG = {"redis": {"host": "localhost", "port": 6380}, "scylla": {"hosts": ["localhost"]}}
+CONFIG = {
+    "redis": {"host": "localhost", "port": 6379},
+    "scylla": {"hosts": ["localhost"]},
+    "mongodb": {"host": "localhost", "port": 27017},
+}
 
 
 class AtlasApp:
@@ -35,11 +41,14 @@ class AtlasApp:
     def add_routers(self):
         if not self.datasources.datasources:
             raise ValueError("Datasources not loaded")
-        if "scylla" in self.datasources.datasources:
-            self.scan_router = ScanRouter(prefix=self.prefix, datasources=self.datasources)
-            self.app.include_router(self.scan_router.router)
-            self.user_router = UserRouter(prefix=self.prefix, datasources=self.datasources)
-            self.app.include_router(self.user_router.router)
+        self.scan_router = ScanRouter(prefix=self.prefix, datasources=self.datasources)
+        self.app.include_router(self.scan_router.router, tags=["Scan"])
+        self.user_router = UserRouter(prefix=self.prefix, datasources=self.datasources)
+        self.app.include_router(self.user_router.router, tags=["User"])
+        self.deployment_router = DeploymentsRouter(prefix=self.prefix, datasources=self.datasources)
+        self.app.include_router(self.deployment_router.router, tags=["Deployment"])
+        self.realm_router = RealmRouter(prefix=self.prefix, datasources=self.datasources)
+        self.app.include_router(self.realm_router.router, tags=["Realm"])
 
         if "redis" in self.datasources.datasources:
             self.redis_websocket = RedisWebsocket(

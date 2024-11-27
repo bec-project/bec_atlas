@@ -1,0 +1,32 @@
+# set base image (host OS)
+ARG PY_VERSION=3.10 CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX
+
+FROM python:${PY_VERSION}
+
+ARG BEC_ATLAS_BRANCH=main BEC_CORE_BRANCH=main
+
+RUN echo "Building BEC Atlas environment for branch ${BEC_ATLAS_BRANCH} with BEC branch ${BEC_CORE_BRANCH}"
+
+RUN apt update
+RUN apt install git -y
+RUN apt install netcat-openbsd -y
+
+# set the working directory in the container
+WORKDIR /code
+
+# clone the bec repo
+RUN git clone --branch ${BEC_CORE_BRANCH} https://gitlab.psi.ch/bec/bec.git
+
+WORKDIR /code/bec/
+RUN pip install -e bec_lib[dev]
+
+WORKDIR /code
+RUN git clone --branch ${BEC_ATLAS_BRANCH} https://gitlab.psi.ch/bec/bec_atlas.git
+
+WORKDIR /code/bec_atlas
+RUN pip install -e ./backend[dev]
+
+RUN mkdir -p /code/bec_atlas/test_files
+
+# command to run on container start
+ENTRYPOINT [ "./backend/tests/coverage_run.sh" ]
