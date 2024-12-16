@@ -1,6 +1,6 @@
 import pymongo
 
-from bec_atlas.model import Deployments, Realm
+from bec_atlas.model import Deployments, Realm, Session
 
 
 class DemoSetupLoader:
@@ -30,7 +30,15 @@ class DemoSetupLoader:
         deployment = Deployments(
             realm_id="demo_beamline_1", name="Demo Deployment 1", owner_groups=["admin", "demo"]
         )
-        self.db["deployments"].insert_one(deployment.__dict__)
+        if self.db["deployments"].find_one({"name": deployment.name}) is None:
+            self.db["deployments"].insert_one(deployment.__dict__)
+
+        if self.db["sessions"].find_one({"name": "_default_"}) is None:
+            deployment = self.db["deployments"].find_one({"name": deployment["name"]})
+            default_session = Session(
+                owner_groups=["admin", "demo"], deployment_id=deployment["_id"], name="_default_"
+            )
+            self.db["sessions"].insert_one(default_session.model_dump(exclude_none=True))
 
 
 if __name__ == "__main__":

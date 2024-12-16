@@ -5,12 +5,12 @@ from fastapi import FastAPI
 from bec_atlas.datasources.datasource_manager import DatasourceManager
 from bec_atlas.router.deployments_router import DeploymentsRouter
 from bec_atlas.router.realm_router import RealmRouter
-from bec_atlas.router.redis_router import RedisRouter, RedisWebsocket
+from bec_atlas.router.redis_router import RedisWebsocket
 from bec_atlas.router.scan_router import ScanRouter
 from bec_atlas.router.user_router import UserRouter
 
 CONFIG = {
-    "redis": {"host": "localhost", "port": 6379},
+    "redis": {"host": "localhost", "port": 6380},
     "scylla": {"hosts": ["localhost"]},
     "mongodb": {"host": "localhost", "port": 27017},
 }
@@ -25,15 +25,16 @@ class AtlasApp:
         self.server = None
         self.prefix = f"/api/{self.API_VERSION}"
         self.datasources = DatasourceManager(config=self.config)
+        self.datasources.connect()
         self.register_event_handler()
-        self.add_routers()
+        # self.add_routers()
 
     def register_event_handler(self):
-        self.app.add_event_handler("startup", self.on_startup)
         self.app.add_event_handler("shutdown", self.on_shutdown)
+        self.app.add_event_handler("startup", self.on_startup)
 
     async def on_startup(self):
-        self.datasources.connect()
+        self.add_routers()
 
     async def on_shutdown(self):
         self.datasources.shutdown()

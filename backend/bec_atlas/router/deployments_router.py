@@ -1,9 +1,15 @@
+import json
+from typing import TYPE_CHECKING
+
 from fastapi import APIRouter, Depends
 
 from bec_atlas.authentication import get_current_user
 from bec_atlas.datasources.mongodb.mongodb import MongoDBDatasource
 from bec_atlas.model.model import Deployments, UserInfo
 from bec_atlas.router.base_router import BaseRouter
+
+if TYPE_CHECKING:
+    from bec_atlas.datasources.redis_datasource import RedisDatasource
 
 
 class DeploymentsRouter(BaseRouter):
@@ -25,6 +31,7 @@ class DeploymentsRouter(BaseRouter):
             description="Get a single deployment by id for a realm",
             response_model=Deployments,
         )
+        self.update_available_deployments()
 
     async def deployments(
         self, realm: str, current_user: UserInfo = Depends(get_current_user)
@@ -52,3 +59,16 @@ class DeploymentsRouter(BaseRouter):
         return self.db.find_one(
             "deployments", {"_id": deployment_id}, Deployments, user=current_user
         )
+
+    def update_available_deployments(self):
+        """
+        Update the available deployments.
+        """
+        self.available_deployments = self.db.find("deployments", {}, Deployments)
+
+        redis: RedisDatasource = self.datasources.datasources.get("redis")
+        msg = json.dumps([msg.model_dump() for msg in self.available_deployments])
+        redis.connector.set_and_publish("deployments", msg)
+        if redis.reconfigured_acls:
+            for deployment in self.available_deployments:
+                redis.add_deployment_acl(deployment)

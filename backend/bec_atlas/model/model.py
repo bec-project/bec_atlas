@@ -3,7 +3,19 @@ from typing import Literal
 
 from bec_lib import messages
 from bson import ObjectId
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_serializer
+
+
+class MongoBaseModel(BaseModel):
+    id: str | ObjectId | None = Field(default=None, alias="_id")
+
+    model_config = ConfigDict(populate_by_name=True, arbitrary_types_allowed=True)
+
+    @field_serializer("id")
+    def serialize_id(self, id: str | ObjectId):
+        if isinstance(id, ObjectId):
+            return str(id)
+        return id
 
 
 class AccessProfile(BaseModel):
@@ -11,25 +23,19 @@ class AccessProfile(BaseModel):
     access_groups: list[str] = []
 
 
-class ScanStatus(AccessProfile, messages.ScanStatusMessage):
-    model_config = ConfigDict(populate_by_name=True, arbitrary_types_allowed=True)
+class ScanStatus(MongoBaseModel, AccessProfile, messages.ScanStatusMessage): ...
 
 
-class UserCredentials(AccessProfile):
+class UserCredentials(MongoBaseModel, AccessProfile):
     user_id: str | ObjectId
     password: str
 
-    model_config = ConfigDict(populate_by_name=True, arbitrary_types_allowed=True)
 
-
-class User(AccessProfile):
-    id: str | ObjectId | None = Field(default=None, alias="_id")
+class User(MongoBaseModel, AccessProfile):
     email: str
     groups: list[str]
     first_name: str
     last_name: str
-
-    model_config = ConfigDict(populate_by_name=True, arbitrary_types_allowed=True)
 
 
 class UserInfo(BaseModel):
@@ -37,13 +43,11 @@ class UserInfo(BaseModel):
     groups: list[str]
 
 
-class Deployments(AccessProfile):
+class Deployments(MongoBaseModel, AccessProfile):
     realm_id: str
     name: str
     deployment_key: str = Field(default_factory=lambda: str(uuid.uuid4()))
     active_session_id: str | None = None
-
-    model_config = ConfigDict(populate_by_name=True, arbitrary_types_allowed=True)
 
 
 class Experiments(AccessProfile):
@@ -76,20 +80,15 @@ class State(AccessProfile):
     model_config = ConfigDict(populate_by_name=True, arbitrary_types_allowed=True)
 
 
-class Session(AccessProfile):
-    realm_id: str
-    session_id: str
-    config: str
-
-    model_config = ConfigDict(populate_by_name=True, arbitrary_types_allowed=True)
+class Session(MongoBaseModel, AccessProfile):
+    deployment_id: str | ObjectId
+    name: str
 
 
-class Realm(AccessProfile):
+class Realm(MongoBaseModel, AccessProfile):
     realm_id: str
     deployments: list[Deployments] = []
     name: str
-
-    model_config = ConfigDict(populate_by_name=True, arbitrary_types_allowed=True)
 
 
 class Datasets(AccessProfile):

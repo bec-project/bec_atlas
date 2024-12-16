@@ -3,10 +3,10 @@ import functools
 import inspect
 import json
 import traceback
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import socketio
-from bec_lib.endpoints import MessageEndpoints
+from bec_lib.endpoints import EndpointInfo, MessageEndpoints, MessageOp
 from bec_lib.logger import bec_logger
 from fastapi import APIRouter
 
@@ -16,6 +16,55 @@ logger = bec_logger.logger
 
 if TYPE_CHECKING:
     from bec_lib.redis_connector import RedisConnector
+
+
+class RedisAtlasEndpoints:
+    """
+    This class contains the endpoints for the Redis API. It is used to
+    manage the subscriptions and the state information for the websocket
+    """
+
+    @staticmethod
+    def websocket_state(deployment: str, host_id: str):
+        """
+        Endpoint for the websocket state information, containing the users and their subscriptions
+        per backend host.
+
+        Args:
+            deployment (str): The deployment name
+            host_id (str): The host id of the backend
+
+        Returns:
+            str: The endpoint for the websocket state information
+        """
+        return f"internal/deployment/{deployment}/{host_id}/state"
+
+    @staticmethod
+    def redis_data(deployment: str, endpoint: str):
+        """
+        Endpoint for the redis data for a deployment and endpoint.
+
+        Args:
+            deployment (str): The deployment name
+            endpoint (str): The endpoint name
+
+        Returns:
+            str: The endpoint for the redis data
+        """
+        return f"internal/deployment/{deployment}/data/{endpoint}"
+
+    @staticmethod
+    def socketio_endpoint_room(endpoint: str):
+        """
+        Endpoint for the socketio room for an endpoint.
+
+        Args:
+            endpoint (str): The endpoint name
+
+        Returns:
+            str: The endpoint for the socketio room
+        """
+        return f"ENDPOINT::{endpoint}"
 
 
 class RedisRouter(BaseRouter):
@@ -47,6 +96,7 @@ def safe_socket(fcn):
     async def wrapper(self, sid, *args, **kwargs):
         try:
             out = await fcn(self, sid, *args, **kwargs)
+        # pylint: disable=broad-except
         except Exception as exc:
             content = traceback.format_exc()
             logger.error(content)
@@ -71,15 +121,16 @@ class BECAsyncRedisManager(socketio.AsyncRedisManager):
         super().__init__(url, channel, write_only, logger, redis_options)
         self.requested_channels = []
         self.started_update_loop = False
+        self.known_deployments = set()
 
         # task = asyncio.create_task(self._required_channel_heartbeat())
         # loop.run_until_complete(task)
 
     def start_update_loop(self):
         self.started_update_loop = True
-        loop = asyncio.get_event_loop()
-        task = loop.create_task(self._backend_heartbeat())
-        return task
+        # loop = asyncio.get_event_loop()
+        # task = loop.create_task(self._backend_heartbeat())
+        # return task
 
     async def disconnect(self, sid, namespace, **kwargs):
         if kwargs.get("ignore_queue"):
@@ -105,16 +156,25 @@ class BECAsyncRedisManager(socketio.AsyncRedisManager):
 
     async def _backend_heartbeat(self):
         while not self.parent.fastapi_app.server.should_exit:
-            await asyncio.sleep(1)
-            await self.redis.publish(f"deployments/{self.host_id}/heartbeat/", "ping")
-            data = json.dumps(self.parent.users)
-            print(f"Sending heartbeat: {data}")
-            await self.redis.set(f"deployments/{self.host_id}/state/", data, ex=30)
+            await asyncio.sleep(10)
+            await self.update_state_info()
 
     async def update_state_info(self):
-        data = json.dumps(self.parent.users)
-        await self.redis.set(f"deployments/{self.host_id}/state/", data, ex=30)
-        await self.redis.publish(f"deployments/{self.host_id}/state/", data)
+        deployments = {deployment: {} for deployment in self.known_deployments}
+        for user in self.parent.users:
+            deployment = self.parent.users[user]["deployment"]
+            if deployment not in deployments:
+                deployments[deployment] = {}
+                self.known_deployments.add(deployment)
+            deployments[deployment][user] = self.parent.users[user]
+        for name, data in deployments.items():
+            data_json = json.dumps(data)
+            await self.redis.set(
+                RedisAtlasEndpoints.websocket_state(name, self.host_id), data_json, ex=30
+            )
+            await self.redis.publish(
+                RedisAtlasEndpoints.websocket_state(name, self.host_id), data_json
+            )
 
     async def update_websocket_states(self):
         loop = asyncio.get_event_loop()
@@ -140,11 +200,16 @@ class RedisWebsocket:
         self.prefix = prefix
         self.fastapi_app = app
         self.active_connections = set()
+        redis_host = datasources.datasources["redis"].config["host"]
+        redis_port = datasources.datasources["redis"].config["port"]
+        redis_password = datasources.datasources["redis"].config.get("password", "ingestor")
         self.socket = socketio.AsyncServer(
             cors_allowed_origins="*",
             async_mode="asgi",
             client_manager=BECAsyncRedisManager(
-                self, url=f"redis://{self.redis.host}:{self.redis.port}/0"
+                self,
+                url=f"redis://{redis_host}:{redis_port}/0",
+                redis_options={"username": "ingestor", "password": redis_password},
             ),
         )
         self.app = socketio.ASGIApp(self.socket)
@@ -155,11 +220,22 @@ class RedisWebsocket:
         self.socket.on("register", self.redis_register)
         self.socket.on("unregister", self.redis.unregister)
         self.socket.on("disconnect", self.disconnect_client)
+        print("Redis websocket started")
 
-    @safe_socket
-    async def connect_client(self, sid, environ=None):
-        print("Client connected")
-        http_query = environ.get("HTTP_QUERY")
+    def _validate_new_user(self, http_query: str | None):
+        """
+        Validate the connection of a new user. In particular,
+        the user must provide a valid token as well as have access
+        to the deployment. If subscriptions are provided, the user
+        must have access to the endpoints.
+
+        Args:
+            http_query (str): The query parameters of the websocket connection
+
+        Returns:
+            str: The user name
+
+        """
         if not http_query:
             raise ValueError("Query parameters not found")
         query = json.loads(http_query)
@@ -168,28 +244,49 @@ class RedisWebsocket:
             raise ValueError("User not found in query parameters")
         user = query["user"]
 
-        if sid not in self.users:
-            # check if the user was already registered in redis
-            deployment_keys = await self.socket.manager.redis.keys("deployments/*/state/")
-            if not deployment_keys:
-                state_data = []
-            else:
-                state_data = await self.socket.manager.redis.mget(*deployment_keys)
-            info = {}
-            for data in state_data:
-                if not data:
-                    continue
-                obj = json.loads(data)
-                for value in obj.values():
-                    info[value["user"]] = value["subscriptions"]
+        # TODO: Validate the user token
 
-            if user in info:
-                self.users[sid] = {"user": user, "subscriptions": info[user]}
-                for endpoint in set(self.users[sid]["subscriptions"]):
-                    await self.socket.enter_room(sid, f"ENDPOINT::{endpoint}")
-                await self.socket.manager.update_websocket_states()
-            else:
-                self.users[sid] = {"user": query["user"], "subscriptions": []}
+        deployment = query.get("deployment")
+        if not deployment:
+            raise ValueError("Deployment not found in query parameters")
+
+        # TODO: Validate the user has access to the deployment
+
+        return user, deployment
+
+    @safe_socket
+    async def connect_client(self, sid, environ=None):
+        if sid in self.users:
+            logger.info("User already connected")
+            return
+
+        http_query = environ.get("HTTP_QUERY")
+
+        user, deployment = self._validate_new_user(http_query)
+
+        # check if the user was already registered in redis
+        socketio_server_keys = await self.socket.manager.redis.keys(
+            RedisAtlasEndpoints.websocket_state(deployment, "*")
+        )
+        if not socketio_server_keys:
+            state_data = []
+        else:
+            state_data = await self.socket.manager.redis.mget(*socketio_server_keys)
+        info = {}
+        for data in state_data:
+            if not data:
+                continue
+            obj = json.loads(data)
+            for value in obj.values():
+                info[value["user"]] = value["subscriptions"]
+
+        if user in info:
+            self.users[sid] = {"user": user, "subscriptions": [], "deployment": deployment}
+            for endpoint in set(info[user]):
+                print(f"Registering {endpoint}")
+                await self._update_user_subscriptions(sid, endpoint)
+        else:
+            self.users[sid] = {"user": user, "subscriptions": [], "deployment": deployment}
 
         await self.socket.manager.update_websocket_states()
 
@@ -214,8 +311,8 @@ class RedisWebsocket:
         try:
             print(msg)
             data = json.loads(msg)
-        except json.JSONDecodeError:
-            raise ValueError("Invalid JSON message")
+        except json.JSONDecodeError as exc:
+            raise ValueError("Invalid JSON message") from exc
 
         endpoint = getattr(MessageEndpoints, data.get("endpoint"), None)
         if endpoint is None:
@@ -223,27 +320,36 @@ class RedisWebsocket:
 
         # check if the endpoint receives arguments
         if len(inspect.signature(endpoint).parameters) > 0:
-            endpoint = endpoint(data.get("args"))
+            endpoint: MessageEndpoints = endpoint(data.get("args"))
         else:
-            endpoint = endpoint()
+            endpoint: MessageEndpoints = endpoint()
 
-        self.redis.register(endpoint, cb=self.on_redis_message, parent=self)
-        if data.get("endpoint") not in self.users[sid]["subscriptions"]:
-            await self.socket.enter_room(sid, f"ENDPOINT::{data.get('endpoint')}")
-            self.users[sid]["subscriptions"].append(data.get("endpoint"))
+        await self._update_user_subscriptions(sid, endpoint.endpoint)
+
+    async def _update_user_subscriptions(self, sid: str, endpoint: str):
+        deployment = self.users[sid]["deployment"]
+
+        endpoint_info = EndpointInfo(
+            RedisAtlasEndpoints.redis_data(deployment, endpoint), Any, MessageOp.STREAM
+        )
+
+        room = RedisAtlasEndpoints.socketio_endpoint_room(endpoint)
+        self.redis.register(endpoint_info, cb=self.on_redis_message, parent=self, room=room)
+        if endpoint not in self.users[sid]["subscriptions"]:
+            await self.socket.enter_room(sid, room)
+            self.users[sid]["subscriptions"].append(endpoint)
             await self.socket.manager.update_websocket_states()
 
     @staticmethod
-    def on_redis_message(message, parent):
+    def on_redis_message(message, parent, room):
         async def emit_message(message):
-            outgoing = {
-                "data": message.value.model_dump_json(),
-                "message_type": message.value.__class__.__name__,
-            }
-            await parent.socket.emit("new_message", data=outgoing, room=message.topic)
+            if "pubsub_data" in message:
+                msg = message["pubsub_data"]
+            else:
+                msg = message["data"]
+            outgoing = {"data": msg.content, "metadata": msg.metadata}
+            outgoing = json.dumps(outgoing)
+            await parent.socket.emit("message", data=outgoing, room=room)
 
-        # check that the event loop is running
-        if not parent.loop.is_running():
-            parent.loop.run_until_complete(emit_message(message))
-        else:
-            asyncio.run_coroutine_threadsafe(emit_message(message), parent.loop)
+        # Run the coroutine in this loop
+        asyncio.run_coroutine_threadsafe(emit_message(message), parent.loop)
