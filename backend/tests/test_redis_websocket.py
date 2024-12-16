@@ -13,7 +13,7 @@ def backend_client(backend):
     app.server.should_exit = False
     app.redis_websocket.users = {}
     yield client, app
-    app.redis_websocket.redis._redis_conn.flushall()
+    # app.redis_websocket.redis._redis_conn.flushall()
 
 
 @pytest.mark.asyncio(loop_scope="session")
