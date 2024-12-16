@@ -1,0 +1,22 @@
+
+<!-- <button (click)="add()">add item</button>
+    <button (click)="delete()">remove item</button>
+    <button (click)="modify()">modify item</button>
+    <button (click)="newLayout()">new layout</button> -->
+<div class="grid-stack">
+    <!-- using angular templating to create DOM, otherwise an easier way is to simply call grid.load(items)
+    NOTE: this example is NOT complete as there are many more properties than listed (minW, maxW, etc....)
+    -->
+    <div
+      *ngFor="let n of items; trackBy: identify"
+      class="grid-stack-item"
+      [attr.gs-id]="n.id"
+      [attr.gs-x]="n.x"
+      [attr.gs-y]="n.y"
+      [attr.gs-w]="n.w"
+      [attr.gs-h]="n.h"
+      #gridStackItem
+    >
+      <div class="grid-stack-item-content">item {{ n.id }}</div>
+    </div>
+  </div>

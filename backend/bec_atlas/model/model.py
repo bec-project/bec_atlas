@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import uuid
-from typing import Literal
+from typing import Any, Literal
 
 from bec_lib import messages
 from bson import ObjectId
@@ -23,6 +25,11 @@ class AccessProfile(BaseModel):
     access_groups: list[str] = []
 
 
+class AccessProfilePartial(AccessProfile):
+    owner_groups: list[str] | None = None
+    access_groups: list[str] | None = None
+
+
 class ScanStatus(MongoBaseModel, AccessProfile, messages.ScanStatusMessage): ...
 
 
@@ -44,10 +51,25 @@ class UserInfo(BaseModel):
 
 
 class Deployments(MongoBaseModel, AccessProfile):
-    realm_id: str
+    realm_id: str | ObjectId
     name: str
     deployment_key: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    active_session_id: str | None = None
+    active_session_id: str | ObjectId | None = None
+    config_templates: list[str | ObjectId] = []
+
+
+class DeploymentsPartial(MongoBaseModel, AccessProfilePartial):
+    realm_id: str | ObjectId | None = None
+    name: str | None = None
+    deployment_key: str | None = None
+    active_session_id: str | ObjectId | None = None
+    config_templates: list[str | ObjectId] | None = None
+
+
+class Realm(MongoBaseModel, AccessProfile):
+    realm_id: str
+    deployments: list[Deployments | DeploymentsPartial] = []
+    name: str
 
 
 class Experiments(AccessProfile):
@@ -82,12 +104,6 @@ class State(AccessProfile):
 
 class Session(MongoBaseModel, AccessProfile):
     deployment_id: str | ObjectId
-    name: str
-
-
-class Realm(MongoBaseModel, AccessProfile):
-    realm_id: str
-    deployments: list[Deployments] = []
     name: str
 
 
@@ -126,18 +142,33 @@ class DeviceConfig(AccessProfile):
     software_trigger: bool
 
 
-class SignalData(AccessProfile):
-    scan_id: str
-    device_id: str
-    device_name: str
+class SignalData(AccessProfile, MongoBaseModel):
+    """
+    Signal data for a device. This is the ophyd signal data,
+    aggregated for a single scan. Upon completion of a scan,
+    the data is aggregated and stored in this format. If possible,
+    the data ingestor will calculate the average, standard deviation,
+    min, and max values for the signal.
+    """
+
+    scan_id: str | ObjectId | None = None
+    device_id: str | ObjectId
     signal_name: str
-    data: float | int | str | bool | bytes | dict | list | None
-    timestamp: float
-    kind: Literal["hinted", "omitted", "normal", "config"]
+    data: list[Any]
+    timestamps: list[float]
+    kind: Literal["hinted", "normal", "config", "omitted"]
+    average: float | None = None
+    std_dev: float | None = None
+    min: float | None = None
+    max: float | None = None
 
 
-class DeviceData(AccessProfile):
-    scan_id: str | None
-    device_name: str
-    device_config_id: str
+class DeviceData(AccessProfile, MongoBaseModel):
+    scan_id: str | ObjectId | None = None
+    name: str
+    device_config_id: str | ObjectId
     signals: list[SignalData]
+
+
+if __name__ == "__main__":
+    out = DeploymentsPartial(realm_id="123")

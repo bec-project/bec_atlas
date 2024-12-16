@@ -1,0 +1,19 @@
+<div>
+  <div class="gridster-container-toolbar">
+    <gridster [options]="toolbarOptions">
+      <gridster-item [item]="item" *ngFor="let item of dashboard; let i = index" class="gridster-item">
+        {{ item }}
+        
+      </gridster-item>
+    </gridster>
+  </div>
+  
+  <div class="gridster-container">
+    <gridster [options]="optionsEdit">
+      <gridster-item [item]="item" *ngFor="let item of dashboard; let i = index" class="gridster-item">
+        {{ item }}
+        
+      </gridster-item>
+    </gridster>
+  </div>
+</div>

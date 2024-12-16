@@ -1,0 +1,67 @@
+
+ADDAMS:
+    x04sa-bec-001.psi.ch:
+        name: production
+        description: Primary deployment for ADDAMS
+cSAXS:
+    x12sa-bec-001.psi.ch:
+        name: production
+        description: Primary deployment for cSAXS
+    x12sa-bec-002.psi.ch:
+        name: test
+        description: Test environment for cSAXS
+Debye:
+    x01da-bec-001.psi.ch:
+        name: production
+        description: Primary deployment for Debye
+MicroXAS:
+    x05la-bec-001.psi.ch:
+        name: production
+        description: Primary deployment for MicroXAS
+    x05la-bec-002.psi.ch:
+        name: test
+        description: Test environment for MicroXAS
+Phoenix:
+    x07mb-bec-001.psi.ch:
+        name: production
+        description: Primary deployment for Phoenix
+PolLux:
+    x07da-bec-001.psi.ch:
+        name: production
+        description: Primary deployment for PolLux
+PXI:
+    x06sa-bec-001.psi.ch:
+        name: production
+        description: Primary deployment for PXI
+PXII:
+    x10sa-bec-001.psi.ch:
+        name: production
+        description: Primary deployment for PXII
+PXIII:
+    x06da-bec-001.psi.ch:
+        name: production
+        description: Primary deployment for PXIII
+SIM:
+    x11ma-bec-001.psi.ch:
+        name: production
+        description: Primary deployment for SIM
+SuperXAS:
+    x10da-bec-001.psi.ch: 
+        name: production
+        description: Primary deployment for SuperXAS
+I-TOMCAT:
+    x02da-bec-001.psi.ch:
+        name: production
+        description: Primary deployment for I-TOMCAT
+    x02da-bec-002.psi.ch:
+        name: test
+        description: Test environment for I-TOMCAT
+X-Treme:
+    x07ma-bec-001.psi.ch:
+        name: production
+        description: Primary deployment for X-Treme
+
+
+
+
+

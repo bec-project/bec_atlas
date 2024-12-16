@@ -3,13 +3,14 @@ import functools
 import inspect
 import json
 import traceback
+import uuid
 from typing import TYPE_CHECKING, Any
 
 import socketio
 from bec_lib.endpoints import EndpointInfo, MessageEndpoints, MessageOp
 from bec_lib.logger import bec_logger
-from bec_lib.serialization import json_ext
-from fastapi import APIRouter
+from bec_lib.serialization import MsgpackSerialization, json_ext
+from fastapi import APIRouter, Query, Response
 
 from bec_atlas.router.base_router import BaseRouter
 
@@ -67,6 +68,40 @@ class RedisAtlasEndpoints:
         """
         return f"socketio/rooms/{deployment}/{endpoint}"
 
+    @staticmethod
+    def redis_request(deployment: str):
+        """
+        Endpoint for the redis request for a deployment and endpoint.
+
+        Args:
+            deployment (str): The deployment name
+
+        Returns:
+            str: The endpoint for the redis request
+        """
+        return f"internal/deployment/{deployment}/request"
+
+    @staticmethod
+    def redis_request_response(deployment: str, request_id: str):
+        """
+        Endpoint for the redis request response for a deployment and endpoint.
+
+        Args:
+            deployment (str): The deployment name
+            request_id (str): The request id
+
+        Returns:
+            str: The endpoint for the redis request response
+        """
+        return f"internal/deployment/{deployment}/request_response/{request_id}"
+
+
+class MsgResponse(Response):
+    media_type = "application/json"
+
+    def render(self, content: Any) -> bytes:
+        return content.encode()
+
 
 class RedisRouter(BaseRouter):
     """
@@ -76,14 +111,30 @@ class RedisRouter(BaseRouter):
 
     def __init__(self, prefix="/api/v1", datasources=None):
         super().__init__(prefix, datasources)
-        self.redis = self.datasources.datasources["redis"].connector
+        self.redis = self.datasources.datasources["redis"].async_connector
+
         self.router = APIRouter(prefix=prefix)
-        self.router.add_api_route("/redis", self.redis_get, methods=["GET"])
+        self.router.add_api_route(
+            "/redis/{deployment}", self.redis_get, methods=["GET"], response_class=MsgResponse
+        )
         self.router.add_api_route("/redis", self.redis_post, methods=["POST"])
         self.router.add_api_route("/redis", self.redis_delete, methods=["DELETE"])
 
-    async def redis_get(self, key: str):
-        return self.redis.get(key)
+    async def redis_get(self, deployment: str, key: str = Query(...)):
+        request_id = uuid.uuid4().hex
+        response_endpoint = RedisAtlasEndpoints.redis_request_response(deployment, request_id)
+        request_endpoint = RedisAtlasEndpoints.redis_request(deployment)
+        pubsub = self.redis.pubsub()
+        pubsub.ignore_subscribe_messages = True
+        await pubsub.subscribe(response_endpoint)
+        data = {"action": "get", "key": key, "response_endpoint": response_endpoint}
+        await self.redis.publish(request_endpoint, json.dumps(data))
+        response = await pubsub.get_message(timeout=10)
+        print(response)
+        response = await pubsub.get_message(timeout=10)
+        out = MsgpackSerialization.loads(response["data"])
+
+        return json_ext.dumps({"data": out.content, "metadata": out.metadata})
 
     async def redis_post(self, key: str, value: str):
         return self.redis.set(key, value)
@@ -129,9 +180,9 @@ class BECAsyncRedisManager(socketio.AsyncRedisManager):
 
     def start_update_loop(self):
         self.started_update_loop = True
-        # loop = asyncio.get_event_loop()
-        # task = loop.create_task(self._backend_heartbeat())
-        # return task
+        loop = asyncio.get_event_loop()
+        task = loop.create_task(self._backend_heartbeat())
+        return task
 
     async def disconnect(self, sid, namespace, **kwargs):
         if kwargs.get("ignore_queue"):
@@ -205,6 +256,8 @@ class RedisWebsocket:
         redis_port = datasources.datasources["redis"].config["port"]
         redis_password = datasources.datasources["redis"].config.get("password", "ingestor")
         self.socket = socketio.AsyncServer(
+            transports=["websocket"],
+            ping_timeout=60,
             cors_allowed_origins="*",
             async_mode="asgi",
             client_manager=BECAsyncRedisManager(
@@ -239,7 +292,10 @@ class RedisWebsocket:
         """
         if not http_query:
             raise ValueError("Query parameters not found")
-        query = json.loads(http_query)
+        if isinstance(http_query, str):
+            query = json.loads(http_query)
+        else:
+            query = http_query
 
         if "user" not in query:
             raise ValueError("User not found in query parameters")
@@ -256,12 +312,12 @@ class RedisWebsocket:
         return user, deployment
 
     @safe_socket
-    async def connect_client(self, sid, environ=None):
+    async def connect_client(self, sid, environ=None, auth=None, **kwargs):
         if sid in self.users:
             logger.info("User already connected")
             return
 
-        http_query = environ.get("HTTP_QUERY")
+        http_query = environ.get("HTTP_QUERY") or auth
 
         user, deployment = self._validate_new_user(http_query)
 
@@ -283,9 +339,9 @@ class RedisWebsocket:
 
         if user in info:
             self.users[sid] = {"user": user, "subscriptions": [], "deployment": deployment}
-            for endpoint in set(info[user]):
+            for endpoint, endpoint_request in info[user]:
                 print(f"Registering {endpoint}")
-                await self._update_user_subscriptions(sid, endpoint)
+                await self._update_user_subscriptions(sid, endpoint, endpoint_request)
         else:
             self.users[sid] = {"user": user, "subscriptions": [], "deployment": deployment}
 
@@ -321,13 +377,16 @@ class RedisWebsocket:
 
         # check if the endpoint receives arguments
         if len(inspect.signature(endpoint).parameters) > 0:
-            endpoint: MessageEndpoints = endpoint(data.get("args"))
+            args = data.get("args", [])
+            if not isinstance(args, list):
+                args = [args]
+            endpoint: MessageEndpoints = endpoint(*args)
         else:
             endpoint: MessageEndpoints = endpoint()
 
-        await self._update_user_subscriptions(sid, endpoint.endpoint)
+        await self._update_user_subscriptions(sid, endpoint.endpoint, msg)
 
-    async def _update_user_subscriptions(self, sid: str, endpoint: str):
+    async def _update_user_subscriptions(self, sid: str, endpoint: str, endpoint_request: str):
         deployment = self.users[sid]["deployment"]
 
         endpoint_info = EndpointInfo(
@@ -335,20 +394,31 @@ class RedisWebsocket:
         )
 
         room = RedisAtlasEndpoints.socketio_endpoint_room(deployment, endpoint)
-        self.redis.register(endpoint_info, cb=self.on_redis_message, parent=self, room=room)
+        self.redis.register(
+            endpoint_info,
+            cb=self.on_redis_message,
+            parent=self,
+            room=room,
+            endpoint_request=endpoint_request,
+        )
         if endpoint not in self.users[sid]["subscriptions"]:
             await self.socket.enter_room(sid, room)
-            self.users[sid]["subscriptions"].append(endpoint)
+            self.users[sid]["subscriptions"].append((endpoint, endpoint_request))
             await self.socket.manager.update_websocket_states()
 
     @staticmethod
-    def on_redis_message(message, parent, room):
+    def on_redis_message(message, parent, room, endpoint_request):
         async def emit_message(message):
             if "pubsub_data" in message:
                 msg = message["pubsub_data"]
             else:
                 msg = message["data"]
-            outgoing = {"data": msg.content, "metadata": msg.metadata}
+            outgoing = {
+                "data": msg.content,
+                "metadata": msg.metadata,
+                "endpoint": room.split("/", 3)[-1],
+                "endpoint_request": endpoint_request,
+            }
             outgoing = json_ext.dumps(outgoing)
             await parent.socket.emit("message", data=outgoing, room=room)
 

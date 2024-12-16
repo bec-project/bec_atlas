@@ -1,0 +1,61 @@
+.gridster-container {
+  height: calc(100vh - 120px);
+  background-color: rgb(37, 94, 75);
+}
+.gridster-container-toolbar {
+  height: 50px;
+  background-color: aqua;
+}
+
+.gridster-container-toolbar .gridster-item {
+  background-color: aqua;
+}
+
+::ng-deep .gridster {
+  background-color: #848484;
+  padding: 2px;
+}
+
+::ng-deep  .gridster-edit{
+  background-color:#ca000093;
+  /* margin-top: 80px; */
+}
+
+::ng-deep  .gridster{
+  background-color:#ca000093;
+  /* margin-top: 80px; */
+}
+::ng-deep  .gridster-edit{
+  background-color:#ca000093;
+  /* margin-top: 80px; */
+}
+
+.gridster-item{
+  padding: 10px 15px;
+  background-color: #848484;
+  color: white;
+  border-radius: 2px; 
+  overflow: hidden;
+}
+
+// .gridster-container{
+//   /* top: 50px; */
+//   padding-bottom: 100px;
+//   padding-right: 20px;
+//   padding-left: 20px;
+
+//   height: calc(100vh - 120px);
+//   width: 100wh;
+//   overflow: hidden;
+// }
+
+.dashboard-item{
+  height:inherit;
+  overflow: inherit;
+  
+}
+
+.dashboard-edit{
+  float: right;
+  height: 36px;
+}

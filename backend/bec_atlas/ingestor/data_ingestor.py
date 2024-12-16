@@ -135,6 +135,9 @@ class DataIngestor:
 
         """
         while not self.shutdown_event.is_set():
+            if not self.available_deployments:
+                self.shutdown_event.wait(1)
+                continue
             streams = {
                 f"internal/deployment/{deployment['id']}/ingest": ">"
                 for deployment in self.available_deployments

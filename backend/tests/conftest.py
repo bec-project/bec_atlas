@@ -132,7 +132,12 @@ def backend(redis_container, mongo_container):
     redis_host, redis_port = redis_container
     mongo_host, mongo_port = mongo_container
     config = {
-        "redis": {"host": redis_host, "port": redis_port},
+        "redis": {
+            "host": redis_host,
+            "port": redis_port,
+            "username": "ingestor",
+            "password": "ingestor",
+        },
         "mongodb": {"host": mongo_host, "port": mongo_port},
     }
 

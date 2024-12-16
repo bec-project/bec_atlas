@@ -1,0 +1,37 @@
+
+:host {
+    display: block;
+    height: 100vh; /* Full-screen height */
+    width: 100vw; /* Full-screen width */
+    overflow: hidden;
+  }
+
+  .grid-stack {
+    display: block;
+    overflow: hidden;
+    height: 100%;
+    min-height: 100% !important;
+  }
+
+  .grid-stack-item-content {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    // background: #007bff;
+    // background-color: #18bc9c;
+    color: rgb(24, 7, 7);
+    // border: 1px solid #ddd;
+  }
+  $columns: 20;
+  @function fixed($float) {
+    @return round($float * 1000) / 1000; // total 2+3 digits being %
+  }
+  .gs-#{$columns} > .grid-stack-item {
+  
+    width: fixed(100% / $columns);
+  
+    @for $i from 1 through $columns - 1 {
+      &[gs-x='#{$i}'] { left: fixed((100% / $columns) * $i); }
+      &[gs-w='#{$i+1}'] { width: fixed((100% / $columns) * ($i+1)); }
+    }
+  }

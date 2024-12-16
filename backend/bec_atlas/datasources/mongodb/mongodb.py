@@ -1,5 +1,6 @@
 import json
 import os
+from typing import Literal
 
 import pymongo
 from bec_lib.logger import bec_logger
@@ -21,10 +22,21 @@ class MongoDBDatasource:
         """
         Connect to the MongoDB database.
         """
-        host = self.config.get("host", "localhost")
-        port = self.config.get("port", 27017)
+        host = self.config.get("host")
+        port = self.config.get("port")
+        username = self.config.get("username")
+        password = self.config.get("password")
+        if username and password:
+            self.client = pymongo.MongoClient(
+                f"mongodb://{username}:{password}@{host}:{port}/?authSource=bec_atlas"
+            )
+        else:
+            self.client = pymongo.MongoClient(f"mongodb://{host}:{port}/")
+
+        # Check if the connection is successful
+        self.client.list_databases()
+
         logger.info(f"Connecting to MongoDB at {host}:{port}")
-        self.client = pymongo.MongoClient(f"mongodb://{host}:{port}/")
         self.db = self.client["bec_atlas"]
         if include_setup:
             self.db["users"].create_index([("email", 1)], unique=True)
@@ -55,7 +67,7 @@ class MongoDBDatasource:
                 {
                     "email": "jane.doe@bec_atlas.ch",
                     "password": "atlas",
-                    "groups": ["demo_user"],
+                    "groups": ["demo"],
                     "first_name": "Jane",
                     "last_name": "Doe",
                     "owner_groups": ["admin"],
@@ -136,30 +148,91 @@ class MongoDBDatasource:
         out = self.db[collection].find(query_filter)
         return [dtype(**x) for x in out]
 
-    def add_user_filter(self, user: User, query_filter: dict) -> dict:
+    def aggregate(
+        self, collection: str, pipeline: list[dict], dtype: BaseModel, user: User | None = None
+    ) -> list[BaseModel]:
+        """
+        Aggregate documents in the collection.
+
+        Args:
+            collection (str): The collection name
+            pipeline (list[dict]): The aggregation pipeline
+            dtype (BaseModel): The data type to return
+            user (User): The user making the request
+
+        Returns:
+            list[BaseModel]: The data type with the document data
+        """
+        if user is not None:
+            # Add the user filter to the lookup pipeline
+
+            for pipe in pipeline:
+                if "$lookup" not in pipe:
+                    continue
+                if "pipeline" not in pipe["$lookup"]:
+                    continue
+                lookup = pipe["$lookup"]
+                lookup_pipeline = lookup["pipeline"]
+                access_filter = {"$match": self._read_only_user_filter(user)}
+                lookup_pipeline.insert(0, access_filter)
+            # pipeline = self.add_user_filter(user, pipeline)
+        out = self.db[collection].aggregate(pipeline)
+        return [dtype(**x) for x in out]
+
+    def add_user_filter(
+        self, user: User, query_filter: dict, operation: Literal["r", "w"] = "r"
+    ) -> dict:
         """
         Add the user filter to the query filter.
 
         Args:
             user (User): The user making the request
             query_filter (dict): The query filter
+            operation (Literal["r", "w"]): The operation to perform
+
+        Returns:
+            dict: The updated query filter
+        """
+        if operation == "r":
+            user_filter = self._read_only_user_filter(user)
+        else:
+            user_filter = self._write_user_filter(user)
+        if user_filter:
+            query_filter = {"$and": [query_filter, user_filter]}
+        return query_filter
+
+    def _read_only_user_filter(self, user: User) -> dict:
+        """
+        Add the user filter to the query filter.
+
+        Args:
+            user (User): The user making the request
 
         Returns:
             dict: The updated query filter
         """
         if "admin" not in user.groups:
-            query_filter = {
-                "$and": [
-                    query_filter,
-                    {
-                        "$or": [
-                            {"owner_groups": {"$in": user.groups}},
-                            {"access_groups": {"$in": user.groups}},
-                        ]
-                    },
+            return {
+                "$or": [
+                    {"owner_groups": {"$in": user.groups}},
+                    {"access_groups": {"$in": user.groups}},
                 ]
             }
-        return query_filter
+        return {}
+
+    def _write_user_filter(self, user: User) -> dict:
+        """
+        Add the user filter to the query filter.
+
+        Args:
+            user (User): The user making the request
+
+        Returns:
+            dict: The updated query filter
+        """
+        if "admin" not in user.groups:
+            return {"$or": [{"owner_groups": {"$in": user.groups}}]}
+        return {}
 
     def shutdown(self):
         """

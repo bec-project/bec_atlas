@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from bec_lib.redis_connector import RedisConnector
+from redis.asyncio import Redis as AsyncRedis
 from redis.exceptions import AuthenticationError
 
 if TYPE_CHECKING:
@@ -13,14 +14,26 @@ class RedisDatasource:
     def __init__(self, config: dict):
         self.config = config
         self.connector = RedisConnector(f"{config.get('host')}:{config.get('port')}")
+        username = config.get("username")
+        password = config.get("password")
 
         try:
-            self.connector._redis_conn.auth(config.get("password", "ingestor"), username="ingestor")
+            self.connector._redis_conn.auth(password, username=username)
             self.reconfigured_acls = False
         except AuthenticationError:
             self.setup_acls()
-            self.connector._redis_conn.auth(config.get("password", "ingestor"), username="ingestor")
+            self.connector._redis_conn.auth(password, username=username)
             self.reconfigured_acls = True
+
+        self.connector._redis_conn.connection_pool.connection_kwargs["username"] = username
+        self.connector._redis_conn.connection_pool.connection_kwargs["password"] = password
+
+        self.async_connector = AsyncRedis(
+            host=config.get("host"),
+            port=config.get("port"),
+            username="ingestor",
+            password=config.get("password"),
+        )
         print("Connected to Redis")
 
     def setup_acls(self):
@@ -32,7 +45,7 @@ class RedisDatasource:
         self.connector._redis_conn.acl_setuser(
             "ingestor",
             enabled=True,
-            passwords=f'+{self.config.get("password", "ingestor")}',
+            passwords=f'+{self.config.get("password")}',
             categories=["+@all"],
             keys=["*"],
             channels=["*"],
@@ -71,6 +84,8 @@ class RedisDatasource:
             channels=[
                 f"internal/deployment/{deployment.id}/*/state",
                 f"internal/deployment/{deployment.id}/*",
+                f"internal/deployment/{deployment.id}/request",
+                f"internal/deployment/{deployment.id}/request_response/*",
             ],
             commands=[f"+keys|internal/deployment/{deployment.id}/*/state"],
             reset_channels=True,

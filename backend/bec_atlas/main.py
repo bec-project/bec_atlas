@@ -1,17 +1,15 @@
-import socketio
 import uvicorn
 from fastapi import FastAPI
 
 from bec_atlas.datasources.datasource_manager import DatasourceManager
 from bec_atlas.router.deployments_router import DeploymentsRouter
 from bec_atlas.router.realm_router import RealmRouter
-from bec_atlas.router.redis_router import RedisWebsocket
+from bec_atlas.router.redis_router import RedisRouter, RedisWebsocket
 from bec_atlas.router.scan_router import ScanRouter
 from bec_atlas.router.user_router import UserRouter
 
 CONFIG = {
     "redis": {"host": "localhost", "port": 6380},
-    "scylla": {"hosts": ["localhost"]},
     "mongodb": {"host": "localhost", "port": 27017},
 }
 
@@ -40,6 +38,7 @@ class AtlasApp:
         self.datasources.shutdown()
 
     def add_routers(self):
+        # pylint: disable=attribute-defined-outside-init
         if not self.datasources.datasources:
             raise ValueError("Datasources not loaded")
         self.scan_router = ScanRouter(prefix=self.prefix, datasources=self.datasources)
@@ -50,12 +49,13 @@ class AtlasApp:
         self.app.include_router(self.deployment_router.router, tags=["Deployment"])
         self.realm_router = RealmRouter(prefix=self.prefix, datasources=self.datasources)
         self.app.include_router(self.realm_router.router, tags=["Realm"])
+        self.redis_router = RedisRouter(prefix=self.prefix, datasources=self.datasources)
+        self.app.include_router(self.redis_router.router, tags=["Redis"])
 
-        if "redis" in self.datasources.datasources:
-            self.redis_websocket = RedisWebsocket(
-                prefix=self.prefix, datasources=self.datasources, app=self
-            )
-            self.app.mount("/", self.redis_websocket.app)
+        self.redis_websocket = RedisWebsocket(
+            prefix=self.prefix, datasources=self.datasources, app=self
+        )
+        self.app.mount("/", self.redis_websocket.app)
 
     def run(self, port=8000):
         config = uvicorn.Config(self.app, host="localhost", port=port)
@@ -66,12 +66,18 @@ class AtlasApp:
 
 def main():
     import argparse
+    import logging
+
+    from bec_atlas.utils.env_loader import load_env
+
+    config = load_env()
+    logging.basicConfig(level=logging.INFO)
 
     parser = argparse.ArgumentParser(description="Run the BEC Atlas API")
     parser.add_argument("--port", type=int, default=8000, help="Port to run the API on")
 
     args = parser.parse_args()
-    horizon_app = AtlasApp()
+    horizon_app = AtlasApp(config=config)
     horizon_app.run(port=args.port)
 
 

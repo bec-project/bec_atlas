@@ -17,11 +17,16 @@ class DatasourceManager:
             datasource.connect()
 
     def load_datasources(self):
-        logger.info(f"Loading datasources with config: {self.config}")
         for datasource_name, datasource_config in self.config.items():
             if datasource_name == "redis":
+                logger.info(
+                    f"Loading Redis datasource. Host: {datasource_config.get('host')}, Port: {datasource_config.get('port')}, Username: {datasource_config.get('username')}"
+                )
                 self.datasources[datasource_name] = RedisDatasource(datasource_config)
             if datasource_name == "mongodb":
+                logger.info(
+                    f"Loading MongoDB datasource. Host: {datasource_config.get('host')}, Port: {datasource_config.get('port')}, Username: {datasource_config.get('username')}"
+                )
                 self.datasources[datasource_name] = MongoDBDatasource(datasource_config)
 
     def shutdown(self):
