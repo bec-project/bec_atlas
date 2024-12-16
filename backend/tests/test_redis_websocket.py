@@ -2,6 +2,8 @@ import json
 from unittest import mock
 
 import pytest
+from bec_atlas.router.redis_router import RedisAtlasEndpoints
+from bec_lib.endpoints import MessageEndpoints
 
 
 @pytest.fixture
@@ -18,7 +20,7 @@ def backend_client(backend):
 async def test_redis_websocket_connect(backend_client):
     client, app = backend_client
     await app.redis_websocket.socket.handlers["/"]["connect"](
-        "sid", {"HTTP_QUERY": '{"user": "test"}'}
+        "sid", {"HTTP_QUERY": '{"user": "test", "deployment": "test"}'}
     )
     assert "sid" in app.redis_websocket.users
 
@@ -35,10 +37,10 @@ async def test_redis_websocket_disconnect(backend_client):
 async def test_redis_websocket_multiple_connect(backend_client):
     client, app = backend_client
     await app.redis_websocket.socket.handlers["/"]["connect"](
-        "sid1", {"HTTP_QUERY": '{"user": "test1"}'}
+        "sid1", {"HTTP_QUERY": '{"user": "test", "deployment": "test"}'}
     )
     await app.redis_websocket.socket.handlers["/"]["connect"](
-        "sid2", {"HTTP_QUERY": '{"user": "test2"}'}
+        "sid2", {"HTTP_QUERY": '{"user": "test", "deployment": "test"}'}
     )
     assert "sid1" in app.redis_websocket.users
     assert "sid2" in app.redis_websocket.users
@@ -48,10 +50,10 @@ async def test_redis_websocket_multiple_connect(backend_client):
 async def test_redis_websocket_multiple_connect_same_sid(backend_client):
     client, app = backend_client
     await app.redis_websocket.socket.handlers["/"]["connect"](
-        "sid", {"HTTP_QUERY": '{"user": "test"}'}
+        "sid", {"HTTP_QUERY": '{"user": "test", "deployment": "test"}'}
     )
     await app.redis_websocket.socket.handlers["/"]["connect"](
-        "sid", {"HTTP_QUERY": '{"user": "test"}'}
+        "sid", {"HTTP_QUERY": '{"user": "test", "deployment": "test"}'}
     )
 
     assert "sid" in app.redis_websocket.users
@@ -84,16 +86,19 @@ async def test_redis_websocket_register(backend_client):
     client, app = backend_client
     with mock.patch.object(app.redis_websocket.socket, "emit") as emit:
         with mock.patch.object(app.redis_websocket.socket, "enter_room") as enter_room:
-            with mock.patch.object(app.redis_websocket.socket.manager, "rooms") as rooms:
-                rooms.__getitem__.return_value = {"ENDPOINT::scan_status": "sid"}
-                await app.redis_websocket.socket.handlers["/"]["connect"](
-                    "sid", {"HTTP_QUERY": '{"user": "test"}'}
-                )
+            await app.redis_websocket.socket.handlers["/"]["connect"](
+                "sid", {"HTTP_QUERY": '{"user": "test", "deployment": "test"}'}
+            )
 
-                await app.redis_websocket.socket.handlers["/"]["register"](
-                    "sid", json.dumps({"endpoint": "scan_status"})
-                )
-                assert mock.call("error", mock.ANY, room="sid") not in emit.mock_calls
-                enter_room.assert_called_with("sid", "ENDPOINT::scan_status")
+            await app.redis_websocket.socket.handlers["/"]["register"](
+                "sid", json.dumps({"endpoint": "scan_status"})
+            )
+            assert mock.call("error", mock.ANY, room="sid") not in emit.mock_calls
+            enter_room.assert_called_with(
+                "sid",
+                RedisAtlasEndpoints.socketio_endpoint_room(
+                    "test", MessageEndpoints.scan_status().endpoint
+                ),
+            )
 
             assert mock.call("error", mock.ANY, room="sid") not in emit.mock_calls

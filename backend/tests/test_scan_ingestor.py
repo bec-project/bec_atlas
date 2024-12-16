@@ -1,7 +1,6 @@
 import pytest
-from bec_lib import messages
-
 from bec_atlas.ingestor.data_ingestor import DataIngestor
+from bec_lib import messages
 
 
 @pytest.fixture
@@ -77,7 +76,7 @@ def test_scan_ingestor_create_scan(scan_ingestor, backend):
         },
         timestamp=1732610545.15924,
     )
-    scan_ingestor.update_scan_status(msg)
+    scan_ingestor.update_scan_status(msg, deployment_id="5cc67967-744d-4115-a46b-13246580cb3f")
 
     response = client.post(
         "/api/v1/user/login", json={"username": "admin@bec_atlas.ch", "password": "admin"}
@@ -94,7 +93,7 @@ def test_scan_ingestor_create_scan(scan_ingestor, backend):
     assert out["status"] == "open"
 
     msg.status = "closed"
-    scan_ingestor.update_scan_status(msg)
+    scan_ingestor.update_scan_status(msg, deployment_id="5cc67967-744d-4115-a46b-13246580cb3f")
     response = client.get(f"/api/v1/scans/id/{scan_id}")
     assert response.status_code == 200
     out = response.json()

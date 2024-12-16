@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any
 import socketio
 from bec_lib.endpoints import EndpointInfo, MessageEndpoints, MessageOp
 from bec_lib.logger import bec_logger
+from bec_lib.serialization import json_ext
 from fastapi import APIRouter
 
 from bec_atlas.router.base_router import BaseRouter
@@ -54,7 +55,7 @@ class RedisAtlasEndpoints:
         return f"internal/deployment/{deployment}/data/{endpoint}"
 
     @staticmethod
-    def socketio_endpoint_room(endpoint: str):
+    def socketio_endpoint_room(deployment: str, endpoint: str):
         """
         Endpoint for the socketio room for an endpoint.
 
@@ -64,7 +65,7 @@ class RedisAtlasEndpoints:
         Returns:
             str: The endpoint for the socketio room
         """
-        return f"ENDPOINT::{endpoint}"
+        return f"socketio/rooms/{deployment}/{endpoint}"
 
 
 class RedisRouter(BaseRouter):
@@ -333,7 +334,7 @@ class RedisWebsocket:
             RedisAtlasEndpoints.redis_data(deployment, endpoint), Any, MessageOp.STREAM
         )
 
-        room = RedisAtlasEndpoints.socketio_endpoint_room(endpoint)
+        room = RedisAtlasEndpoints.socketio_endpoint_room(deployment, endpoint)
         self.redis.register(endpoint_info, cb=self.on_redis_message, parent=self, room=room)
         if endpoint not in self.users[sid]["subscriptions"]:
             await self.socket.enter_room(sid, room)
@@ -348,7 +349,7 @@ class RedisWebsocket:
             else:
                 msg = message["data"]
             outgoing = {"data": msg.content, "metadata": msg.metadata}
-            outgoing = json.dumps(outgoing)
+            outgoing = json_ext.dumps(outgoing)
             await parent.socket.emit("message", data=outgoing, room=room)
 
         # Run the coroutine in this loop
