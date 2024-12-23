@@ -23,6 +23,7 @@ dependencies = [
     "websocket-client",
     "pydantic",
     "pymongo",
+    "ldap3",
 ]
 
 
