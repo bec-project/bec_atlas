@@ -1,0 +1,37 @@
+<mat-card>
+    <mat-toolbar color="primary">
+      Queue Table
+    </mat-toolbar>
+
+  <table mat-table [dataSource]="tableData()" class="mat-elevation-z8">
+    <!-- Queue ID Column -->
+    <ng-container matColumnDef="queue_id">
+      <th mat-header-cell *matHeaderCellDef> Queue ID </th>
+      <td mat-cell *matCellDef="let element"> {{ element.queue_id }} </td>
+    </ng-container>
+
+    <!-- Scan ID Column -->
+    <ng-container matColumnDef="scan_id">
+      <th mat-header-cell *matHeaderCellDef> Scan ID </th>
+      <td mat-cell *matCellDef="let element"> {{ element.scan_id }} </td>
+    </ng-container>
+
+    <!-- Scan Number Column -->
+    <ng-container matColumnDef="scan_number">
+      <th mat-header-cell *matHeaderCellDef> Scan Number </th>
+      <td mat-cell *matCellDef="let element"> {{ element.scan_number }} </td>
+    </ng-container>
+
+    <!-- Status Column -->
+    <ng-container matColumnDef="status">
+      <th mat-header-cell *matHeaderCellDef> Status </th>
+      <td mat-cell *matCellDef="let element"> {{ element.status }} </td>
+    </ng-container>
+    <!-- Header Row -->
+    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+    <!-- Data Rows -->
+    <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+  </table>
+</mat-card>
+
+  

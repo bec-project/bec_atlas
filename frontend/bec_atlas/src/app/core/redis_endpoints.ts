@@ -28,4 +28,16 @@ export class MessageEndpoints {
     };
     return out;
   }
+
+  /**
+   *
+   * @returns Endpoint for scan queue status
+   */
+  static scan_queue_status(): EndpointInfo {
+    const out: EndpointInfo = {
+      endpoint: 'scan_queue_status',
+      args: [],
+    };
+    return out;
+  }
 }

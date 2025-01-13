@@ -5,6 +5,7 @@ import { GridStackTestComponent } from './gridstack-test/gridstack-test.componen
 import { CommonModule } from '@angular/common';
 import { RedisConnectorService } from './core/redis-connector.service';
 import { DeviceBoxComponent } from './device-box/device-box.component';
+import { QueueTableComponent } from './queue-table/queue-table.component';
 
 @Component({
   selector: 'app-root',
@@ -14,6 +15,7 @@ import { DeviceBoxComponent } from './device-box/device-box.component';
     CommonModule,
     GridStackTestComponent,
     DeviceBoxComponent,
+    QueueTableComponent,
   ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',

@@ -23,11 +23,11 @@ export class RedisConnectorService {
       transports: ['websocket'], // Use WebSocket only
       autoConnect: true, // Automatically connect
       reconnection: true, // Enable automatic reconnection
-      timeout: 5000, // Connection timeout in milliseconds
+      timeout: 500, // Connection timeout in milliseconds
       auth: {
         user: 'john_doe',
         token: '1234',
-        deployment: '67599761f44165e0ad56ce0f',
+        deployment: '674739bc344eabfbabcff8bd',
       },
     });
 
@@ -43,9 +43,9 @@ export class RedisConnectorService {
     this.socket.on('message', (data: any) => {
       console.log('Received message:', data);
       const dataObj = JSON.parse(data);
-      const signal = this.signals.get(dataObj.endpoint_request);
-      if (signal) {
-        signal.set(dataObj);
+      const endpoint_signal = this.signals.get(dataObj.endpoint_request);
+      if (endpoint_signal) {
+        endpoint_signal.set(dataObj);
       }
     });
 
