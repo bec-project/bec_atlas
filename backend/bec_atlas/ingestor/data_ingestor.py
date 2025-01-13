@@ -194,6 +194,8 @@ class DataIngestor:
         out = self.datasource.db["sessions"].find_one(
             {"name": "_default_", "deployment_id": ObjectId(deployment_id)}
         )
+        if out is None:
+            return None
         return out["_id"]
 
     def update_scan_status(self, msg: messages.ScanStatusMessage, deployment_id: str):
@@ -215,6 +217,9 @@ class DataIngestor:
 
         if session_id == "_default_":
             session_id = self.get_default_session_id(deployment_id)
+            if session_id is None:
+                logger.error("Default session not found.")
+                return
 
         # scans are indexed by the scan_id, hence we can use find_one and search by the ObjectId
         data = self.datasource.db["scans"].find_one({"_id": msg.scan_id})
