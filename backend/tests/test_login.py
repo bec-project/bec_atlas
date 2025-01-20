@@ -36,11 +36,11 @@ def test_login_wrong_password(backend_client):
 @pytest.mark.timeout(60)
 def test_login_unknown_user(backend_client):
     """
-    Test that the login returns a 404 when the user is unknown.
+    Test that the login returns a 401 when the user is unknown.
     """
     response = backend_client.post(
         "/api/v1/user/login",
         json={"username": "no_user@bec_atlas.ch", "password": "wrong_password"},
     )
-    assert response.status_code == 404
+    assert response.status_code == 401
     assert response.json() == {"detail": "User not found or password is incorrect"}
