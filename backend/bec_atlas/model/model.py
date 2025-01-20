@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import uuid
 from typing import Any, Literal
 
 from bec_lib import messages
@@ -53,7 +52,6 @@ class UserInfo(BaseModel):
 class Deployments(MongoBaseModel, AccessProfile):
     realm_id: str | ObjectId
     name: str
-    deployment_key: str = Field(default_factory=lambda: str(uuid.uuid4()))
     active_session_id: str | ObjectId | None = None
     config_templates: list[str | ObjectId] = []
 
@@ -61,9 +59,55 @@ class Deployments(MongoBaseModel, AccessProfile):
 class DeploymentsPartial(MongoBaseModel, AccessProfilePartial):
     realm_id: str | ObjectId | None = None
     name: str | None = None
-    deployment_key: str | None = None
     active_session_id: str | ObjectId | None = None
     config_templates: list[str | ObjectId] | None = None
+
+
+class DeploymentCredential(MongoBaseModel):
+    credential: str
+
+
+class DeploymentAccess(MongoBaseModel, AccessProfile):
+    """
+    The DeploymentAccess model is used to store the access control
+    lists for the deployment. The access control lists are used to
+    control access to the BEC deployment and contain either user
+    or group names.
+    Once the access control lists are updated, the corresponding
+    BECAccessProfiles for this deployment are updated to reflect
+    the changes.
+
+    Owner: beamline staff
+    """
+
+    user_read_access: list[str] = []
+    user_write_access: list[str] = []
+    su_read_access: list[str] = []
+    su_write_access: list[str] = []
+    remote_access: list[str] = []
+
+
+class BECAccessProfile(MongoBaseModel, AccessProfile):
+    """
+    The BECAccessProfile model is used to store the Redis ACL config
+    for BEC of a user. The username can be either a user or a group.
+    The config fields (categories, keys, channels, commands) are determined
+    based on the access level given through the corresponding DeploymentAccess
+    document.
+
+    Owner: admin
+    Access: user or group matching the username
+
+    """
+
+    deployment_id: str | ObjectId
+    username: str
+    passwords: dict[str, str] = {}
+    categories: list[str] = []
+    keys: list[str] = []
+    channels: list[str] = []
+    commands: list[str] = []
+    profile: str = ""
 
 
 class Realm(MongoBaseModel, AccessProfile):

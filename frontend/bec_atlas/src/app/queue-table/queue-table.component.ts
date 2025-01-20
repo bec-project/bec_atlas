@@ -4,10 +4,11 @@ import { MatTableModule } from '@angular/material/table';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { RedisConnectorService } from '../core/redis-connector.service';
 import { MessageEndpoints } from '../core/redis_endpoints';
+import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-queue-table',
-  imports: [MatCardModule, MatTableModule, MatToolbarModule],
+  imports: [MatCardModule, MatTableModule, MatToolbarModule, CommonModule],
   templateUrl: './queue-table.component.html',
   styleUrl: './queue-table.component.scss',
 })

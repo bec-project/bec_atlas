@@ -39,13 +39,14 @@ class UserRouter(BaseRouter):
         return {"access_token": out, "token_type": "bearer"}
 
     async def user_login(self, user_login: UserLoginRequest):
+        exc = HTTPException(status_code=401, detail="User not found or password is incorrect")
         user = self.db.get_user_by_email(user_login.username)
         if user is None:
-            raise HTTPException(status_code=404, detail="User not found")
+            raise exc
         credentials = self.db.get_user_credentials(user.id)
         if credentials is None:
-            raise HTTPException(status_code=404, detail="User not found")
+            raise exc
         if not verify_password(user_login.password, credentials.password):
-            raise HTTPException(status_code=401, detail="Invalid password")
+            raise exc
 
         return create_access_token(data={"groups": list(user.groups), "email": user.email})

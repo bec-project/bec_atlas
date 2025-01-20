@@ -1,17 +1,34 @@
 import {
+  APP_INITIALIZER,
   ApplicationConfig,
-  provideEnvironmentInitializer,
   provideZoneChangeDetection,
 } from '@angular/core';
 import { provideRouter } from '@angular/router';
 
 import { routes } from './app.routes';
-import { GridstackComponent } from 'gridstack/dist/angular';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
+import { AppConfigService } from './app-config.service';
+import {
+  provideHttpClient,
+  withInterceptorsFromDi,
+} from '@angular/common/http';
+
+const appConfigInitializerFn = (appConfig: AppConfigService) => {
+  return () => appConfig.loadAppConfig();
+};
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideZoneChangeDetection({ eventCoalescing: true }),
-    provideRouter(routes), provideAnimationsAsync(),
+    provideRouter(routes),
+    provideAnimationsAsync(),
+    provideHttpClient(withInterceptorsFromDi()),
+    AppConfigService,
+    {
+      provide: APP_INITIALIZER,
+      useFactory: appConfigInitializerFn,
+      deps: [AppConfigService],
+      multi: true,
+    },
   ],
 };

@@ -1,0 +1,36 @@
+// @import "../styles/colors";
+
+.login-form-flex {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0.95;
+}
+
+.background-image {
+  background-image: url("../../assets/psi_background.jpg");
+  filter: blur(4px);
+  -webkit-filter: blur(4px);
+  height: 100vh;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+.mat-form-field {
+  width: 100%;
+  padding-top: 20px;
+}
+
+.mat-card-actions {
+  width: 100%;
+  justify-content: center;
+  align-items: center;
+}
+
+.tab-container {
+  padding: 0px;
+  margin: 0px;
+  overflow: hidden;
+}

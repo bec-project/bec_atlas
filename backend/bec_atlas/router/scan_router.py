@@ -12,14 +12,14 @@ class ScanRouter(BaseRouter):
         self.db: MongoDBDatasource = self.datasources.datasources.get("mongodb")
         self.router = APIRouter(prefix=prefix)
         self.router.add_api_route(
-            "/scans/session/{session_id}",
+            "/scans/session",
             self.scans,
             methods=["GET"],
             description="Get all scans for a session",
             response_model=list[ScanStatus],
         )
         self.router.add_api_route(
-            "/scans/id/{scan_id}",
+            "/scans/id",
             self.scans_with_id,
             methods=["GET"],
             description="Get a single scan by id for a session",

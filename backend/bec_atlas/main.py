@@ -1,7 +1,11 @@
 import uvicorn
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from bec_atlas.datasources.datasource_manager import DatasourceManager
+from bec_atlas.router.bec_access_router import BECAccessRouter
+from bec_atlas.router.deployment_access_router import DeploymentAccessRouter
+from bec_atlas.router.deployment_credentials import DeploymentCredentialsRouter
 from bec_atlas.router.deployments_router import DeploymentsRouter
 from bec_atlas.router.realm_router import RealmRouter
 from bec_atlas.router.redis_router import RedisRouter, RedisWebsocket
@@ -13,6 +17,8 @@ CONFIG = {
     "mongodb": {"host": "localhost", "port": 27017},
 }
 
+origins = ["http://localhost:4200", "http://localhost"]
+
 
 class AtlasApp:
     API_VERSION = "v1"
@@ -20,6 +26,13 @@ class AtlasApp:
     def __init__(self, config=None):
         self.config = config or CONFIG
         self.app = FastAPI()
+        self.app.add_middleware(
+            CORSMiddleware,
+            allow_origins=origins,
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
         self.server = None
         self.prefix = f"/api/{self.API_VERSION}"
         self.datasources = DatasourceManager(config=self.config)
@@ -43,12 +56,31 @@ class AtlasApp:
             raise ValueError("Datasources not loaded")
         self.scan_router = ScanRouter(prefix=self.prefix, datasources=self.datasources)
         self.app.include_router(self.scan_router.router, tags=["Scan"])
+
         self.user_router = UserRouter(prefix=self.prefix, datasources=self.datasources)
         self.app.include_router(self.user_router.router, tags=["User"])
+
         self.deployment_router = DeploymentsRouter(prefix=self.prefix, datasources=self.datasources)
         self.app.include_router(self.deployment_router.router, tags=["Deployment"])
+
+        self.deployment_credentials_router = DeploymentCredentialsRouter(
+            prefix=self.prefix, datasources=self.datasources
+        )
+        self.app.include_router(
+            self.deployment_credentials_router.router, tags=["Deployment Credentials"]
+        )
+
+        self.deployment_access_router = DeploymentAccessRouter(
+            prefix=self.prefix, datasources=self.datasources
+        )
+        self.app.include_router(self.deployment_access_router.router, tags=["Deployment Access"])
+
+        self.bec_access_router = BECAccessRouter(prefix=self.prefix, datasources=self.datasources)
+        self.app.include_router(self.bec_access_router.router, tags=["BEC Access"])
+
         self.realm_router = RealmRouter(prefix=self.prefix, datasources=self.datasources)
         self.app.include_router(self.realm_router.router, tags=["Realm"])
+
         self.redis_router = RedisRouter(prefix=self.prefix, datasources=self.datasources)
         self.app.include_router(self.redis_router.router, tags=["Redis"])
 

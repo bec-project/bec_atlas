@@ -1,3 +1,5 @@
+import secrets
+
 import pymongo
 
 from bec_atlas.model import Deployments, Realm, Session
@@ -43,8 +45,29 @@ class DemoSetupLoader:
             owner_groups=["admin", "demo"],
             access_groups=["demo"],
         )
-        if self.db["deployments"].find_one({"name": deployment.name}) is None:
+        existing_deployment = self.db["deployments"].find_one({"name": deployment.name})
+        if existing_deployment is None:
             self.db["deployments"].insert_one(deployment.__dict__)
+            existing_deployment = self.db["deployments"].find_one({"name": deployment.name})
+        deployment = existing_deployment
+
+        if self.db["deployment_credentials"].find_one({"_id": deployment["_id"]}) is None:
+            deployment_credential = {
+                "_id": deployment["_id"],
+                "credential": secrets.token_urlsafe(32),
+            }
+            self.db["deployment_credentials"].insert_one(deployment_credential)
+            deployment_access = {
+                "_id": deployment["_id"],
+                "owner_groups": ["admin", "demo"],
+                "access_groups": [],
+                "user_read_access": [],
+                "user_write_access": [],
+                "su_read_access": [],
+                "su_write_access": [],
+                "remote_access": [],
+            }
+            self.db["deployment_access"].insert_one(deployment_access)
 
         if self.db["sessions"].find_one({"name": "_default_"}) is None:
             deployment = self.db["deployments"].find_one({"name": deployment.name})

@@ -95,6 +95,19 @@ class RedisAtlasEndpoints:
         """
         return f"internal/deployment/{deployment}/request_response/{request_id}"
 
+    @staticmethod
+    def redis_bec_acl_user(deployment_id: str):
+        """
+        Endpoint for the redis BEC ACL user for a deployment.
+
+        Args:
+            deployment_id (str): The deployment id
+
+        Returns:
+            str: The endpoint for the redis BEC ACL user
+        """
+        return f"internal/deployment/{deployment_id}/bec_access"
+
 
 class MsgResponse(Response):
     media_type = "application/json"
@@ -115,7 +128,7 @@ class RedisRouter(BaseRouter):
 
         self.router = APIRouter(prefix=prefix)
         self.router.add_api_route(
-            "/redis/{deployment}", self.redis_get, methods=["GET"], response_class=MsgResponse
+            "/redis", self.redis_get, methods=["GET"], response_class=MsgResponse
         )
         self.router.add_api_route("/redis", self.redis_post, methods=["POST"])
         self.router.add_api_route("/redis", self.redis_delete, methods=["DELETE"])

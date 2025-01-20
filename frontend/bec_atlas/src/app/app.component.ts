@@ -14,8 +14,6 @@ import { QueueTableComponent } from './queue-table/queue-table.component';
     DashboardComponent,
     CommonModule,
     GridStackTestComponent,
-    DeviceBoxComponent,
-    QueueTableComponent,
   ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',

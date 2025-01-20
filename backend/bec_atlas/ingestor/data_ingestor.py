@@ -163,7 +163,7 @@ class DataIngestor:
                 self.handle_message(out, deployment_id)
                 self.redis._redis_conn.xack(stream, "ingestor", message[0])
 
-    def handle_message(self, msg_dict: dict, deploymend_id: str):
+    def handle_message(self, msg_dict: dict, deployment_id: str):
         """
         Handle a message from the Redis queue.
 
@@ -177,7 +177,7 @@ class DataIngestor:
             return
 
         if isinstance(data, messages.ScanStatusMessage):
-            self.update_scan_status(data, deploymend_id)
+            self.update_scan_status(data, deployment_id)
 
     @lru_cache()
     def get_default_session_id(self, deployment_id: str):

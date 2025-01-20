@@ -27,13 +27,13 @@ export class RedisConnectorService {
       auth: {
         user: 'john_doe',
         token: '1234',
-        deployment: '674739bc344eabfbabcff8bd',
+        deployment: '678aa8d4875568640bd92176',
       },
     });
 
-    this.socket.onAny((event, ...args) => {
-      console.log('Received event:', event, 'with data:', args);
-    });
+    // this.socket.onAny((event, ...args) => {
+    //   // console.log('Received event:', event, 'with data:', args);
+    // });
 
     this.socket.on('connect', () => {
       console.log('Connected to WebSocket server');
@@ -41,7 +41,7 @@ export class RedisConnectorService {
     });
 
     this.socket.on('message', (data: any) => {
-      console.log('Received message:', data);
+      // console.log('Received message:', data);
       const dataObj = JSON.parse(data);
       const endpoint_signal = this.signals.get(dataObj.endpoint_request);
       if (endpoint_signal) {

@@ -7,7 +7,7 @@ from redis.asyncio import Redis as AsyncRedis
 from redis.exceptions import AuthenticationError
 
 if TYPE_CHECKING:
-    from bec_atlas.model.model import Deployments
+    from bec_atlas.model.model import DeploymentCredential
 
 
 class RedisDatasource:
@@ -63,31 +63,35 @@ class RedisDatasource:
             "default", enabled=True, categories=["-@all"], commands=["+auth", "+acl|whoami"]
         )
 
-    def add_deployment_acl(self, deployment: Deployments):
+    def add_deployment_acl(self, deployment_credential: DeploymentCredential):
         """
         Add ACLs for the deployment.
 
         Args:
             deployment (Deployments): The deployment object
         """
-        print(f"Adding ACLs for deployment <{deployment.name}>({deployment.id})")
+        print(f"Adding ACLs for deployment {deployment_credential.id}")
+        dep_id = deployment_credential.id
+        dep_key = deployment_credential.credential
         self.connector._redis_conn.acl_setuser(
-            f"ingestor_{deployment.id}",
+            f"ingestor_{dep_id}",
             enabled=True,
-            passwords=f"+{deployment.deployment_key}",
+            passwords=f"+{dep_key}",
             categories=["+@all", "-@dangerous"],
             keys=[
-                f"internal/deployment/{deployment.id}/*",
-                f"internal/deployment/{deployment.id}/*/state",
-                f"internal/deployment/{deployment.id}/*/data/*",
+                f"internal/deployment/{dep_id}/*",
+                f"internal/deployment/{dep_id}/*/state",
+                f"internal/deployment/{dep_id}/*/data/*",
+                f"internal/deployment/{dep_id}/bec_access",
             ],
             channels=[
-                f"internal/deployment/{deployment.id}/*/state",
-                f"internal/deployment/{deployment.id}/*",
-                f"internal/deployment/{deployment.id}/request",
-                f"internal/deployment/{deployment.id}/request_response/*",
+                f"internal/deployment/{dep_id}/*/state",
+                f"internal/deployment/{dep_id}/*",
+                f"internal/deployment/{dep_id}/request",
+                f"internal/deployment/{dep_id}/request_response/*",
+                f"internal/deployment/{dep_id}/bec_access",
             ],
-            commands=[f"+keys|internal/deployment/{deployment.id}/*/state"],
+            commands=[f"+keys|internal/deployment/{dep_id}/*/state"],
             reset_channels=True,
             reset_keys=True,
         )

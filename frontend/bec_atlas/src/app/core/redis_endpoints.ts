@@ -40,4 +40,16 @@ export class MessageEndpoints {
     };
     return out;
   }
+
+  /**
+   *
+   * @returns Endpoint for device monitor 2d
+   */
+  static device_monitor_2d(device: string): EndpointInfo {
+    const out: EndpointInfo = {
+      endpoint: 'device_monitor_2d',
+      args: [device],
+    };
+    return out;
+  }
 }

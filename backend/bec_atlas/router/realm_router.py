@@ -20,7 +20,7 @@ class RealmRouter(BaseRouter):
             response_model_exclude_none=True,
         )
         self.router.add_api_route(
-            "/realms/{realm_id}",
+            "/realms/id",
             self.realm_with_id,
             methods=["GET"],
             description="Get a single realm by id",
