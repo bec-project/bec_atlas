@@ -30,7 +30,7 @@ def test_login_wrong_password(backend_client):
         "/api/v1/user/login", json={"username": "admin@bec_atlas.ch", "password": "wrong_password"}
     )
     assert response.status_code == 401
-    assert response.json() == {"detail": "Invalid password"}
+    assert response.json() == {"detail": "User not found or password is incorrect"}
 
 
 @pytest.mark.timeout(60)
@@ -43,4 +43,4 @@ def test_login_unknown_user(backend_client):
         json={"username": "no_user@bec_atlas.ch", "password": "wrong_password"},
     )
     assert response.status_code == 404
-    assert response.json() == {"detail": "User not found"}
+    assert response.json() == {"detail": "User not found or password is incorrect"}
