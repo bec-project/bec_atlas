@@ -1,7 +1,6 @@
 import secrets
 
 import pymongo
-
 from bec_atlas.model import Deployments, Realm, Session
 
 
@@ -70,7 +69,7 @@ class DemoSetupLoader:
             self.db["deployment_access"].insert_one(deployment_access)
 
         if self.db["sessions"].find_one({"name": "_default_"}) is None:
-            deployment = self.db["deployments"].find_one({"name": deployment.name})
+            deployment = self.db["deployments"].find_one({"name": deployment["name"]})
             default_session = Session(
                 owner_groups=["admin", "demo"],
                 access_groups=["demo"],
