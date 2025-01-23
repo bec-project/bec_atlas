@@ -1,0 +1,50 @@
+<div class="background-image"></div>
+<div class="login-form-flex">
+  <!-- <mat-card
+    class="mat-card"
+    (click)="selection('admin')"
+    *ngIf="hasAdminAccess"
+  >
+    <mat-card-title>
+      <mat-icon class="icon-display"> admin_panel_settings</mat-icon>
+    </mat-card-title>
+    <mat-card-content class="content-container"> Admin Area </mat-card-content>
+  </mat-card> -->
+
+  <mat-card class="mat-card" (click)="selection('data')">
+    <mat-card-title>
+      <mat-icon class="icon-display">analytics</mat-icon>
+    </mat-card-title>
+    <mat-card-content class="content-container">
+      Data Browser
+    </mat-card-content>
+  </mat-card>
+
+  <mat-card
+    class="mat-card"
+    (click)="selection('data')"
+    matTooltip="Open the Experiment Control Area"
+    *ngIf="hasExperimentControlAccess"
+  >
+    <mat-card-title>
+      <mat-icon class="icon-display">science</mat-icon>
+    </mat-card-title>
+    <mat-card-content class="content-container">
+      Beamline Access
+    </mat-card-content>
+  </mat-card>
+
+  <!-- <mat-card
+    class="mat-card"
+    (click)="selection('data')"
+    *ngIf="!hasExperimentControlAccess && !hasAdminAccess"
+  >
+    <mat-card-title>
+      <mat-icon class="icon-display">warning</mat-icon>
+    </mat-card-title>
+    <mat-card-content class="content-container">
+      You currently don't have access to any beamline. If you think this is a
+      mistake, please contact your beamline manager.
+    </mat-card-content>
+  </mat-card> -->
+</div>

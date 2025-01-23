@@ -1,0 +1,55 @@
+.login-form-flex {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  text-align: center;
+  opacity: 0.95;
+}
+
+.background-image {
+  background-image: url("../../assets/psi_background.jpg");
+  filter: blur(4px);
+  -webkit-filter: blur(4px);
+  height: 100vh;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+.mat-card {
+  /* padding: 30px; */
+  box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.2), 0 2px 8px 0 rgba(0, 0, 0, 0.14),
+    0 4px 8px -1px rgba(0, 0, 0, 0.12);
+  display: inline-block;
+  margin: 10px;
+  background-color: var(--mat-sys-surface);
+  color: var(--mat-sys-on-surface);
+}
+
+.mat-form-field {
+  width: 100%;
+}
+
+.mat-card-actions {
+  width: 100%;
+  /* justify-content:right; */
+  align-items: center;
+}
+
+.errorText {
+  color: rgb(194, 0, 0);
+}
+
+.content-container {
+  padding-top: 20px;
+}
+
+.icon-display {
+  padding: 10px;
+  transform: scale(2);
+}
+// .material-symbols-outlined {
+//   transform: scale(2);
+// }

@@ -1,5 +1,5 @@
 /* You can add global styles to this file, and also import other style files */
-@use '@angular/material' as mat;
+@use "@angular/material" as mat;
 @import "gridstack/dist/gridstack.min.css";
 @import "gridstack/dist/gridstack-extra.min.css";
 
@@ -8,38 +8,46 @@
 //     width: 100%; /* Ensure the grid uses the full width */
 //     height: 100%; /* Ensure grid height is sufficient */
 //   }
-  
+
 //   gridstack-item {
 //     display: block;
 //   }
-  
-html, body { height: 100%; }
-body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
 
-
+html,
+body {
+  height: 100%;
+}
+body {
+  margin: 0;
+  font-family: Roboto, "Helvetica Neue", sans-serif;
+}
 
 html {
-    color-scheme: light dark;
-  
-    // Light theme
-    @media (prefers-color-scheme: light) {
-      @include mat.theme((
-        color: mat.$violet-palette,
+  color-scheme: light dark;
+
+  // Light theme
+  @media (prefers-color-scheme: light) {
+    @include mat.theme(
+      (
+        color: mat.$cyan-palette,
         typography: Roboto,
-        density: 0
-      ), $overrides: (
-        primary-container: orange, // Light-specific override
-      ));
-    }
-  
-    // Dark theme
-    @media (prefers-color-scheme: dark) {
-      @include mat.theme((
-        color: mat.$violet-palette,
-        typography: Roboto,
-        density: 0
-      ), $overrides: (
-        primary-container: darkorange, // Dark-specific override
-      ));
-    }
+        density: 0,
+      ),
+      $overrides: (primary-container: orange),
+      // Light-specific override)
+    );
   }
+
+  // Dark theme
+  @media (prefers-color-scheme: dark) {
+    @include mat.theme(
+      (
+        color: mat.$cyan-palette,
+        typography: Roboto,
+        density: 0,
+      ),
+      $overrides: (primary-container: darkorange),
+      // Dark-specific override)
+    );
+  }
+}

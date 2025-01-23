@@ -1,44 +1,43 @@
-
 .device-box {
-    max-width: 100px;
-    max-height: 100px;
+  max-width: 100px;
+  max-height: 100px;
 }
 .center-content {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 100%; /* Ensures the mat-card-content takes the full height */
-    text-align: center; /* Centers text within the content */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%; /* Ensures the mat-card-content takes the full height */
+  text-align: center; /* Centers text within the content */
 }
 
 mat-card {
-    width: 100%; /* Ensure card takes the full width of its container */
-    height: 100%; /* Ensure card takes the full height of its container */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--mat-sys-secondary-container);
-    color: var(--mat-sys-on-secondary-container);
+  width: 100%; /* Ensure card takes the full width of its container */
+  height: 100%; /* Ensure card takes the full height of its container */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--mat-sys-secondary-container);
+  color: var(--mat-sys-on-secondary-container);
 }
 
 mat-card.inner-card {
-    flex-grow: 1;
-    width: 100%;
-    height: auto; /* Adjust height as needed */
-    border-top-left-radius: 0px; /* Removes border radius */
-    border-top-right-radius: 0px; /* Removes border radius */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    color: var(--mat-sys-on-primary); /* Sets the text color */
-    background: var(--mat-sys-primary) /* Sets the background color */
+  flex-grow: 1;
+  width: 100%;
+  height: auto; /* Adjust height as needed */
+  border-top-left-radius: 0px; /* Removes border radius */
+  border-top-right-radius: 0px; /* Removes border radius */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  color: var(--mat-sys-on-primary); /* Sets the text color */
+  background: var(--mat-sys-primary); /* Sets the background color */
 }
 
 mat-card-content {
-    text-align: center; /* Ensures text itself is centered */
+  text-align: center; /* Ensures text itself is centered */
 }
 
 mat-card-title {
-    font-size: 0.8em; /* Increases the font size of the title */
+  font-size: 0.8em; /* Increases the font size of the title */
 }
