@@ -136,7 +136,14 @@ class MongoDBDatasource:
         return dtype(**out)
 
     def find(
-        self, collection: str, query_filter: dict, dtype: Type[T], user: User | None = None
+        self,
+        collection: str,
+        query_filter: dict,
+        dtype: Type[T],
+        limit: int = 0,
+        offset: int = 0,
+        fields: list[str] = None,
+        user: User | None = None,
     ) -> list[T]:
         """
         Find all documents in the collection.
@@ -152,7 +159,7 @@ class MongoDBDatasource:
         """
         if user is not None:
             query_filter = self.add_user_filter(user, query_filter)
-        out = self.db[collection].find(query_filter)
+        out = self.db[collection].find(query_filter, limit=limit, skip=offset, projection=fields)
         return [dtype(**x) for x in out]
 
     def post(self, collection: str, data: dict, dtype: Type[T], user: User | None = None) -> T:
@@ -251,6 +258,7 @@ class MongoDBDatasource:
                 access_filter = {"$match": self._read_only_user_filter(user)}
                 lookup_pipeline.insert(0, access_filter)
             # pipeline = self.add_user_filter(user, pipeline)
+
         out = self.db[collection].aggregate(pipeline)
         return [dtype(**x) for x in out]
 

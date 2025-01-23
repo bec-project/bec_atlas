@@ -55,7 +55,7 @@ class DataIngestor:
         """
         out = self.redis.get("deployments")
         if out:
-            self.available_deployments = json.loads(out)
+            self.available_deployments = out.data
             self.update_consumer_groups()
         self.deployment_listener_thread = threading.Thread(
             target=self.update_available_deployments, name="deployment_listener"
@@ -192,7 +192,7 @@ class DataIngestor:
 
         """
         out = self.datasource.db["sessions"].find_one(
-            {"name": "_default_", "deployment_id": ObjectId(deployment_id)}
+            {"name": "_default_", "deployment_id": deployment_id}
         )
         if out is None:
             return None
@@ -232,7 +232,7 @@ class DataIngestor:
             out["_id"] = msg.scan_id
 
             # TODO for compatibility with the old message format; remove once the bec_lib is updated
-            out["session_id"] = session_id
+            out["session_id"] = str(session_id)
 
             self.datasource.db["scans"].insert_one(out)
         else:

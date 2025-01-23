@@ -1,10 +1,26 @@
 from __future__ import annotations
 
-from typing import Any, Literal
+from types import UnionType
+from typing import Any, Literal, Optional, Type, TypeVar, Union
 
 from bec_lib import messages
 from bson import ObjectId
-from pydantic import BaseModel, ConfigDict, Field, field_serializer
+from pydantic import BaseModel, ConfigDict, Field, create_model, field_serializer
+
+T = TypeVar("T")
+
+
+def make_all_fields_optional(model: Type[T], model_name: str) -> Type[T]:
+    """Convert all fields in a Pydantic model to Optional."""
+
+    # create a dictionary of fields with the same name but with the type Optional[field]
+    # and a default value of None
+    fields = {}
+
+    for name, field in model.__fields__.items():
+        fields[name] = (field.annotation, None)
+
+    return create_model(model_name, **fields, __config__=model.model_config)
 
 
 class MongoBaseModel(BaseModel):
@@ -29,7 +45,11 @@ class AccessProfilePartial(AccessProfile):
     access_groups: list[str] | None = None
 
 
-class ScanStatus(MongoBaseModel, AccessProfile, messages.ScanStatusMessage): ...
+class ScanStatus(MongoBaseModel, AccessProfile, messages.ScanStatusMessage):
+    user_data: ScanUserData | None = None
+
+
+ScanStatusPartial = make_all_fields_optional(ScanStatus, "ScanStatusPartial")
 
 
 class UserCredentials(MongoBaseModel, AccessProfile):
@@ -167,14 +187,12 @@ class DatasetUserData(AccessProfile):
     model_config = ConfigDict(populate_by_name=True, arbitrary_types_allowed=True)
 
 
-class ScanUserData(AccessProfile):
+class ScanUserData(MongoBaseModel, AccessProfile):
     scan_id: str
-    name: str
-    rating: int
-    comments: str
-    preview: bytes
-
-    model_config = ConfigDict(populate_by_name=True, arbitrary_types_allowed=True)
+    name: str | None = None
+    rating: int | None = None
+    comments: str | None = None
+    preview: bytes | None = None
 
 
 class DeviceConfig(AccessProfile):

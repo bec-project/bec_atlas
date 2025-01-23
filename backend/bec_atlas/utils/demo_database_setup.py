@@ -74,7 +74,7 @@ class DemoSetupLoader:
             default_session = Session(
                 owner_groups=["admin", "demo"],
                 access_groups=["demo"],
-                deployment_id=deployment["_id"],
+                deployment_id=str(deployment["_id"]),
                 name="_default_",
             )
             self.db["sessions"].insert_one(default_session.model_dump(exclude_none=True))
