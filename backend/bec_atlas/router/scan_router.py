@@ -35,7 +35,7 @@ class ScanRouter(BaseRouter):
         Args:
             session_id (str): The session id
         """
-        return self.db.find("scans", {"session_id": session_id}, ScanStatus)
+        return self.db.find("scans", {"session_id": session_id}, ScanStatus, user=current_user)
 
     async def scans_with_id(self, scan_id: str, current_user: UserInfo = Depends(get_current_user)):
         """
@@ -44,4 +44,4 @@ class ScanRouter(BaseRouter):
         Args:
             scan_id (str): The scan id
         """
-        return self.db.find_one("scans", {"_id": scan_id}, ScanStatus)
+        return self.db.find_one("scans", {"_id": scan_id}, ScanStatus, user=current_user)
