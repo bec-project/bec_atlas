@@ -10,6 +10,7 @@ from bec_atlas.router.deployments_router import DeploymentsRouter
 from bec_atlas.router.realm_router import RealmRouter
 from bec_atlas.router.redis_router import RedisRouter, RedisWebsocket
 from bec_atlas.router.scan_router import ScanRouter
+from bec_atlas.router.session_router import SessionRouter
 from bec_atlas.router.user_router import UserRouter
 
 CONFIG = {
@@ -54,15 +55,20 @@ class AtlasApp:
         # pylint: disable=attribute-defined-outside-init
         if not self.datasources.datasources:
             raise ValueError("Datasources not loaded")
-        self.scan_router = ScanRouter(prefix=self.prefix, datasources=self.datasources)
-        self.app.include_router(self.scan_router.router, tags=["Scan"])
 
+        # User
         self.user_router = UserRouter(prefix=self.prefix, datasources=self.datasources)
         self.app.include_router(self.user_router.router, tags=["User"])
 
+        # Realm
+        self.realm_router = RealmRouter(prefix=self.prefix, datasources=self.datasources)
+        self.app.include_router(self.realm_router.router, tags=["Realm"])
+
+        # Deployment
         self.deployment_router = DeploymentsRouter(prefix=self.prefix, datasources=self.datasources)
         self.app.include_router(self.deployment_router.router, tags=["Deployment"])
 
+        # Deployment Credentials
         self.deployment_credentials_router = DeploymentCredentialsRouter(
             prefix=self.prefix, datasources=self.datasources
         )
@@ -70,17 +76,25 @@ class AtlasApp:
             self.deployment_credentials_router.router, tags=["Deployment Credentials"]
         )
 
+        # Deployment Access
         self.deployment_access_router = DeploymentAccessRouter(
             prefix=self.prefix, datasources=self.datasources
         )
         self.app.include_router(self.deployment_access_router.router, tags=["Deployment Access"])
 
+        # BEC Access
         self.bec_access_router = BECAccessRouter(prefix=self.prefix, datasources=self.datasources)
         self.app.include_router(self.bec_access_router.router, tags=["BEC Access"])
 
-        self.realm_router = RealmRouter(prefix=self.prefix, datasources=self.datasources)
-        self.app.include_router(self.realm_router.router, tags=["Realm"])
+        # Session
+        self.session_router = SessionRouter(prefix=self.prefix, datasources=self.datasources)
+        self.app.include_router(self.session_router.router, tags=["Session"])
 
+        # Scan
+        self.scan_router = ScanRouter(prefix=self.prefix, datasources=self.datasources)
+        self.app.include_router(self.scan_router.router, tags=["Scan"])
+
+        # Redis
         self.redis_router = RedisRouter(prefix=self.prefix, datasources=self.datasources)
         self.app.include_router(self.redis_router.router, tags=["Redis"])
 

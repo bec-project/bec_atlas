@@ -114,7 +114,12 @@ class MongoDBDatasource:
         return UserCredentials(**out)
 
     def find_one(
-        self, collection: str, query_filter: dict, dtype: Type[T], user: User | None = None
+        self,
+        collection: str,
+        query_filter: dict,
+        dtype: Type[T],
+        fields: list[str] = None,
+        user: User | None = None,
     ) -> T | None:
         """
         Find one document in the collection.
@@ -130,7 +135,7 @@ class MongoDBDatasource:
         """
         if user is not None:
             query_filter = self.add_user_filter(user, query_filter)
-        out = self.db[collection].find_one(query_filter)
+        out = self.db[collection].find_one(query_filter, projection=fields)
         if out is None:
             return None
         return dtype(**out)
@@ -143,6 +148,7 @@ class MongoDBDatasource:
         limit: int = 0,
         offset: int = 0,
         fields: list[str] = None,
+        sort: list[str] = None,
         user: User | None = None,
     ) -> list[T]:
         """
@@ -159,7 +165,9 @@ class MongoDBDatasource:
         """
         if user is not None:
             query_filter = self.add_user_filter(user, query_filter)
-        out = self.db[collection].find(query_filter, limit=limit, skip=offset, projection=fields)
+        out = self.db[collection].find(
+            query_filter, limit=limit, skip=offset, projection=fields, sort=sort
+        )
         return [dtype(**x) for x in out]
 
     def post(self, collection: str, data: dict, dtype: Type[T], user: User | None = None) -> T:

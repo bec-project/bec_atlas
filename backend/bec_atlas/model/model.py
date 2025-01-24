@@ -70,14 +70,14 @@ class UserInfo(BaseModel):
 
 
 class Deployments(MongoBaseModel, AccessProfile):
-    realm_id: str | ObjectId
+    realm_id: str
     name: str
     active_session_id: str | ObjectId | None = None
     config_templates: list[str | ObjectId] = []
 
 
 class DeploymentsPartial(MongoBaseModel, AccessProfilePartial):
-    realm_id: str | ObjectId | None = None
+    realm_id: str | None = None
     name: str | None = None
     active_session_id: str | ObjectId | None = None
     config_templates: list[str | ObjectId] | None = None
@@ -120,7 +120,7 @@ class BECAccessProfile(MongoBaseModel, AccessProfile):
 
     """
 
-    deployment_id: str | ObjectId
+    deployment_id: str
     username: str
     passwords: dict[str, str] = {}
     categories: list[str] = []
@@ -167,8 +167,11 @@ class State(AccessProfile):
 
 
 class Session(MongoBaseModel, AccessProfile):
-    deployment_id: str | ObjectId
+    deployment_id: str
     name: str
+
+
+SessionPartial = make_all_fields_optional(Session, "SessionPartial")
 
 
 class Datasets(AccessProfile):
@@ -214,8 +217,8 @@ class SignalData(AccessProfile, MongoBaseModel):
     min, and max values for the signal.
     """
 
-    scan_id: str | ObjectId | None = None
-    device_id: str | ObjectId
+    scan_id: str | None = None
+    device_id: str
     signal_name: str
     data: list[Any]
     timestamps: list[float]
@@ -227,9 +230,9 @@ class SignalData(AccessProfile, MongoBaseModel):
 
 
 class DeviceData(AccessProfile, MongoBaseModel):
-    scan_id: str | ObjectId | None = None
+    scan_id: str | None = None
     name: str
-    device_config_id: str | ObjectId
+    device_config_id: str
     signals: list[SignalData]
 
 

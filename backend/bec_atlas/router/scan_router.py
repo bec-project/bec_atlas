@@ -44,6 +44,7 @@ class ScanRouter(BaseRouter):
         fields: list[str] = Query(default=None),
         offset: int = 0,
         limit: int = 100,
+        sort: str | None = None,
         current_user: UserInfo = Depends(get_current_user),
     ) -> list[ScanStatusPartial]:
         """
@@ -51,6 +52,17 @@ class ScanRouter(BaseRouter):
 
         Args:
             session_id (str): The session id
+            filter (str): JSON filter for the query, e.g. '{"name": "test"}'
+            fields (list[str]): List of fields to return, e.g ["name", "description"]
+            offset (int): Offset for the query
+            limit (int): Limit for the query
+            sort (str): Sort order for the query, e.g. '{"name": 1}' for ascending order,
+                '{"name": -1}' for descending order. Multiple fields can be sorted by
+                separating them with a comma, e.g. '{"name": 1, "description": -1}'
+            current_user (UserInfo): The current user
+
+        Returns:
+            list[ScanStatusPartial]: List of scans
         """
 
         if fields:
@@ -72,16 +84,14 @@ class ScanRouter(BaseRouter):
             limit=limit,
             offset=offset,
             fields=fields,
+            sort=sort,
             user=current_user,
         )
 
     async def scans_with_id(
         self,
         scan_id: str,
-        filter: str | None = None,
         fields: list[str] = Query(default=None),
-        offset: int = 0,
-        limit: int = 100,
         current_user: UserInfo = Depends(get_current_user),
     ):
         """
@@ -90,7 +100,18 @@ class ScanRouter(BaseRouter):
         Args:
             scan_id (str): The scan id
         """
-        return self.db.find_one("scans", {"_id": scan_id}, ScanStatusPartial, user=current_user)
+        if fields:
+            fields = {
+                field: 1
+                for field in fields
+                if field in ScanStatusPartial.model_json_schema()["properties"].keys()
+            }
+        return self.db.find_one(
+            collection="scans",
+            query_filter={"_id": scan_id},
+            dtype=ScanStatusPartial,
+            user=current_user,
+        )
 
     async def update_scan_user_data(
         self,

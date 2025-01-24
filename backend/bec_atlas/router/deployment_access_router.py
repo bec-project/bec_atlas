@@ -153,7 +153,9 @@ class DeploymentAccessRouter(BaseRouter):
         redis: RedisDatasource = self.datasources.datasources.get("redis")
         db: MongoDBDatasource = self.datasources.datasources.get("mongodb")
         profiles = db.find(
-            "bec_access_profiles", {"deployment_id": ObjectId(deployment_id)}, BECAccessProfile
+            collection="bec_access_profiles",
+            query_filter={"deployment_id": deployment_id},
+            dtype=BECAccessProfile,
         )
         profiles = [profile.model_dump(exclude_none=True) for profile in profiles]
         for profile in profiles:

@@ -38,7 +38,7 @@ class BECAccessRouter(BaseRouter):
             user = current_user.email
         out = self.db.find_one(
             "bec_access_profiles",
-            {"deployment_id": ObjectId(deployment_id), "username": user},
+            {"deployment_id": deployment_id, "username": user},
             BECAccessProfile,
             user=current_user,
         )
