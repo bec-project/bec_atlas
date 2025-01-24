@@ -84,6 +84,9 @@ class ScanRouter(BaseRouter):
             filter = json.loads(filter)
             filters.update(filter)
 
+        if sort:
+            sort = json.loads(sort)
+
         return self.db.find(
             "scans",
             filters,

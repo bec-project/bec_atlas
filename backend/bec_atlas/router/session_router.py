@@ -67,6 +67,10 @@ class SessionRouter(BaseRouter):
                 for field in fields
                 if field in Session.model_json_schema()["properties"].keys()
             }
+
+        if sort:
+            sort = json.loads(sort)
+
         return self.db.find(
             "sessions",
             filter,
