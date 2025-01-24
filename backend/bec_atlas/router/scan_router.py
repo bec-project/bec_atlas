@@ -36,6 +36,13 @@ class ScanRouter(BaseRouter):
             description="Update the user data of a scan",
             response_model=dict,
         )
+        self.router.add_api_route(
+            "/scans/count",
+            self.count_scans,
+            methods=["GET"],
+            description="Count the number of scans",
+            response_model=dict,
+        )
 
     async def scans(
         self,
@@ -137,3 +144,26 @@ class ScanRouter(BaseRouter):
         if out is None:
             return {"message": "Scan not found."}
         return {"message": "Scan user data updated."}
+
+    async def count_scans(
+        self, filter: str | None = None, current_user: UserInfo = Depends(get_current_user)
+    ) -> int:
+        """
+        Count the number of scans.
+
+        Args:
+            filter (str): JSON filter for the query, e.g. '{"name": "test"}'
+            current_user (UserInfo): The current user
+
+        Returns:
+            int: The number of scans
+        """
+        pipeline = []
+        if filter:
+            filter = json.loads(filter)
+            pipeline.append({"$match": filter})
+        pipeline.append({"$count": "count"})
+
+        out = self.db.aggregate("scans", pipeline=pipeline, dtype=None, user=current_user)
+        if out:
+            return out[0]

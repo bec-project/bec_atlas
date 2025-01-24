@@ -268,6 +268,8 @@ class MongoDBDatasource:
             # pipeline = self.add_user_filter(user, pipeline)
 
         out = self.db[collection].aggregate(pipeline)
+        if dtype is None:
+            return list(out)
         return [dtype(**x) for x in out]
 
     def add_user_filter(
