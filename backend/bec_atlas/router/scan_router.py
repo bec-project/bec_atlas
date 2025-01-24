@@ -1,3 +1,5 @@
+import json
+
 from fastapi import APIRouter, Depends, Query
 
 from bec_atlas.authentication import get_current_user
@@ -31,7 +33,7 @@ class ScanRouter(BaseRouter):
     async def scans(
         self,
         session_id: str,
-        include_user_data: bool = False,
+        filter: str | None = None,
         fields: list[str] = Query(default=None),
         offset: int = 0,
         limit: int = 100,
@@ -45,26 +47,15 @@ class ScanRouter(BaseRouter):
         """
         if fields:
             fields = {field: 1 for field in fields}
-        if include_user_data:
-            include = [{"$match": {"session_id": session_id}}]
-            if fields:
-                include.append({"$project": fields})
-            include += [
-                {"$skip": offset},
-                {"$limit": limit},
-                {
-                    "$lookup": {
-                        "from": "scan_user_data",
-                        "let": {"_id": "$_id"},
-                        "pipeline": [{"$match": {"$expr": {"$eq": ["$_id", "$$_id"]}}}],
-                        "as": "user_data",
-                    }
-                },
-            ]
-            return self.db.aggregate("scans", include, ScanStatusPartial, user=current_user)
+
+        filters = {"session_id": session_id}
+        if filter:
+            filter = json.loads(filter)
+            filters.update(filter)
+
         return self.db.find(
             "scans",
-            {"session_id": session_id},
+            filters,
             ScanStatusPartial,
             limit=limit,
             offset=offset,
