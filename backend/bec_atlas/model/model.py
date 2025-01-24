@@ -187,12 +187,13 @@ class DatasetUserData(AccessProfile):
     model_config = ConfigDict(populate_by_name=True, arbitrary_types_allowed=True)
 
 
-class ScanUserData(MongoBaseModel, AccessProfile):
-    scan_id: str
+class ScanUserData(BaseModel):
     name: str | None = None
-    rating: int | None = None
-    comments: str | None = None
-    preview: bytes | None = None
+    user_rating: int | None = None
+    system_rating: int | None = None
+    user_comments: str | None = None
+    system_comments: str | None = None
+    preview: str | None = None
 
 
 class DeviceConfig(AccessProfile):

@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Query
 
 from bec_atlas.authentication import get_current_user
 from bec_atlas.datasources.mongodb.mongodb import MongoDBDatasource
-from bec_atlas.model.model import ScanStatusPartial, UserInfo
+from bec_atlas.model.model import ScanStatusPartial, ScanUserData, UserInfo
 from bec_atlas.router.base_router import BaseRouter
 
 
@@ -28,6 +28,13 @@ class ScanRouter(BaseRouter):
             description="Get a single scan by id for a session",
             response_model=ScanStatusPartial,
             response_model_exclude_none=True,
+        )
+        self.router.add_api_route(
+            "/scans/user_data",
+            self.update_scan_user_data,
+            methods=["PATCH"],
+            description="Update the user data of a scan",
+            response_model=dict,
         )
 
     async def scans(
@@ -66,7 +73,10 @@ class ScanRouter(BaseRouter):
     async def scans_with_id(
         self,
         scan_id: str,
-        include_user_data: bool = False,
+        filter: str | None = None,
+        fields: list[str] = Query(default=None),
+        offset: int = 0,
+        limit: int = 100,
         current_user: UserInfo = Depends(get_current_user),
     ):
         """
@@ -76,3 +86,28 @@ class ScanRouter(BaseRouter):
             scan_id (str): The scan id
         """
         return self.db.find_one("scans", {"_id": scan_id}, ScanStatusPartial, user=current_user)
+
+    async def update_scan_user_data(
+        self,
+        scan_id: str,
+        user_data: ScanUserData,
+        current_user: UserInfo = Depends(get_current_user),
+    ):
+        """
+        Update the user data of a scan in the database.
+
+        Args:
+            scan_id (str): The scan id
+            user_data (dict): The user data to update
+        """
+        out = self.db.patch(
+            "scans",
+            id=scan_id,
+            update={"user_data": user_data.model_dump(exclude_defaults=True)},
+            dtype=ScanStatusPartial,
+            user=current_user,
+            return_document=True,
+        )
+        if out is None:
+            return {"message": "Scan not found."}
+        return {"message": "Scan user data updated."}
