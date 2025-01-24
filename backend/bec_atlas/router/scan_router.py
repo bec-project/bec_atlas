@@ -52,8 +52,13 @@ class ScanRouter(BaseRouter):
         Args:
             session_id (str): The session id
         """
+
         if fields:
-            fields = {field: 1 for field in fields}
+            fields = {
+                field: 1
+                for field in fields
+                if field in ScanStatusPartial.model_json_schema()["properties"].keys()
+            }
 
         filters = {"session_id": session_id}
         if filter:
