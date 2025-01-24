@@ -27,7 +27,7 @@ export class RedisConnectorService {
       auth: {
         user: 'john_doe',
         token: '1234',
-        deployment: '678aa8d4875568640bd92176',
+        deployment: '678f5e85434914d3e0e2bb3f',
       },
     });
 

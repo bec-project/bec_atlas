@@ -1,0 +1,39 @@
+<div class = "button-container">
+    <button mat-raised-button (click)="ngOnInit()">Refresh</button>
+</div>
+
+<div class="table-container">
+    <mat-card>
+        <mat-toolbar color="primary"> ScanData Table </mat-toolbar>
+    
+        <!-- <table mat-table *ngIf="tableData | async as data" [dataSource]="data" class="mat-elevation-z8"> -->
+        <table mat-table *ngIf="tableData() as data" [dataSource]="data" class="mat-elevation-z8">
+
+            <!-- Create table data dynamically -->
+            <ng-container *ngFor="let column of displayedColumns" [matColumnDef]="column">
+                <th mat-header-cell *matHeaderCellDef> {{ column | titlecase }} </th>
+                <td mat-cell *matCellDef="let element"> 
+                    <ng-container *ngIf="column === 'timestamp'; else userRating">
+                        {{ element[column] * 1000| date :'HH:mm:ss'}} 
+                        <br>
+                        {{ element[column]  * 1000 | date :'dd/MM/yyyy'}}
+                      </ng-container>
+                    <ng-template #userRating>
+                        <div *ngIf="column === 'user_rating'; else showData">
+                           <star-rating [starType]="'svg'" [rating]="element[column]"></star-rating>
+                           </div>
+                    </ng-template>
+                        <ng-template #showData>
+                        <p> {{ element[column] }}</p>
+                    </ng-template>
+            </ng-container>
+       
+        <!-- Header Row -->
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <!-- Data Rows -->
+        <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+        </table>
+    </mat-card>
+
+    <mat-paginator [pageSize]=10 [pageSizeOptions]="[5, 10, 25, 100]" aria-label="Select page"></mat-paginator>
+</div>
