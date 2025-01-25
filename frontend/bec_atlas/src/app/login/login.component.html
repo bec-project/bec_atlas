@@ -1,4 +1,7 @@
-<div class="background-image"></div>
+<div
+  class="background-image"
+  [ngStyle]="{ 'background-image': 'url(' + backgroundImage + ')' }"
+></div>
 <div class="login-form-flex">
   <mat-card class="mat-card">
     <mat-card-title>

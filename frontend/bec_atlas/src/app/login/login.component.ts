@@ -17,10 +17,12 @@ import { AuthService } from '../core/auth.service';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AppConfig, AppConfigService } from '../app-config.service';
 import { HttpErrorResponse } from '@angular/common/http';
+import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-login',
   imports: [
+    CommonModule,
     MatCardModule,
     MatFormFieldModule,
     MatInputModule,
@@ -38,6 +40,13 @@ export class LoginComponent {
   form: UntypedFormGroup;
   loginMessage = ' ';
   appConfig!: AppConfig;
+  backgroundImage!: string;
+  images: string[] = [
+    'assets/backgrounds/psi_background_north.jpg',
+    'assets/backgrounds/psi_background_south.jpg',
+    'assets/backgrounds/psi_sdsc.jpg',
+    'assets/backgrounds/psi_cable.jpg',
+  ];
 
   constructor(
     private appConfigService: AppConfigService,
@@ -54,6 +63,10 @@ export class LoginComponent {
   }
 
   ngOnInit(): void {
+    // select a random background image
+    this.backgroundImage =
+      this.images[Math.floor(Math.random() * this.images.length)];
+
     if (this.authService.forceReload) {
       window.location.reload();
     }
@@ -67,7 +80,7 @@ export class LoginComponent {
           this.authService.login(val.email, val.password)
         );
         console.log('User is logged in');
-        this.router.navigateByUrl('/dashboard');
+        this.router.navigateByUrl('/overview-grid');
       } catch (error: unknown) {
         switch ((error as HttpErrorResponse).statusText) {
           case 'Unknown Error':
