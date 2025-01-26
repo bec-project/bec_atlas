@@ -196,6 +196,8 @@ class MongoDBDatasource:
         if user is not None:
             data = self.add_user_filter(user, data, operation="w")
         out = self.db[collection].insert_one(data)
+        if dtype is None:
+            return data
         return dtype(**data)
 
     def patch(
@@ -229,6 +231,8 @@ class MongoDBDatasource:
         )
         if out is None:
             return None
+        if dtype is None:
+            return out
         return dtype(**out)
 
     def delete_one(self, collection: str, filter: dict, user: User | None = None) -> bool:

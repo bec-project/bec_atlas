@@ -62,6 +62,7 @@ class User(MongoBaseModel, AccessProfile):
     groups: list[str]
     first_name: str
     last_name: str
+    username: str | None = None
 
 
 class UserInfo(BaseModel):
