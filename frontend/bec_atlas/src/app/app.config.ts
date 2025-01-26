@@ -2,6 +2,7 @@ import {
   APP_INITIALIZER,
   ApplicationConfig,
   importProvidersFrom,
+  provideEnvironmentInitializer,
   provideZoneChangeDetection,
 } from '@angular/core';
 import { provideRouter } from '@angular/router';
@@ -16,9 +17,15 @@ import {
 } from '@angular/common/http';
 import { AuthInterceptor } from './core/auth.interceptor';
 import { StarRatingModule } from 'angular-star-rating';
+import { GridstackComponent } from 'gridstack/dist/angular';
+import { DeviceBoxComponent } from './device-box/device-box.component';
 
 const appConfigInitializerFn = (appConfig: AppConfigService) => {
   return () => appConfig.loadAppConfig();
+};
+
+const gridconstructor = () => {
+  GridstackComponent.addComponentToSelectorType([DeviceBoxComponent]);
 };
 
 export const appConfig: ApplicationConfig = {
@@ -40,5 +47,6 @@ export const appConfig: ApplicationConfig = {
       multi: true,
     },
     importProvidersFrom(StarRatingModule.forRoot()),
+    provideEnvironmentInitializer(gridconstructor),
   ],
 };
