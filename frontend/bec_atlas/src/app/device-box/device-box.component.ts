@@ -2,6 +2,7 @@ import { Component, computed, Input, Signal } from '@angular/core';
 import { RedisConnectorService } from '../core/redis-connector.service';
 import { MessageEndpoints } from '../core/redis_endpoints';
 import { MatCardModule } from '@angular/material/card';
+import { BaseWidget } from 'gridstack/dist/angular';
 
 @Component({
   selector: 'app-device-box',
@@ -9,7 +10,7 @@ import { MatCardModule } from '@angular/material/card';
   templateUrl: './device-box.component.html',
   styleUrl: './device-box.component.scss',
 })
-export class DeviceBoxComponent {
+export class DeviceBoxComponent extends BaseWidget {
   signal!: Signal<any>;
   readback_signal!: Signal<number>;
 
@@ -19,7 +20,9 @@ export class DeviceBoxComponent {
   @Input()
   signal_name!: string;
 
-  constructor(private redisConnector: RedisConnectorService) {}
+  constructor(private redisConnector: RedisConnectorService) {
+    super();
+  }
 
   ngOnInit(): void {
     this.signal = this.redisConnector.register(
