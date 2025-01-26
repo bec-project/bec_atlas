@@ -1,20 +1,58 @@
 <mat-sidenav-container class="sidenav-container">
   <mat-sidenav mode="side" opened>
-    <button mat-button class="menu-item">
-      <mat-icon>account_circle</mat-icon>
-    </button>
-    <button mat-button class="menu-item">
+    <div>
+      <img
+        src="assets/BEC-Atlas-full-conv-LC.png"
+        alt="BEC"
+        width="40"
+        height="40"
+        style="margin: 10px"
+      />
+    </div>
+    <mat-divider></mat-divider>
+    <mat-expansion-panel>
+      <mat-expansion-panel-header>
+        <mat-panel-title>
+          <mat-icon>account_circle</mat-icon>
+          <span class="menu-text">Username</span>
+        </mat-panel-title>
+      </mat-expansion-panel-header>
+
+      <button mat-button>Profile</button>
+      <button mat-button>Settings</button>
+      <button mat-button>Logout</button>
+    </mat-expansion-panel>
+    <mat-divider></mat-divider>
+    <button
+      mat-button
+      class="menu-item"
+      [routerLink]="['/dashboard/scan-table']"
+    >
       <mat-icon>home</mat-icon>
       <span class="menu-text">Data Browser</span>
     </button>
-    <button mat-button class="menu-item">
-      <mat-icon>science</mat-icon>
-      <span class="menu-text">Experiment Control</span>
-    </button>
-    <button mat-button class="menu-item">
-      <mat-icon>settings</mat-icon>
-      <span class="menu-text">Beamline Settings</span>
-    </button>
+    <mat-expansion-panel>
+      <mat-expansion-panel-header>
+        <mat-panel-title>
+          <mat-icon>science</mat-icon>
+          <span class="menu-text">Experiment Control</span>
+        </mat-panel-title>
+      </mat-expansion-panel-header>
+      <button
+        mat-button
+        class="menu-item"
+        [routerLink]="['/dashboard/scan-table']"
+      >
+        <span class="menu-text">Control</span>
+      </button>
+      <button
+        mat-button
+        class="menu-item"
+        [routerLink]="['/dashboard/deployment-admin']"
+      >
+        <span class="menu-text">Admin</span>
+      </button>
+    </mat-expansion-panel>
     <button mat-button class="menu-item">
       <mat-icon>help</mat-icon>
       <span class="menu-text">Help</span>
@@ -26,7 +64,8 @@
       <!-- <app-device-box [device]="'samx'" [signal_name]="'samx'"></app-device-box>
       <app-device-box [device]="'samy'" [signal_name]="'samy'"></app-device-box>
       <app-queue-table></app-queue-table> -->
-      <app-scan-table></app-scan-table>
+      <!-- <app-scan-table></app-scan-table> -->
+      <router-outlet></router-outlet>
     </div>
   </mat-sidenav-content>
 </mat-sidenav-container>

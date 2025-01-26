@@ -1,3 +1,5 @@
+@use "@angular/material" as mat;
+
 .sidenav-container {
   height: 100vh;
   display: flex;
@@ -10,6 +12,7 @@ mat-sidenav {
   border-radius: 0px;
   padding: 16px;
   text-align: center;
+  @include mat.elevation(20);
 }
 
 .sidenav.collapsed {
@@ -22,16 +25,27 @@ mat-sidenav {
   padding: 16px 0;
 }
 
+mat-divider {
+  margin: 8px 0;
+}
+
 .menu-item {
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: flex-start;
   font-size: 1rem;
-}
+  margin: 8px 0;
+  @include mat.elevation(0);
+  // @include mat.elevation-transition();
+  border-radius: 4px;
 
-.menu-item.hovered {
-  background-color: var(--mat-sys-secondary-container);
+  &:hover {
+    cursor: pointer;
+    background-color: var(--mat-sys-primary-fixed-dim);
+
+    @include mat.elevation(4);
+  }
 }
 
 .menu-item mat-icon {
@@ -44,6 +58,48 @@ mat-sidenav {
   color: var(--mat-sys-on-primary);
 }
 
-// mat-sidenav-content {
-//   margin-left: 0px;
-// }
+mat-expansion-panel {
+  background-color: var(--mat-sys-primary);
+  color: var(--mat-sys-on-primary);
+  border-radius: 4px;
+  padding: 0px;
+  box-shadow: none !important;
+  margin: 8px 0;
+  &:hover {
+    cursor: pointer;
+    background-color: var(--mat-sys-primary-fixed-dim);
+  }
+
+  &.mat-expanded {
+    background-color: var(--mat-sys-primary);
+    color: var(--mat-sys-on-primary) !important;
+  }
+
+  &.mat-expansion-panel-body {
+    color: var(--mat-sys-on-primary) !important;
+    margin: 0px;
+  }
+}
+
+mat-expansion-panel-header {
+  padding: 0px 8px;
+  // @include mat.elevation(0);
+}
+
+mat-panel-title {
+  color: var(--mat-sys-on-primary);
+}
+
+mat-panel-title mat-icon {
+  margin-right: 8px;
+}
+
+mat-sidenav-content {
+  margin-left: 260px !important;
+  margin: 10px;
+  height: 100vh;
+}
+
+.menu-text-submenu {
+  color: var(--mat-sys-on-primary);
+}

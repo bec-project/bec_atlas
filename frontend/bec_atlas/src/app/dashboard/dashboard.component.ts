@@ -7,6 +7,9 @@ import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { ScanTableComponent } from '../scan-table/scan-table.component';
+import { MatDividerModule } from '@angular/material/divider';
+import { RouterModule } from '@angular/router';
+import { MatExpansionModule } from '@angular/material/expansion';
 
 @Component({
   selector: 'app-dashboard',
@@ -14,10 +17,13 @@ import { ScanTableComponent } from '../scan-table/scan-table.component';
     DeviceBoxComponent,
     CommonModule,
     QueueTableComponent,
+    MatExpansionModule,
+    MatDividerModule,
     MatSidenavModule,
     MatIconModule,
     MatButtonModule,
     ScanTableComponent,
+    RouterModule,
   ],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
