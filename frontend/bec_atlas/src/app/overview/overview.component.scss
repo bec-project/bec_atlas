@@ -1,3 +1,5 @@
+@use "@angular/material" as mat;
+
 .login-form-flex {
   position: absolute;
   top: 50%;
@@ -9,7 +11,7 @@
 }
 
 .background-image {
-  background-image: url("../../assets/psi_background.jpg");
+  background-image: url("../../assets/backgrounds/psi_background_south.jpg");
   filter: blur(4px);
   -webkit-filter: blur(4px);
   height: 100vh;
@@ -20,12 +22,19 @@
 
 .mat-card {
   /* padding: 30px; */
-  box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.2), 0 2px 8px 0 rgba(0, 0, 0, 0.14),
-    0 4px 8px -1px rgba(0, 0, 0, 0.12);
+  //   box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.2), 0 2px 8px 0 rgba(0, 0, 0, 0.14),
+  //     0 4px 8px -1px rgba(0, 0, 0, 0.12);
   display: inline-block;
   margin: 10px;
   background-color: var(--mat-sys-surface);
   color: var(--mat-sys-on-surface);
+  transition: all 0.25s linear;
+  box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.2), 0 2px 8px 0 rgba(0, 0, 0, 0.14),
+    0 4px 8px -1px rgba(0, 0, 0, 0.12);
+
+  &:hover {
+    box-shadow: -1px 10px 29px 0px rgba(0, 0, 0, 0.5);
+  }
 }
 
 .mat-form-field {
