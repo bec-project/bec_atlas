@@ -9,9 +9,6 @@
 }
 
 .background-image {
-  // background-image: url("../../assets/psi_background.jpg");
-  filter: blur(3px);
-  -webkit-filter: blur(3px);
   height: 100vh;
   background-position: center;
   background-repeat: no-repeat;
@@ -33,4 +30,11 @@
   padding: 0px;
   margin: 0px;
   overflow: hidden;
+}
+
+mat-card-title {
+  display: flex;
+  justify-content: center; /* Horizontally center the image */
+  align-items: center; /* Vertically center the image */
+  height: 100%; /* Ensure it fills the height of the title area */
 }

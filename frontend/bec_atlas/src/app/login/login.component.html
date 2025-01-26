@@ -1,11 +1,20 @@
 <div
   class="background-image"
-  [ngStyle]="{ 'background-image': 'url(' + backgroundImage + ')' }"
+  [ngStyle]="{
+    'background-image': 'url(' + backgroundImage.backgroundImage + ')',
+    'filter': 'blur(' + backgroundImage.blur + 'px)',
+    '-webkit-filter': 'blur(' + backgroundImage.blur + 'px)',
+  }"
 ></div>
 <div class="login-form-flex">
   <mat-card class="mat-card">
     <mat-card-title>
-      <!-- <img src="assets/scilog_logo.png" alt="BEC" width="120" height="120"> -->
+      <img
+        src="assets/BEC-Atlas-full-conv-LC.png"
+        alt="BEC"
+        width="80"
+        height="80"
+      />
     </mat-card-title>
     <mat-card-content class="content-container">
       <mat-tab-group

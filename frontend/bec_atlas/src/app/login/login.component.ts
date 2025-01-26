@@ -19,6 +19,11 @@ import { AppConfig, AppConfigService } from '../app-config.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
 
+interface BackgroundImageSource {
+  backgroundImage: string;
+  blur: number;
+}
+
 @Component({
   selector: 'app-login',
   imports: [
@@ -40,12 +45,34 @@ export class LoginComponent {
   form: UntypedFormGroup;
   loginMessage = ' ';
   appConfig!: AppConfig;
-  backgroundImage!: string;
-  images: string[] = [
-    'assets/backgrounds/psi_background_north.jpg',
-    'assets/backgrounds/psi_background_south.jpg',
-    'assets/backgrounds/psi_sdsc.jpg',
-    'assets/backgrounds/psi_cable.jpg',
+  backgroundImage!: BackgroundImageSource;
+  images: BackgroundImageSource[] = [
+    {
+      backgroundImage: 'assets/backgrounds/psi_background_north.jpg',
+      blur: 3,
+    },
+    {
+      backgroundImage: 'assets/backgrounds/psi_background_south.jpg',
+      blur: 3,
+    },
+    {
+      backgroundImage: 'assets/backgrounds/psi_sdsc.jpg',
+      blur: 0,
+    },
+    {
+      backgroundImage: 'assets/backgrounds/psi_cable.jpg',
+      blur: 0,
+    },
+    {
+      backgroundImage:
+        'assets/backgrounds/national-cancer-institute-L7en7Lb-Ovc-unsplash.jpg',
+      blur: 0,
+    },
+    {
+      backgroundImage:
+        'assets/backgrounds/ramon-salinero-vEE00Hx5d0Q-unsplash.jpg',
+      blur: 0,
+    },
   ];
 
   constructor(
@@ -80,7 +107,7 @@ export class LoginComponent {
           this.authService.login(val.email, val.password)
         );
         console.log('User is logged in');
-        this.router.navigateByUrl('/overview-grid');
+        this.router.navigateByUrl('/dashboard');
       } catch (error: unknown) {
         switch ((error as HttpErrorResponse).statusText) {
           case 'Unknown Error':
