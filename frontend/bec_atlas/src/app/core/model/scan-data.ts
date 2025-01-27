@@ -15,6 +15,10 @@ export interface ScanDataResponse {
     info?: { [key: string]: any };
     timestamp?: number;
     user_data?: { [key: string]: any };
+    name?: string;
     user_rating?: number;
+    system_rating?: number;
+    user_comments?: string;
+    system_comments?: string;
 }
   

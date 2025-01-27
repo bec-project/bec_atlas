@@ -4,6 +4,7 @@ import { ServerSettingsService } from '../server-settings.service';
 import { ScanDataResponse } from './model/scan-data';
 import { Realm } from './model/realm';
 import { Deployment } from './model/deployment';
+import { ScanCountResponse } from './model/scan-count';
 
 @Injectable({
   providedIn: 'root',
@@ -41,7 +42,7 @@ export class RemoteDataService {
    */
   protected get<T>(
     path: string,
-    params: { [key: string]: string },
+    params: { [key: string]: string | number },
     headers: HttpHeaders
   ) {
     return this.httpClient.get<T>(
@@ -151,5 +152,40 @@ export class DeploymentDataService extends RemoteDataService {
       { deployment_id: deploymentId },
       headers
     );
+  }
+}
+
+@Injectable({
+  providedIn: 'root',
+})
+export class ScanCountService extends RemoteDataService {
+  /**
+   * Method for getting the scan count
+   * @param sessionId Unique identifier for the session (Optional)
+   * @param scanName Name of the scan (Optional)
+   * @param datasetNumber Dataset number (Optional)
+   * @returns response from the server with the scan count
+   * @throws HttpErrorResponse if the request fails
+   * @throws TimeoutError if the request takes too long
+   * @throws Error if the response is not a number
+   */
+  getScanCount(
+    sessionId: string | null = null,
+    scanName: string | null = null,
+    datasetNumber: number | null = null
+  ) {
+    let headers = new HttpHeaders();
+    let filters: { [key: string]: string | number } = {};
+    headers = headers.set('Content-Type', 'application/json; charset=utf-8');
+    if (sessionId !== null) {
+      filters['session_id'] = sessionId;
+    }
+    if (scanName !== null) {
+      filters['scan_name'] = scanName;
+    }
+    if (datasetNumber !== null) {
+      filters['dataset_number'] = datasetNumber;
+    }
+    return this.get<ScanCountResponse>('scans/count', filters, headers);
   }
 }
