@@ -4,6 +4,9 @@ import {
   WritableSignal,
   signal,
   ViewChild,
+  computed,
+  resource,
+  Signal,
 } from '@angular/core';
 import { ScanCountService, ScanDataService } from '../core/remote-data.service';
 import { ScanDataResponse } from '../core/model/scan-data';
@@ -21,6 +24,17 @@ import {
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { StarRatingModule } from 'angular-star-rating';
 import { MatSort } from '@angular/material/sort';
+import { firstValueFrom, Observable } from 'rxjs';
+import { ScanCountResponse } from '../core/model/scan-count';
+
+export interface ResourceStatus {
+  status: any;
+}
+export interface ResourceLoaderParams {
+  request: any;
+  abortSignal: AbortSignal;
+  previous: ResourceStatus;
+}
 
 @Component({
   selector: 'app-scan-table',
@@ -42,15 +56,14 @@ import { MatSort } from '@angular/material/sort';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ScanTableComponent {
-  // private tableData: new MatTableDataSource<ScanDataResponse[]>();  // Initialize as empty array
-  // tableData: ScanDataResponse[] = [];
-  tableData: WritableSignal<ScanDataResponse[]> = signal([]);
-  limit: number = 10;
-  offset: number = 0;
-  totalScanCount: number = 0;
-  page: number = this.offset / this.limit;
+  tableData: Signal<ScanDataResponse[]>;
+  totalScanCount: Signal<number>;
+  limit = signal<number>(10);
+  offset = signal<number>(0);
+  sessionId = signal<string>('');
+
+  // page: number = this.offset / this.limit;
   pageEvent: PageEvent = new PageEvent();
-  sessionId: string = '';
   sorting: number = -1;
   displayedColumns: string[] = [
     'scan_number',
@@ -71,67 +84,74 @@ export class ScanTableComponent {
     'info',
   ];
 
+  reloadCriteria = computed(() => ({
+    sessionId: this.sessionId(),
+    offset: this.offset(),
+    limit: this.limit(),
+  }));
+
+  loadScanDataResource = resource({
+    request: () => this.reloadCriteria(),
+    loader: ({ request, abortSignal }): Promise<ScanDataResponse[]> => {
+      return firstValueFrom(
+        this.scanData.getScanData(
+          request.sessionId,
+          request.offset,
+          request.limit,
+          this.displayedColumns,
+          false,
+          { scan_number: this.sorting }
+        )
+      );
+    },
+  });
+
+  loadScanCountResource = resource({
+    request: () => this.reloadCriteria(),
+    loader: ({ request, abortSignal }): Promise<ScanCountResponse> => {
+      return firstValueFrom(this.scanCount.getScanCount(request.sessionId));
+    },
+  });
+
+  handleScanData(data: ScanDataResponse[] | []) {
+    for (const entry of data) {
+      if (entry.user_data && entry.user_data['user_rating']) {
+        entry.user_rating = entry.user_data['user_rating'];
+      }
+    }
+    return data;
+  }
+
+  handleCountData(data: ScanCountResponse | 0) {
+    if (data === 0) {
+      return 0;
+    }
+    return data.count;
+  }
+
   constructor(
     private scanData: ScanDataService,
     private scanCount: ScanCountService
-  ) {}
+  ) {
+    this.tableData = computed(() =>
+      this.handleScanData(this.loadScanDataResource.value() || [])
+    );
+    this.totalScanCount = computed(() =>
+      this.handleCountData(this.loadScanCountResource.value() || 0)
+    );
+  }
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
 
   ngOnInit(): void {
-    this.sessionId = '6793628df62026a414d9338e';
-    this.updateUI();
+    this.sessionId.set('6793628df62026a414d9338e');
+    // this.updateUI();
   }
 
   handlePageEvent(event: PageEvent) {
     this.pageEvent = event;
-    this.offset = event.pageIndex * event.pageSize;
-    this.limit = event.pageSize;
-    this.page = this.offset / this.limit;
-    this.updateUI();
-  }
-
-  updateUI() {
-    this.updateTotalScanCount(this.sessionId);
-    this.updateTableData(this.sessionId);
-  }
-
-  updateTableData(sessionId: string) {
-    this.scanData
-      .getScanData(
-        sessionId,
-        this.offset,
-        this.limit,
-        this.displayedColumns,
-        false,
-        { scan_number: this.sorting }
-      )
-      .subscribe({
-        next: (data) => {
-          console.log('Received data: ', data);
-          for (const entry of data) {
-            if (entry.user_data && entry.user_data['user_rating']) {
-              entry.user_rating = entry.user_data['user_rating'];
-            }
-          }
-          this.tableData.set(data);
-        },
-        error: (error) => {
-          console.error('Error fetching data: ', error);
-        },
-      });
-  }
-
-  updateTotalScanCount(sessionId: string) {
-    this.scanCount.getScanCount(sessionId).subscribe({
-      next: (data) => {
-        console.log('Received data: ', data);
-        this.totalScanCount = data.count;
-      },
-      error: (error) => {
-        console.error('Error fetching data: ', error);
-      },
-    });
+    this.offset.set(event.pageIndex * event.pageSize);
+    this.limit.set(event.pageSize);
   }
 }

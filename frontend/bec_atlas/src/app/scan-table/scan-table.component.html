@@ -31,23 +31,25 @@
                         <p> {{ element[column] }}</p>
                     }
             </ng-container>
-       
+        
         <!-- Header Row -->
-        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
         <!-- Data Rows -->
         <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
         </table>
-    </mat-card>
-
+    </mat-card> 
+</div>
+<div class="table-paginator">   
     <mat-paginator 
         #paginator 
         class="table-paginator" 
         (page) = "handlePageEvent($event)"
-        [length]="totalScanCount"
-        [pageSize]= "limit"
+        [length]="totalScanCount()"
+        [pageSize]= "limit()"
         [showFirstLastButtons]="true" 
         [pageSizeOptions]="[5, 10, 25, 100]" 
-        [pageIndex]="page"
-        aria-label="Select page">
+        [pageIndex]="offset()/limit()"
+        aria-label="Select page"
+        sticky= true>
     </mat-paginator>
 </div>
