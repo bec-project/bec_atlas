@@ -15,9 +15,10 @@ export const routes: Routes = [
     children: [
       { path: 'scan-table', component: ScanTableComponent },
       { path: 'deployment-admin', component: DeploymentAdminComponent },
+      { path: 'overview-grid', component: OverviewGridComponent },
     ],
   },
   { path: 'overview', component: OverviewComponent },
-  { path: 'overview-grid', component: OverviewGridComponent },
+
   { path: '**', redirectTo: 'login' },
 ];
