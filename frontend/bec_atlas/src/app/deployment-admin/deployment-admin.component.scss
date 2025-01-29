@@ -1,0 +1,39 @@
+.admin-card {
+  margin: 20px;
+  padding: 20px;
+}
+
+.form-row {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 20px;
+
+  mat-form-field {
+    flex: 1;
+  }
+}
+
+.table-container {
+  margin-top: 20px;
+}
+
+.table-actions {
+  margin-bottom: 16px;
+}
+
+.acl-table {
+  width: 100%;
+}
+
+mat-form-field {
+  width: 100%;
+}
+
+.mat-column-actions {
+  width: 80px;
+  text-align: center;
+}
+
+.mat-column-accessLevel {
+  width: 150px;
+}
