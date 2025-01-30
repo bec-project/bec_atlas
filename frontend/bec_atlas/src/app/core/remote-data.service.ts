@@ -54,6 +54,23 @@ export class RemoteDataService {
       }
     );
   }
+
+  /**
+   * Base method for making a PATCH request to the server
+   * @param path path to the endpoint
+   * @param payload payload to send
+   * @param headers additional headers
+   * @returns response from the server
+   */
+  protected patch<T>(path: string, payload: any, headers: HttpHeaders) {
+    return this.httpClient.patch<T>(
+      this.serverSettings.getServerAddress() + path,
+      payload,
+      {
+        headers,
+      }
+    );
+  }
 }
 
 @Injectable({
@@ -188,5 +205,23 @@ export class ScanCountService extends RemoteDataService {
       filters['dataset_number'] = datasetNumber;
     }
     return this.get<ScanCountResponse>('scans/count', filters, headers);
+  }
+
+  /**
+   * Method for updating the user data for a scan
+   * @param scanId Unique identifier for the scan
+   * @param userData User data to update
+   * @returns response from the server
+   * @throws HttpErrorResponse if the request fails
+   * @throws TimeoutError if the request takes too long
+   */
+  updateUserData(scanId: string, userData: ScanUserData) {
+    let headers = new HttpHeaders();
+    headers = headers.set('Content-Type', 'application/json; charset=utf-8');
+    return this.post<string>(
+      'scans/user_data',
+      { scan_id: scanId, ...userData },
+      headers
+    );
   }
 }

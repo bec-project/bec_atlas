@@ -7,7 +7,7 @@ import {
   Signal,
   inject,
 } from '@angular/core';
-import { ScanCountService, ScanDataService } from '../core/remote-data.service';
+import { ScanDataService } from '../core/remote-data.service';
 import { ScanDataResponse } from '../core/model/scan-data';
 import { CommonModule } from '@angular/common';
 import { MatTableModule } from '@angular/material/table';
@@ -152,7 +152,7 @@ export class ScanTableComponent {
   loadScanCountResource = resource({
     request: () => this.reloadCriteria(),
     loader: ({ request, abortSignal }): Promise<ScanCountResponse> => {
-      return firstValueFrom(this.scanCount.getScanCount(request.sessionId));
+      return firstValueFrom(this.scanData.getScanCount(request.sessionId));
     },
   });
 
@@ -182,10 +182,7 @@ export class ScanTableComponent {
     return data.count;
   }
 
-  constructor(
-    private scanData: ScanDataService,
-    private scanCount: ScanCountService
-  ) {
+  constructor(private scanData: ScanDataService) {
     this.tableData = computed(() =>
       this.handleScanData(this.loadScanDataResource.value() || [])
     );
