@@ -8,9 +8,15 @@ variables:
   REDIS_PORT: 6380
   DOCKER_TLS_CERTDIR: ""
   CHILD_PIPELINE_BRANCH: $CI_DEFAULT_BRANCH
-  BEC_CORE_BRANCH: 
+  BEC_CORE_BRANCH:
     description: "BEC branch to use for testing"
     value: main
+  DEPLOY_DEV_SERVER:
+    description: "Update the bec-atlas-dev server"
+    options:
+      - "true"
+      - "false"
+    value: "false"
 
 workflow:
   rules:
@@ -27,7 +33,7 @@ workflow:
 
 stages:
   - Formatter
-  - test 
+  - test
   - Deploy
 
 include:
@@ -44,7 +50,7 @@ formatter:
     - if: '$CI_PIPELINE_SOURCE == "schedule"'
     - if: '$CI_PIPELINE_SOURCE == "web"'
     - if: '$CI_PIPELINE_SOURCE == "pipeline"'
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'  
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
     - if: '$CI_PIPELINE_SOURCE == "parent_pipeline"'
       when: never
     - if: $CI_COMMIT_BRANCH
@@ -68,7 +74,7 @@ pylint:
     - if: '$CI_PIPELINE_SOURCE == "schedule"'
     - if: '$CI_PIPELINE_SOURCE == "web"'
     - if: '$CI_PIPELINE_SOURCE == "pipeline"'
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'  
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
     - if: '$CI_PIPELINE_SOURCE == "parent_pipeline"'
       when: never
     - if: $CI_COMMIT_BRANCH
@@ -88,7 +94,7 @@ backend_pytest:
       TARGET_BRANCH=$CHILD_PIPELINE_BRANCH;
       else
       TARGET_BRANCH=$CI_COMMIT_REF_NAME;
-      fi  
+      fi
     # start services
     - docker-compose -f ./backend/tests/docker-compose.yml up -d
 
@@ -136,3 +142,31 @@ backend_pytest:
   # rules:
   #   - if: '$CI_COMMIT_REF_NAME == "main" && $CI_PROJECT_PATH == "bec/bec_atlas"'
   # interruptible: true
+
+deploy-dev:
+  stage: Deploy
+  tags:
+    - bec-atlas-deploy
+  needs: ["backend_pytest"]
+  script:
+    - cd ../; if [ ! -d ansible_bec ]; then git clone https://gitlab-runner:$CI_RO_TOKEN@gitlab.psi.ch/bec/ansible_bec.git; fi;
+    - cd ansible_bec && git pull origin main
+    - ansible-playbook --private-key=/home/gitlab-runner/deploy_bec deploy_bec_atlas.yaml -l bec-atlas-dev.psi.ch -u root -e "redis_user=$REDIS_USER redis_pass=$REDIS_PASS bec_atlas_version=$CI_COMMIT_REF_NAME"
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+    - if: '$DEPLOY_DEV_SERVER == "false"'
+      when: never
+  interruptible: true
+
+deploy-qa:
+  stage: Deploy
+  tags:
+    - bec-atlas-deploy
+  needs: ["backend_pytest"]
+  script:
+    - cd ../; if [ ! -d ansible_bec ]; then git clone https://gitlab-runner:$CI_RO_TOKEN@gitlab.psi.ch/bec/ansible_bec.git; fi;
+    - cd ansible_bec && git pull origin main
+    - ansible-playbook --private-key=/home/gitlab-runner/deploy_bec deploy_bec_atlas.yaml -l bec-atlas-qa.psi.ch -u root -e "redis_user=$REDIS_USER redis_pass=$REDIS_PASS"
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main" && $CI_PROJECT_PATH == "bec/bec_atlas"'
+  interruptible: true
