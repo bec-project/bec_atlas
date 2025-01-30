@@ -1,10 +1,11 @@
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Inject, inject, Injectable } from '@angular/core';
+import { Injectable } from '@angular/core';
 import { ServerSettingsService } from '../server-settings.service';
 import { ScanDataResponse } from './model/scan-data';
 import { Realm } from './model/realm';
 import { Deployment } from './model/deployment';
 import { ScanCountResponse } from './model/scan-count';
+import { ScanUserData } from './model/scan-user-data';
 
 @Injectable({
   providedIn: 'root',
@@ -42,7 +43,7 @@ export class RemoteDataService {
    */
   protected get<T>(
     path: string,
-    params: { [key: string]: string | number },
+    params: { [key: string]: string | number | Array<string> },
     headers: HttpHeaders
   ) {
     return this.httpClient.get<T>(
@@ -110,7 +111,7 @@ export class ScanDataService extends RemoteDataService {
         session_id: sessionId,
         offset: offset.toString(),
         limit: limit.toString(),
-        fields: fields ? fields.join(',') : '',
+        fields: fields ? fields : '',
         sort: sort ? JSON.stringify(sort) : '',
         includeUserData: includeUserData.toString(),
       },
