@@ -58,18 +58,26 @@ export class RemoteDataService {
   /**
    * Base method for making a PATCH request to the server
    * @param path path to the endpoint
+   * @param paramId unique identifier for the resource
    * @param payload payload to send
    * @param headers additional headers
    * @returns response from the server
    */
-  protected patch<T>(path: string, payload: any, headers: HttpHeaders) {
-    return this.httpClient.patch<T>(
-      this.serverSettings.getServerAddress() + path,
-      payload,
-      {
-        headers,
-      }
-    );
+  protected patch<T>(
+    path: string,
+    paramInput: Record<string, string>,
+    payload: any,
+    headers: HttpHeaders
+  ) {
+    let param = Object.keys(paramInput);
+    let id = paramInput[param[0]];
+    let fullPath =
+      this.serverSettings.getServerAddress() + path + '?' + param[0] + '=' + id;
+    console.log('Full path', fullPath, 'payload', payload);
+
+    return this.httpClient.patch<T>(fullPath, payload, {
+      headers,
+    });
   }
 }
 
@@ -209,8 +217,8 @@ export class ScanCountService extends RemoteDataService {
 
   /**
    * Method for updating the user data for a scan
-   * @param scanId Unique identifier for the scan
-   * @param userData User data to update
+   * @param scanId Unique identifier for the scan, type string
+   * @param userData User data to update, type ScanUserData
    * @returns response from the server
    * @throws HttpErrorResponse if the request fails
    * @throws TimeoutError if the request takes too long
@@ -218,9 +226,11 @@ export class ScanCountService extends RemoteDataService {
   updateUserData(scanId: string, userData: ScanUserData) {
     let headers = new HttpHeaders();
     headers = headers.set('Content-Type', 'application/json; charset=utf-8');
-    return this.post<string>(
+    console.log('Updating user data', userData);
+    return this.patch<string>(
       'scans/user_data',
-      { scan_id: scanId, ...userData },
+      { scan_id: scanId },
+      userData,
       headers
     );
   }

@@ -15,3 +15,25 @@
 .spacer {
     flex: 1 1 auto;
 }
+
+
+.table-cell {
+    max-height: 200px
+}
+
+textarea {
+    resize: none;
+    min-height: 32px; /* Initial height */
+    max-height: 200px; /* Maximum height */
+    overflow-y: auto; /* Enable scroll when max height is reached */
+    width: 100%;
+    padding:0px;
+    border: none;
+  }
+
+  mat-form-field {
+    font-size: 12px;
+    line-height: 1.2;
+    padding-top: 16px;
+    max-height: var(max-height);
+  }

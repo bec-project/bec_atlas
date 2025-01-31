@@ -29,6 +29,8 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDialog } from '@angular/material/dialog';
 import { ColumnSelectionDialogComponent } from './column-selection-dialog/column-selection-dialog.component';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
 
 export interface ResourceStatus {
   status: any;
@@ -55,6 +57,8 @@ export interface ResourceLoaderParams {
     MatProgressSpinnerModule,
     MatMenuModule,
     MatCheckboxModule,
+    MatFormFieldModule,
+    MatInputModule,
   ],
   templateUrl: './scan-table.component.html',
   styleUrl: './scan-table.component.scss',
@@ -67,6 +71,7 @@ export class ScanTableComponent {
   sessionId = signal<string>('');
   dialog = inject(MatDialog);
   pageEvent: PageEvent = new PageEvent();
+  isEditingUserComments: boolean = false;
   sorting: number = -1;
   displayedColumns = signal<string[]>([
     'scan_number',
@@ -77,6 +82,7 @@ export class ScanTableComponent {
     'dataset_number',
     'timestamp',
     'user_rating',
+    'user_comments',
   ]);
   allColumns: string[] = [
     'scan_id',
@@ -135,6 +141,7 @@ export class ScanTableComponent {
           ? 'user_data'
           : element
       );
+      columns.push('scan_id'); // always include scan_id
       console.log('Columns', columns);
       return firstValueFrom(
         this.scanData.getScanData(
@@ -227,4 +234,23 @@ export class ScanTableComponent {
   }
 
   handleColumnSelection(event: any) {}
+
+  toggleAllEdit() {}
+
+  async handleOnRatingChanged(event: any, element: ScanDataResponse) {
+    console.log('Event', event, 'Element', element);
+    let scanId = element.scan_id;
+    let userData = {
+      user_rating: event.rating,
+      user_comments: element.user_comments || '',
+      system_rating: element.system_rating || 0,
+      system_comments: element.system_comments || '',
+      name: element.name || '',
+    };
+    console.log('Scan ID', scanId);
+    if (scanId) {
+      console.log('Updating user data', userData);
+      await firstValueFrom(this.scanData.updateUserData(scanId, userData));
+    }
+  }
 }
