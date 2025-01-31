@@ -4,6 +4,7 @@ import { firstValueFrom } from 'rxjs';
 
 export interface AppConfig {
   baseUrl?: string;
+  wsUrl?: string;
 }
 @Injectable()
 export class AppConfigService {

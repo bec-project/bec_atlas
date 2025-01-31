@@ -14,10 +14,6 @@ export class ServerSettingsService {
   }
 
   getSocketAddress() {
-    const baseUrl =
-      this.appConfigService.getConfig().baseUrl ?? 'http://localhost/api/v1/';
-    if (!baseUrl.startsWith('http'))
-      throw new Error('BaseURL must use the http or https protocol');
-    return `ws${baseUrl.substring(4)}`;
+    return this.appConfigService.getConfig().wsUrl ?? 'http://localhost/';
   }
 }

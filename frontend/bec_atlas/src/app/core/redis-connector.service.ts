@@ -2,6 +2,8 @@ import { Injectable, signal, WritableSignal } from '@angular/core';
 import { io, Socket } from 'socket.io-client';
 import { Observable } from 'rxjs';
 import { MessageEndpoints, EndpointInfo } from './redis_endpoints';
+import { AppConfigService } from '../app-config.service';
+import { ServerSettingsService } from '../server-settings.service';
 
 @Injectable({
   providedIn: 'root',
@@ -11,7 +13,7 @@ export class RedisConnectorService {
   private signals: Map<string, WritableSignal<any>> = new Map();
   private signalReferenceCount: Map<string, number> = new Map();
 
-  constructor() {
+  constructor(private serverSettings: ServerSettingsService) {
     this.connect();
   }
 
@@ -19,7 +21,7 @@ export class RedisConnectorService {
    * Connect to the WebSocket server using socket.io
    */
   private connect(): void {
-    this.socket = io('http://localhost', {
+    this.socket = io(this.serverSettings.getSocketAddress(), {
       transports: ['websocket'], // Use WebSocket only
       autoConnect: true, // Automatically connect
       reconnection: true, // Enable automatic reconnection
@@ -27,7 +29,7 @@ export class RedisConnectorService {
       auth: {
         user: 'john_doe',
         token: '1234',
-        deployment: '678f5e85434914d3e0e2bb3f',
+        deployment: '678aa8d4875568640bd92176',
       },
     });
 
