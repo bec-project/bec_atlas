@@ -26,6 +26,7 @@ export class RedisConnectorService {
       autoConnect: true, // Automatically connect
       reconnection: true, // Enable automatic reconnection
       timeout: 500, // Connection timeout in milliseconds
+      path: '/api/v1/ws', // Path to the WebSocket server
       auth: {
         user: 'john_doe',
         token: '1234',

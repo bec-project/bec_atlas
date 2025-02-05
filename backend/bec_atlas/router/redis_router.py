@@ -279,7 +279,7 @@ class RedisWebsocket:
                 redis_options={"username": "ingestor", "password": redis_password},
             ),
         )
-        self.app = socketio.ASGIApp(self.socket)
+        self.app = socketio.ASGIApp(self.socket, socketio_path=f"{prefix}/ws")
         self.loop = asyncio.get_event_loop()
         self.users = {}
 

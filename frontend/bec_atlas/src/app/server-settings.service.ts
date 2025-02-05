@@ -9,11 +9,13 @@ export class ServerSettingsService {
 
   getServerAddress() {
     return (
-      this.appConfigService.getConfig().baseUrl ?? 'http://localhost/api/v1/'
+      this.appConfigService.getConfig().baseUrl ?? 'http://localhost/api/v1'
     );
   }
 
   getSocketAddress() {
-    return this.appConfigService.getConfig().wsUrl ?? 'http://localhost/';
+    let out = this.appConfigService.getConfig().wsUrl ?? 'http://localhost';
+    console.log(out);
+    return out;
   }
 }
