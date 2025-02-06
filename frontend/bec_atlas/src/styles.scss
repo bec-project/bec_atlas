@@ -1,9 +1,10 @@
 /* You can add global styles to this file, and also import other style files */
 @use "@angular/material" as mat;
+@use "_theme-colors.scss" as theme;
+
 @import "gridstack/dist/gridstack.min.css";
 @import "gridstack/dist/gridstack-extra.min.css";
-@import 'css-star-rating/scss/star-rating';
-
+@import "css-star-rating/scss/star-rating";
 // gridstack {
 //     display: grid;
 //     width: 100%; /* Ensure the grid uses the full width */
@@ -30,8 +31,13 @@ html {
   @media (prefers-color-scheme: light) {
     @include mat.theme(
       (
-        color: mat.$cyan-palette,
-        typography: Roboto,
+        color: theme.$primary-palette,
+        typography: (
+          plain-family: Poppins,
+          bold-weight: 600,
+          medium-weight: 400,
+          regular-weight: 300,
+        ),
         density: 0,
       ),
       $overrides: (primary-container: orange),
@@ -43,8 +49,13 @@ html {
   @media (prefers-color-scheme: dark) {
     @include mat.theme(
       (
-        color: mat.$cyan-palette,
-        typography: Roboto,
+        color: theme.$primary-palette,
+        typography: (
+          plain-family: Poppins,
+          bold-weight: 600,
+          medium-weight: 400,
+          regular-weight: 300,
+        ),
         density: 0,
       ),
       $overrides: (primary-container: darkorange),
