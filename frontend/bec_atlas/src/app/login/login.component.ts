@@ -49,11 +49,11 @@ export class LoginComponent {
   images: BackgroundImageSource[] = [
     {
       backgroundImage: 'assets/backgrounds/psi_background_north.jpg',
-      blur: 3,
+      blur: 2,
     },
     {
       backgroundImage: 'assets/backgrounds/psi_background_south.jpg',
-      blur: 3,
+      blur: 2,
     },
     {
       backgroundImage: 'assets/backgrounds/psi_sdsc.jpg',
@@ -71,6 +71,10 @@ export class LoginComponent {
     {
       backgroundImage:
         'assets/backgrounds/ramon-salinero-vEE00Hx5d0Q-unsplash.jpg',
+      blur: 0,
+    },
+    {
+      backgroundImage: 'assets/backgrounds/world_at_night.jpg',
       blur: 0,
     },
   ];
