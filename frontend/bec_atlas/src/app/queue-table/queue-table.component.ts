@@ -5,6 +5,7 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { RedisConnectorService } from '../core/redis-connector.service';
 import { MessageEndpoints } from '../core/redis_endpoints';
 import { CommonModule } from '@angular/common';
+import { BaseWidget } from 'gridstack/dist/angular';
 
 @Component({
   selector: 'app-queue-table',
@@ -12,12 +13,14 @@ import { CommonModule } from '@angular/common';
   templateUrl: './queue-table.component.html',
   styleUrl: './queue-table.component.scss',
 })
-export class QueueTableComponent {
+export class QueueTableComponent extends BaseWidget {
   tableSignal!: Signal<any>;
   tableData!: Signal<any>;
   displayedColumns: string[] = ['queue_id', 'scan_id', 'scan_number', 'status'];
 
-  constructor(private redisConnector: RedisConnectorService) {}
+  constructor(private redisConnector: RedisConnectorService) {
+    super();
+  }
 
   ngOnInit(): void {
     this.tableSignal = this.redisConnector.register(

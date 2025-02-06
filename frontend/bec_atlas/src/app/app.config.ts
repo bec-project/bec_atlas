@@ -20,9 +20,13 @@ import { AuthInterceptor } from './core/auth.interceptor';
 import { StarRatingModule } from 'angular-star-rating';
 import { GridstackComponent } from 'gridstack/dist/angular';
 import { DeviceBoxComponent } from './device-box/device-box.component';
+import { QueueTableComponent } from './queue-table/queue-table.component';
 
 const gridconstructor = () => {
-  GridstackComponent.addComponentToSelectorType([DeviceBoxComponent]);
+  GridstackComponent.addComponentToSelectorType([
+    DeviceBoxComponent,
+    QueueTableComponent,
+  ]);
 };
 
 export const appConfig: ApplicationConfig = {

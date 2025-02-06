@@ -27,12 +27,13 @@ export class OverviewGridComponent {
         { w: 1000, c: 10 },
       ],
     },
-    // disableResize: true,
+    disableResize: true,
+    disableDrag: true,
     children: [
       // or call load()/addWidget() with same data
       {
         x: 1,
-        y: 10,
+        y: 5,
         minW: 1,
         selector: 'app-device-box',
         input: { device: 'samx', signal_name: 'samx' },
@@ -45,11 +46,11 @@ export class OverviewGridComponent {
         input: { device: 'samy', signal_name: 'samy' },
       },
       {
-        x: 3,
-        y: 5,
-        minW: 1,
-        selector: 'app-device-box',
-        input: { device: 'samx', signal_name: 'samx' },
+        x: 0,
+        y: 0,
+        minW: 12,
+        minH: 3,
+        selector: 'app-queue-table',
       },
       // {x:1, y:0, minW:2, selector:'app-a', input: { text: 'bar' }}, // custom input that works using BaseWidget.deserialize() Object.assign(this, w.input)
       // {x:2, y:0, selector:'app-b'},
