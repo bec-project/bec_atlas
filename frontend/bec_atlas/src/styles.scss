@@ -5,15 +5,11 @@
 @import "gridstack/dist/gridstack.min.css";
 @import "gridstack/dist/gridstack-extra.min.css";
 @import "css-star-rating/scss/star-rating";
-// gridstack {
-//     display: grid;
-//     width: 100%; /* Ensure the grid uses the full width */
-//     height: 100%; /* Ensure grid height is sufficient */
-//   }
 
-//   gridstack-item {
-//     display: block;
-//   }
+// for debugging the layout
+// * * * * * {
+//   outline: 3px solid red;
+// }
 
 html,
 body {

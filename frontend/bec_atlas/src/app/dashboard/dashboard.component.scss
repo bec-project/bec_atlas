@@ -3,6 +3,7 @@
 .sidenav-container {
   height: 100vh;
   display: flex;
+  background-color: var(--mat-sys-surface-dim);
 }
 
 mat-sidenav {
