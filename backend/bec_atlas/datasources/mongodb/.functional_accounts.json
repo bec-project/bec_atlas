@@ -1,0 +1,18 @@
+[
+  {
+    "email": "admin@bec_atlas.ch",
+    "password": "admin",
+    "groups": ["demo", "admin"],
+    "first_name": "Admin",
+    "last_name": "Admin",
+    "owner_groups": ["admin"]
+  },
+  {
+    "email": "jane.doe@bec_atlas.ch",
+    "password": "atlas",
+    "groups": ["demo"],
+    "first_name": "Jane",
+    "last_name": "Doe",
+    "owner_groups": ["admin"]
+  }
+]
