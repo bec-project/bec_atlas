@@ -18,6 +18,10 @@ def load_env() -> dict:
         env_file = os.path.join(current_dir, ".env.yaml")
 
     if not os.path.exists(env_file):
+        # check if there is an env file in the deployment directory
+        env_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), "deployment/.env.yaml")
+
+    if not os.path.exists(env_file):
         raise FileNotFoundError(f"Could not find .env file in {os.getcwd()} or {current_dir}")
 
     with open(env_file, "r", encoding="utf-8") as file:

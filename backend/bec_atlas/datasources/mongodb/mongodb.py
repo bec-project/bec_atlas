@@ -54,7 +54,8 @@ class MongoDBDatasource:
         Load the functional accounts to the database.
         """
         functional_accounts_file = os.path.join(
-            os.path.dirname(__file__), ".functional_accounts.json"
+            os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+            "deployment/.functional_accounts.json",
         )
         if not os.path.exists(functional_accounts_file):
             raise FileNotFoundError(
