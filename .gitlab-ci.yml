@@ -151,7 +151,7 @@ deploy-dev:
   script:
     - cd ../; if [ ! -d ansible_bec ]; then git clone https://gitlab-runner:$CI_RO_TOKEN@gitlab.psi.ch/bec/ansible_bec.git; fi;
     - cd ansible_bec && git pull origin main
-    - ansible-playbook --private-key=/home/gitlab-runner/deploy_bec deploy_bec_atlas.yaml -l bec-atlas-dev.psi.ch -u root --vault-pass-file $ANSIBLE_VAULT_PASS -e "redis_user=$REDIS_USER redis_pass=$REDIS_PASS bec_atlas_version=$CI_COMMIT_REF_NAME"
+    - ansible-playbook --private-key=/home/gitlab-runner/deploy_bec deploy_bec_atlas.yaml -l bec-atlas-dev.psi.ch -u root --vault-pass-file $ANSIBLE_VAULT_PASS -e "bec_atlas_version=$CI_COMMIT_REF_NAME"
   rules:
     - if: '$CI_PIPELINE_SOURCE == "web"'
     - if: '$DEPLOY_DEV_SERVER == "false"'
@@ -166,7 +166,7 @@ deploy-qa:
   script:
     - cd ../; if [ ! -d ansible_bec ]; then git clone https://gitlab-runner:$CI_RO_TOKEN@gitlab.psi.ch/bec/ansible_bec.git; fi;
     - cd ansible_bec && git pull origin main
-    - ansible-playbook --private-key=/home/gitlab-runner/deploy_bec deploy_bec_atlas.yaml -l bec-atlas-qa.psi.ch -u root --vault-pass-file $ANSIBLE_VAULT_PASS -e "redis_user=$REDIS_USER redis_pass=$REDIS_PASS"
+    - ansible-playbook --private-key=/home/gitlab-runner/deploy_bec deploy_bec_atlas.yaml -l bec-atlas-qa.psi.ch -u root --vault-pass-file $ANSIBLE_VAULT_PASS
   rules:
     - if: '$CI_COMMIT_BRANCH == "main" && $CI_PROJECT_PATH == "bec/bec_atlas"'
   interruptible: true
