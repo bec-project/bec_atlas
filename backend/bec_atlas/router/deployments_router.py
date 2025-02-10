@@ -1,6 +1,7 @@
 import json
 from typing import TYPE_CHECKING
 
+from bson import ObjectId
 from fastapi import APIRouter, Depends
 
 from bec_atlas.authentication import get_current_user
@@ -57,7 +58,7 @@ class DeploymentsRouter(BaseRouter):
             scan_id (str): The scan id
         """
         return self.db.find_one(
-            "deployments", {"_id": deployment_id}, Deployments, user=current_user
+            "deployments", {"_id": ObjectId(deployment_id)}, Deployments, user=current_user
         )
 
     def update_available_deployments(self):
@@ -70,6 +71,5 @@ class DeploymentsRouter(BaseRouter):
         redis: RedisDatasource = self.datasources.datasources.get("redis")
         msg = json.dumps([msg.model_dump() for msg in self.available_deployments])
         redis.connector.set_and_publish("deployments", msg)
-        if redis.reconfigured_acls:
-            for deployment in credentials:
-                redis.add_deployment_acl(deployment)
+        for deployment in credentials:
+            redis.add_deployment_acl(deployment)
