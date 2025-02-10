@@ -1,0 +1,34 @@
+<mat-dialog-content>
+  <h2>Deployments</h2>
+  <form [formGroup]="form">
+    <div class="form-row">
+      <mat-form-field appearance="outline">
+        <mat-label>Select Beamline</mat-label>
+        <mat-select formControlName="beamline">
+          <mat-option *ngFor="let beamline of beamlines" [value]="beamline._id">
+            {{ beamline.name }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Select Deployment</mat-label>
+        <mat-select
+          formControlName="deployment"
+          [disabled]="!form.get('beamline')?.value"
+        >
+          <mat-option
+            *ngFor="let deployment of deployments"
+            [value]="deployment._id"
+          >
+            {{ deployment.name }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+  </form>
+  <mat-dialog-actions align="end">
+    <button mat-button mat-dialog-close>Cancel</button>
+    <button mat-button (click)="applySelection()" cdkFocusInitial>Apply</button>
+  </mat-dialog-actions>
+</mat-dialog-content>

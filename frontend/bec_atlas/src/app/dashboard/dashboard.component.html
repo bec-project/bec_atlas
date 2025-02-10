@@ -10,6 +10,8 @@
       />
     </div>
     <mat-divider></mat-divider>
+
+    <!-- Username expansion panel -->
     <mat-expansion-panel>
       <mat-expansion-panel-header>
         <mat-icon>account_circle</mat-icon>
@@ -20,7 +22,10 @@
       <button mat-button>Settings</button>
       <button mat-button>Logout</button>
     </mat-expansion-panel>
+
     <mat-divider></mat-divider>
+
+    <!-- Scan Table -->
     <button
       mat-button
       class="menu-item"
@@ -29,11 +34,17 @@
       <mat-icon>home</mat-icon>
       <span class="menu-text">Data Browser</span>
     </button>
-    <mat-expansion-panel>
+
+    <!-- Experiment Control Expansion -->
+    <mat-expansion-panel
+      (opened)="panelOpened()"
+      [hideToggle]="hideExperimentPanel"
+    >
       <mat-expansion-panel-header>
         <mat-icon>science</mat-icon>
         <span class="menu-text">Experiment Control</span>
       </mat-expansion-panel-header>
+
       <button
         mat-button
         class="menu-item"
@@ -48,19 +59,29 @@
       >
         <span class="menu-text">Admin</span>
       </button>
+
+      <button mat-button class="menu-item" (click)="openDeploymentDialog()">
+        <span class="menu-text">{{ selectOrSwitchButtonTitle }}</span>
+      </button>
     </mat-expansion-panel>
+
+    <!-- Help -->
     <button mat-button class="menu-item">
       <mat-icon>help</mat-icon>
       <span class="menu-text">Help</span>
     </button>
+    <div class="spacer"></div>
+    @if ((realm_name) && (deployment_name)) {
+    <div class="footer">
+      <mat-divider></mat-divider>
+      <div class="menu-text">{{ realm_name }}</div>
+      <div class="menu-text">{{ deployment_name }}</div>
+    </div>
+    }
   </mat-sidenav>
 
   <mat-sidenav-content>
     <div class="content">
-      <!-- <app-device-box [device]="'samx'" [signal_name]="'samx'"></app-device-box>
-      <app-device-box [device]="'samy'" [signal_name]="'samy'"></app-device-box>
-      <app-queue-table></app-queue-table> -->
-      <!-- <app-scan-table></app-scan-table> -->
       <router-outlet></router-outlet>
     </div>
   </mat-sidenav-content>

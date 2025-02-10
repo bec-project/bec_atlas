@@ -15,6 +15,12 @@ mat-sidenav {
   @include mat.elevation(3);
 }
 
+::ng-deep .mat-drawer-inner-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%; /* Ensure it takes full height */
+}
+
 .sidenav.collapsed {
   width: 60px;
 }
@@ -87,4 +93,13 @@ mat-panel-title mat-icon {
 mat-sidenav-content {
   background-color: var(--mat-sys-surface-dim);
   height: 100vh;
+}
+
+.spacer {
+  flex-grow: 1; /* Pushes everything below it down */
+}
+
+.footer {
+  padding-bottom: 10px;
+  color: var(--mat-sys-primary);
 }
