@@ -1,18 +1,17 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { GridstackTestComponent } from './gridstack-test.component';
+import { GridStackTestComponent } from './gridstack-test.component';
 
 describe('GridstackTestComponent', () => {
-  let component: GridstackTestComponent;
-  let fixture: ComponentFixture<GridstackTestComponent>;
+  let component: GridStackTestComponent;
+  let fixture: ComponentFixture<GridStackTestComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [GridstackTestComponent]
-    })
-    .compileComponents();
+      imports: [GridStackTestComponent],
+    }).compileComponents();
 
-    fixture = TestBed.createComponent(GridstackTestComponent);
+    fixture = TestBed.createComponent(GridStackTestComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

@@ -110,38 +110,25 @@ backend_pytest:
         path: coverage.xml
   interruptible: true
 
-# backend_pytest:
-#   stage: test
-#   image: $CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX/docker:23-dind
-#   services:
-#     - name: docker:dind
-#       entrypoint: ["dockerd-entrypoint.sh", "--tls=false"]
-#   needs: []
-#   script:
-#     - if [[ "$CI_PROJECT_PATH" != "bec/bec_atlas" ]]; then
-#       apk update; apk add git; echo -e "\033[35;1m Using branch $CHILD_PIPELINE_BRANCH of BEC Atlas \033[0;m";
-#       test -d bec_atlas || git clone --branch $CHILD_PIPELINE_BRANCH https://gitlab.psi.ch/bec/bec_atlas.git; cd bec_atlas;
-#       TARGET_BRANCH=$CHILD_PIPELINE_BRANCH;
-#       else
-#       TARGET_BRANCH=$CI_COMMIT_REF_NAME;
-#       fi
-#     # start services
-#     - docker-compose -f ./backend/tests/docker-compose.yml up -d
-
-#     # build test environment
-#     - echo "$CI_DEPENDENCY_PROXY_PASSWORD" | docker login $CI_DEPENDENCY_PROXY_SERVER --username $CI_DEPENDENCY_PROXY_USER --password-stdin
-#     - docker build -t bec_atlas_backend:test -f ./backend/tests/Dockerfile.run_pytest --build-arg PY_VERSION=3.10 --build-arg BEC_ATLAS_BRANCH=$TARGET_BRANCH --build-arg BEC_CORE_BRANCH=$BEC_CORE_BRANCH --build-arg CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX .
-#     - docker run --network=host --name bec_atlas_backend bec_atlas_backend:test
-#   after_script:
-#     - docker cp bec_atlas_backend:/code/bec_atlas/test_files/. $CI_PROJECT_DIR
-#   coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
-#   artifacts:
-#     reports:
-#       junit: report.xml
-#       coverage_report:
-#         coverage_format: cobertura
-#         path: coverage.xml
-#   interruptible: true
+frontend_test:
+  stage: test
+  image: $CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX/cypress/browsers:22.13.1
+  needs: []
+  before_script:
+    - cd frontend/bec_atlas
+  script:
+    - npm install
+    - npx ng test --no-watch --no-progress --browsers=ChromeHeadlessCI --code-coverage
+    - cp ./coverage/cobertura-coverage.xml ../../cobertura-coverage.xml
+    - cp ./coverage/junit-report.xml ../../junit-report.xml
+  coverage: '/^Statements\s*:\s*([^%]+)/'
+  artifacts:
+    reports:
+      junit: junit-report.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: cobertura-coverage.xml
+  interruptible: true
 
 # semver:
 #   stage: Deploy
