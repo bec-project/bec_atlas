@@ -104,7 +104,8 @@ class DeploymentAccess(MongoBaseModel, AccessProfile):
     user_write_access: list[str] = []
     su_read_access: list[str] = []
     su_write_access: list[str] = []
-    remote_access: list[str] = []
+    remote_read_access: list[str] = []
+    remote_write_access: list[str] = []
 
 
 class BECAccessProfile(MongoBaseModel, AccessProfile):
