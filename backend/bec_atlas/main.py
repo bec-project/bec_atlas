@@ -25,8 +25,14 @@ class AtlasApp:
     API_VERSION = "v1"
 
     def __init__(self, config=None):
+        self.prefix = f"/api/{self.API_VERSION}"
         self.config = config or CONFIG
-        self.app = FastAPI()
+        self.app = FastAPI(
+            docs_url=f"{self.prefix}/docs",
+            openapi_url=f"{self.prefix}/openapi.json",
+            redoc_url=f"{self.prefix}/redoc",
+            title="BEC Atlas API",
+        )
         self.app.add_middleware(
             CORSMiddleware,
             allow_origins=origins,
@@ -35,7 +41,6 @@ class AtlasApp:
             allow_headers=["*"],
         )
         self.server = None
-        self.prefix = f"/api/{self.API_VERSION}"
         self.datasources = DatasourceManager(config=self.config)
         self.datasources.connect()
         self.register_event_handler()
