@@ -178,6 +178,7 @@ deploy-dev:
   tags:
     - bec-atlas-deploy
   needs: ["backend_pytest"]
+  before_script: []
   script:
     - cd ../; if [ ! -d ansible_bec ]; then git clone https://gitlab-runner:$CI_RO_TOKEN@gitlab.psi.ch/bec/ansible_bec.git; fi;
     - cd ansible_bec && git pull origin main
@@ -193,6 +194,7 @@ deploy-qa:
   tags:
     - bec-atlas-deploy
   needs: ["backend_pytest"]
+  before_script: []
   script:
     - cd ../; if [ ! -d ansible_bec ]; then git clone https://gitlab-runner:$CI_RO_TOKEN@gitlab.psi.ch/bec/ansible_bec.git; fi;
     - cd ansible_bec && git pull origin main
