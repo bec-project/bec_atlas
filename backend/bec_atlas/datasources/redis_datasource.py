@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 from bec_lib.redis_connector import RedisConnector
 from redis.asyncio import Redis as AsyncRedis
-from redis.exceptions import AuthenticationError
+from redis.exceptions import AuthenticationError, ResponseError
 
 if TYPE_CHECKING:
     from bec_atlas.model.model import DeploymentCredential
@@ -13,14 +13,18 @@ if TYPE_CHECKING:
 class RedisDatasource:
     def __init__(self, config: dict):
         self.config = config
-        self.connector = RedisConnector(f"{config.get('host')}:{config.get('port')}")
+
+        if config.get("sync_instance"):
+            self.connector = config.get("sync_instance")
+        else:
+            self.connector = RedisConnector(f"{config.get('host')}:{config.get('port')}")
         username = config.get("username")
         password = config.get("password")
 
         try:
             self.connector._redis_conn.auth(password, username=username)
             self.reconfigured_acls = False
-        except AuthenticationError:
+        except (AuthenticationError, ResponseError):
             self.setup_acls()
             self.connector._redis_conn.auth(password, username=username)
             self.reconfigured_acls = True
@@ -28,12 +32,15 @@ class RedisDatasource:
         self.connector._redis_conn.connection_pool.connection_kwargs["username"] = username
         self.connector._redis_conn.connection_pool.connection_kwargs["password"] = password
 
-        self.async_connector = AsyncRedis(
-            host=config.get("host"),
-            port=config.get("port"),
-            username="ingestor",
-            password=config.get("password"),
-        )
+        if config.get("async_instance"):
+            self.async_connector = config.get("async_instance")
+        else:
+            self.async_connector = AsyncRedis(
+                host=config.get("host"),
+                port=config.get("port"),
+                username="ingestor",
+                password=config.get("password"),
+            )
         print("Connected to Redis")
 
     def setup_acls(self):

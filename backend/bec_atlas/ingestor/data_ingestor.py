@@ -29,9 +29,13 @@ class DataIngestor:
 
         redis_host = config.get("redis", {}).get("host", "localhost")
         redis_port = config.get("redis", {}).get("port", 6380)
-        self.redis = RedisConnector(
-            f"{redis_host}:{redis_port}"  # username="ingestor", password="ingestor"
-        )
+
+        if config.get("redis", {}).get("sync_instance"):
+            self.redis = config.get("redis", {}).get("sync_instance")
+        else:
+            self.redis = RedisConnector(
+                f"{redis_host}:{redis_port}"  # username="ingestor", password="ingestor"
+            )
         # self.redis.authenticate(
         #     config.get("redis", {}).get("password", "ingestor"), username="ingestor"
         # )

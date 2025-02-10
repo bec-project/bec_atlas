@@ -1,0 +1,22 @@
+[
+  {
+    "_id": { "$oid": "67a5d652d22ba335392b9159" },
+    "owner_groups": ["admin"],
+    "access_groups": [],
+    "id": null,
+    "email": "admin@bec_atlas.ch",
+    "groups": ["demo", "admin", "atlas_func_account"],
+    "first_name": "Admin",
+    "last_name": "Admin"
+  },
+  {
+    "_id": { "$oid": "67a5d694c13d2198c91cc47c" },
+    "owner_groups": ["admin"],
+    "access_groups": [],
+    "id": null,
+    "email": "jane.doe@bec_atlas.ch",
+    "groups": ["demo", "atlas_func_account"],
+    "first_name": "Jane",
+    "last_name": "Doe"
+  }
+]

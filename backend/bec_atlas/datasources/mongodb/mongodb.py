@@ -33,15 +33,19 @@ class MongoDBDatasource:
         port = self.config.get("port")
         username = self.config.get("username")
         password = self.config.get("password")
-        if username and password:
-            self.client = pymongo.MongoClient(
-                f"mongodb://{username}:{password}@{host}:{port}/?authSource=bec_atlas"
-            )
+
+        if self.config.get("mongodb_client"):
+            self.client = self.config.get("mongodb_client")
         else:
-            self.client = pymongo.MongoClient(f"mongodb://{host}:{port}/")
+            if username and password:
+                self.client = pymongo.MongoClient(
+                    f"mongodb://{username}:{password}@{host}:{port}/?authSource=bec_atlas"
+                )
+            else:
+                self.client = pymongo.MongoClient(f"mongodb://{host}:{port}/")
 
         # Check if the connection is successful
-        self.client.list_databases()
+        self.client.list_database_names()
 
         logger.info(f"Connecting to MongoDB at {host}:{port}")
         self.db = self.client["bec_atlas"]

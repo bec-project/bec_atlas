@@ -170,3 +170,4 @@ class ScanRouter(BaseRouter):
         out = self.db.aggregate("scans", pipeline=pipeline, dtype=None, user=current_user)
         if out:
             return out[0]
+        return {"count": 0}

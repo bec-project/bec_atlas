@@ -1,147 +1,121 @@
-import contextlib
+import json
 import os
-from typing import Iterator
+from unittest import mock
 
+import fakeredis
+import mongomock
+import pymongo
 import pytest
+from bec_lib.redis_connector import RedisConnector
+from bson import ObjectId
 from fastapi.testclient import TestClient
-from pytest_docker.plugin import DockerComposeExecutor, Services
 
 from bec_atlas.main import AtlasApp
+from bec_atlas.router.redis_router import BECAsyncRedisManager
 
 
-def pytest_addoption(parser):
-    parser.addoption(
-        "--skip-docker",
-        action="store_true",
-        default=False,
-        help="Skip spinning up docker containers",
-    )
+def import_mongodb_data(mongo_client: pymongo.MongoClient):
+    """
+    Import the test data into the mongodb container. The data is stored in the
+    tests/test_data directory as json files per collection.
+
+    Args:
+        mongo_client (pymongo.MongoClient): The mongo client
+    """
+    client = mongo_client
+    db = client["bec_atlas"]
+
+    collections = [
+        # "bec_access_profiles",
+        "deployment_access",
+        "deployment_credentials",
+        "deployments",
+        # "fs.chunks",
+        # "fs.files",
+        "scans",
+        "sessions",
+        "user_credentials",
+        "users",
+    ]
+
+    for collection in collections:
+        db.drop_collection(collection)
+
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+
+    for collection in collections:
+        with open(
+            f"{current_dir}/test_data/bec_atlas.{collection}.json", "r", encoding="utf-8"
+        ) as f:
+            data = f.read()
+            data = json.loads(data)
+            data = [convert_to_object_id(d) for d in data]
+
+            db[collection].insert_many(data)
+    client.close()
 
 
-@pytest.fixture(scope="session")
-def docker_compose_file(pytestconfig):
-    test_directory = os.path.dirname(os.path.abspath(__file__))
-    return os.path.join(test_directory, "docker-compose.yml")
+def convert_to_object_id(data):
+    """
+    Convert the _id field in the data to an ObjectId.
 
+    Args:
+        data (dict): The data
 
-@pytest.fixture(scope="session")
-def docker_compose_project_name() -> str:
-    """Generate a project name using the current process PID. Override this
-    fixture in your tests if you need a particular project name."""
-
-    return "pytest_9070_atlas"
-
-
-@contextlib.contextmanager
-def get_docker_services(
-    docker_compose_command: str,
-    docker_compose_file: list[str] | str,
-    docker_compose_project_name: str,
-    docker_setup: list[str] | str,
-    docker_cleanup: list[str] | str,
-) -> Iterator[Services]:
-    docker_compose = DockerComposeExecutor(
-        docker_compose_command, docker_compose_file, docker_compose_project_name
-    )
-
-    try:
-        if docker_cleanup:
-            # Maintain backwards compatibility with the string format.
-            if isinstance(docker_cleanup, str):
-                docker_cleanup = [docker_cleanup]
-            for command in docker_cleanup:
-                docker_compose.execute(command)
-    except Exception:
-        pass
-
-    # setup containers.
-    if docker_setup:
-        # Maintain backwards compatibility with the string format.
-        if isinstance(docker_setup, str):
-            docker_setup = [docker_setup]
-        for command in docker_setup:
-            docker_compose.execute(command)
-
-    try:
-        # Let test(s) run.
-        yield Services(docker_compose)
-    finally:
-        # Clean up.
-        if docker_cleanup:
-            # Maintain backwards compatibility with the string format.
-            if isinstance(docker_cleanup, str):
-                docker_cleanup = [docker_cleanup]
-            for command in docker_cleanup:
-                docker_compose.execute(command)
+    Returns:
+        dict: The data with the _id field converted to an ObjectId
+    """
+    if isinstance(data, dict) and "$oid" in data:
+        return ObjectId(data["$oid"])
+    if isinstance(data, dict):
+        for key, value in data.items():
+            data[key] = convert_to_object_id(value)
+    return data
 
 
 @pytest.fixture(scope="session")
-def docker_services(
-    docker_compose_command: str,
-    docker_compose_file: list[str] | str,
-    docker_compose_project_name: str,
-    docker_setup: str,
-    docker_cleanup: str,
-    request,
-) -> Iterator[Services]:
-    """Start all services from a docker compose file (`docker-compose up`).
-    After test are finished, shutdown all services (`docker-compose down`)."""
-
-    if request.config.getoption("--skip-docker"):
-        yield
-        return
-
-    with get_docker_services(
-        docker_compose_command,
-        docker_compose_file,
-        docker_compose_project_name,
-        docker_setup,
-        docker_cleanup,
-    ) as docker_service:
-        yield docker_service
+def redis_server():
+    redis_server = fakeredis.FakeServer()
+    yield redis_server
 
 
 @pytest.fixture(scope="session")
-def redis_container(docker_ip, docker_services):
-    host = docker_ip
-    if os.path.exists("/.dockerenv"):
-        host = "redis"
-    if docker_services is None:
-        port = 6380
-    else:
-        port = docker_services.port_for("redis", 6379)
+def backend(redis_server):
 
-    return "localhost", port
+    def _fake_redis(host, port):
+        return fakeredis.FakeStrictRedis(server=redis_server)
 
+    mongo_client = mongomock.MongoClient("localhost", 27027)
 
-@pytest.fixture(scope="session")
-def mongo_container(docker_ip, docker_services):
-    host = docker_ip
-    if os.path.exists("/.dockerenv"):
-        host = "mongo"
-    if docker_services is None:
-        port = 27017
-    else:
-        port = docker_services.port_for("mongodb", 27017)
-
-    return "localhost", port
-
-
-@pytest.fixture(scope="session")
-def backend(redis_container, mongo_container):
-    redis_host, redis_port = redis_container
-    mongo_host, mongo_port = mongo_container
     config = {
         "redis": {
-            "host": redis_host,
-            "port": redis_port,
+            "host": "localhost",
+            "port": 6480,
             "username": "ingestor",
             "password": "ingestor",
+            "sync_instance": RedisConnector("localhost:1", redis_cls=_fake_redis),
+            "async_instance": fakeredis.FakeAsyncRedis(server=redis_server),
         },
-        "mongodb": {"host": mongo_host, "port": mongo_port},
+        "mongodb": {"host": "localhost", "port": 27027, "mongodb_client": mongo_client},
     }
+
+    import_mongodb_data(mongo_client)
 
     app = AtlasApp(config)
 
-    with TestClient(app.app) as _client:
-        yield _client, app
+    class PatchedBECAsyncRedisManager(BECAsyncRedisManager):
+        def _redis_connect(self):
+            self.redis = fakeredis.FakeAsyncRedis(
+                server=redis_server,
+                username=config["redis"]["username"],
+                password=config["redis"]["password"],
+            )
+            self.redis.connection_pool.connection_kwargs["username"] = config["redis"]["username"]
+            self.redis.connection_pool.connection_kwargs["password"] = config["redis"]["password"]
+            self.pubsub = self.redis.pubsub(ignore_subscribe_messages=True)
+
+    with mock.patch(
+        "bec_atlas.router.redis_router.BECAsyncRedisManager", PatchedBECAsyncRedisManager
+    ):
+        with TestClient(app.app) as _client:
+            yield _client, app

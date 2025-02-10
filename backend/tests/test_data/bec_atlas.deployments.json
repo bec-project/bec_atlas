@@ -1,0 +1,12 @@
+[
+  {
+    "_id": { "$oid": "678aa8d4875568640bd92176" },
+    "owner_groups": ["admin", "demo"],
+    "access_groups": ["demo"],
+    "id": null,
+    "realm_id": "demo_beamline_1",
+    "name": "Demo Deployment 1",
+    "active_session_id": null,
+    "config_templates": []
+  }
+]
