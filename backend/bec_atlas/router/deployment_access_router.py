@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends
 
 from bec_atlas.authentication import get_current_user
 from bec_atlas.datasources.mongodb.mongodb import MongoDBDatasource
-from bec_atlas.model.model import BECAccessProfile, DeploymentAccess, UserInfo
+from bec_atlas.model.model import BECAccessProfile, DeploymentAccess, Deployments, UserInfo
 from bec_atlas.router.base_router import BaseRouter
 from bec_atlas.router.redis_router import RedisAtlasEndpoints
 
