@@ -30,7 +30,7 @@ class DeploymentsRouter(BaseRouter):
             self.deployment_with_id,
             methods=["GET"],
             description="Get a single deployment by id for a realm",
-            response_model=Deployments,
+            response_model=Deployments | None,
         )
         self.update_available_deployments()
 
