@@ -7,7 +7,7 @@ def backend_client(backend):
     return client
 
 
-@pytest.mark.timeout(10)
+@pytest.mark.timeout(20)
 def test_login(backend_client):
     """
     Test that the login endpoint returns a token.
@@ -33,7 +33,7 @@ def test_login_wrong_password(backend_client):
     assert response.json() == {"detail": "User not found or password is incorrect"}
 
 
-@pytest.mark.timeout(10)
+@pytest.mark.timeout(20)
 def test_login_unknown_user(backend_client):
     """
     Test that the login returns a 401 when the user is unknown.

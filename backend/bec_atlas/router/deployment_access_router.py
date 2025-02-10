@@ -5,15 +5,15 @@ from typing import TYPE_CHECKING, Any
 from bec_lib.endpoints import EndpointInfo, MessageOp
 from bec_lib.serialization import MsgpackSerialization
 from bson import ObjectId
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 
 from bec_atlas.authentication import get_current_user
 from bec_atlas.datasources.mongodb.mongodb import MongoDBDatasource
-from bec_atlas.model.model import BECAccessProfile, DeploymentAccess, Deployments, UserInfo
+from bec_atlas.model.model import BECAccessProfile, DeploymentAccess, UserInfo
 from bec_atlas.router.base_router import BaseRouter
 from bec_atlas.router.redis_router import RedisAtlasEndpoints
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from bec_atlas.datasources.redis_datasource import RedisDatasource
 
 
@@ -50,6 +50,8 @@ class DeploymentAccessRouter(BaseRouter):
         Returns:
             DeploymentAccess: The access lists for the deployment
         """
+        if not ObjectId.is_valid(deployment_id):
+            raise HTTPException(status_code=400, detail="Invalid deployment ID")
         return self.db.find_one(
             "deployments", {"_id": ObjectId(deployment_id)}, DeploymentAccess, user=current_user
         )
@@ -119,17 +121,17 @@ class DeploymentAccessRouter(BaseRouter):
             db.delete_one("bec_access_profiles", {"username": profile, "deployment_id": updated.id})
         for profile in new_profiles:
             if profile in updated.su_write_access:
-                access = self._get_redis_access_profile("su_write", profile, updated.id)
+                access = self._get_redis_access_profile("su_write", profile, str(updated.id))
             elif profile in updated.su_read_access:
-                access = self._get_redis_access_profile("su_read", profile, updated.id)
+                access = self._get_redis_access_profile("su_read", profile, str(updated.id))
             elif profile in updated.user_write_access:
-                access = self._get_redis_access_profile("user_write", profile, updated.id)
+                access = self._get_redis_access_profile("user_write", profile, str(updated.id))
             else:
-                access = self._get_redis_access_profile("user_read", profile, updated.id)
+                access = self._get_redis_access_profile("user_read", profile, str(updated.id))
 
             existing_profile = db.find_one(
                 "bec_access_profiles",
-                {"username": profile, "deployment_id": updated.id},
+                {"username": profile, "deployment_id": str(updated.id)},
                 BECAccessProfile,
             )
             if existing_profile:

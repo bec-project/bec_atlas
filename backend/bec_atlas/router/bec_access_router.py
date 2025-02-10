@@ -1,4 +1,3 @@
-from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from bec_atlas.authentication import get_current_user

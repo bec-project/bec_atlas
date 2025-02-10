@@ -9,7 +9,7 @@ from bec_atlas.datasources.mongodb.mongodb import MongoDBDatasource
 from bec_atlas.model.model import DeploymentCredential, UserInfo
 from bec_atlas.router.base_router import BaseRouter
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from bec_atlas.datasources.redis_datasource import RedisDatasource
 
 
@@ -23,7 +23,7 @@ class DeploymentCredentialsRouter(BaseRouter):
             self.deployment_credential,
             methods=["GET"],
             description="Retrieve the deployment key for a specific deployment.",
-            response_model=DeploymentCredential,
+            response_model=DeploymentCredential | None,
         )
         self.router.add_api_route(
             "/deploymentCredentials/refresh",
@@ -42,6 +42,8 @@ class DeploymentCredentialsRouter(BaseRouter):
         Args:
             deployment_id (str): The deployment id
         """
+        if not ObjectId.is_valid(deployment_id):
+            raise HTTPException(status_code=400, detail="Invalid deployment ID")
         if set(current_user.groups) & set(["admin", "bec_group"]):
             out = self.db.find(
                 "deployment_credentials", {"_id": ObjectId(deployment_id)}, DeploymentCredential
