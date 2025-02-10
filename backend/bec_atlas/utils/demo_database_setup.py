@@ -65,7 +65,8 @@ class DemoSetupLoader:
                 "user_write_access": [],
                 "su_read_access": [],
                 "su_write_access": [],
-                "remote_access": [],
+                "remote_read_access": [],
+                "remote_write_access": [],
             }
             self.db["deployment_access"].insert_one(deployment_access)
 
