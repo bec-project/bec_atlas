@@ -1,7 +1,9 @@
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { inject, Injectable } from '@angular/core';
+import { Inject, inject, Injectable } from '@angular/core';
 import { ServerSettingsService } from '../server-settings.service';
 import { ScanDataResponse } from './model/scan-data';
+import { Realm } from './model/realm';
+import { Deployment } from './model/deployment';
 
 @Injectable({
   providedIn: 'root',
@@ -91,20 +93,63 @@ export class ScanDataService extends RemoteDataService {
    * @throws HttpErrorResponse if the request fails
    * @throws TimeoutError if the request takes too long
    */
-  getScanData(sessionId: string, offset:number = 0, limit:number = 100, fields: Array<string> |null = null, includeUserData: boolean = false, sort: { [key: string]: number } | null = null) {
+  getScanData(
+    sessionId: string,
+    offset: number = 0,
+    limit: number = 100,
+    fields: Array<string> | null = null,
+    includeUserData: boolean = false,
+    sort: { [key: string]: number } | null = null
+  ) {
     let headers = new HttpHeaders();
     headers = headers.set('Content-Type', 'application/json; charset=utf-8');
     return this.get<Array<ScanDataResponse>>(
-      "scans/session",
-      { 
-        session_id : sessionId, 
-        offset : offset.toString(), 
-        limit : limit.toString(), 
-        fields: fields ? fields.join(',') : "",
-        sort: sort ? JSON.stringify(sort) : "",
-        includeUserData: includeUserData.toString() 
+      'scans/session',
+      {
+        session_id: sessionId,
+        offset: offset.toString(),
+        limit: limit.toString(),
+        fields: fields ? fields.join(',') : '',
+        sort: sort ? JSON.stringify(sort) : '',
+        includeUserData: includeUserData.toString(),
       },
       headers
-    )
+    );
+  }
+}
+
+@Injectable({
+  providedIn: 'root',
+})
+export class RealmDataService extends RemoteDataService {
+  getRealmsWithDeploymentAccess(only_owner: boolean = false) {
+    let headers = new HttpHeaders();
+    headers = headers.set('Content-Type', 'application/json; charset=utf-8');
+    return this.get<Array<Realm>>(
+      'realms/deployment_access',
+      { only_owner: only_owner.toString() },
+      headers
+    );
+  }
+}
+
+@Injectable({
+  providedIn: 'root',
+})
+export class DeploymentDataService extends RemoteDataService {
+  getDeployments() {
+    let headers = new HttpHeaders();
+    headers = headers.set('Content-Type', 'application/json; charset=utf-8');
+    return this.get<Array<Deployment>>('deployments', {}, headers);
+  }
+
+  getDeployment(deploymentId: string) {
+    let headers = new HttpHeaders();
+    headers = headers.set('Content-Type', 'application/json; charset=utf-8');
+    return this.get<Deployment>(
+      'deployments/id',
+      { deployment_id: deploymentId },
+      headers
+    );
   }
 }
