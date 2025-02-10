@@ -9,17 +9,12 @@ import { QueueTableComponent } from './queue-table/queue-table.component';
 
 @Component({
   selector: 'app-root',
-  imports: [
-    RouterOutlet,
-    DashboardComponent,
-    CommonModule,
-    GridStackTestComponent,
-  ],
+  imports: [RouterOutlet, CommonModule],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
 })
 export class AppComponent {
   title = 'bec_atlas';
 
-  constructor(private redisConnector: RedisConnectorService) {}
+  constructor() {}
 }
