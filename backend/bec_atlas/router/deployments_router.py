@@ -2,14 +2,14 @@ import json
 from typing import TYPE_CHECKING
 
 from bson import ObjectId
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 
 from bec_atlas.authentication import get_current_user
 from bec_atlas.datasources.mongodb.mongodb import MongoDBDatasource
 from bec_atlas.model.model import DeploymentCredential, Deployments, UserInfo
 from bec_atlas.router.base_router import BaseRouter
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from bec_atlas.datasources.redis_datasource import RedisDatasource
 
 
@@ -57,6 +57,8 @@ class DeploymentsRouter(BaseRouter):
         Args:
             scan_id (str): The scan id
         """
+        if not ObjectId.is_valid(deployment_id):
+            raise HTTPException(status_code=400, detail="Invalid deployment id")
         return self.db.find_one(
             "deployments", {"_id": ObjectId(deployment_id)}, Deployments, user=current_user
         )

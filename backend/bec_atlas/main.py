@@ -108,14 +108,14 @@ class AtlasApp:
         )
         self.app.mount("/", self.redis_websocket.app)
 
-    def run(self, port=8000):
+    def run(self, port=8000):  # pragma: no cover
         config = uvicorn.Config(self.app, host="localhost", port=port)
         self.server = uvicorn.Server(config=config)
         self.server.run()
         # uvicorn.run(self.app, host="localhost", port=port)
 
 
-def main():
+def main():  # pragma: no cover
     import argparse
     import logging
 
@@ -132,5 +132,5 @@ def main():
     horizon_app.run(port=args.port)
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     main()

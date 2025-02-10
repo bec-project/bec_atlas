@@ -1,10 +1,10 @@
 from ldap3 import ALL, SUBTREE, Connection, Server
-from ldap3.core.exceptions import LDAPBindError
+from ldap3.core.exceptions import LDAPBindError, LDAPSocketOpenError
 
 
 class LDAPUserService:
     def __init__(self, ldap_server, base_dn):
-        self.server = Server(ldap_server, get_info=ALL)
+        self.server = Server(ldap_server, get_info=ALL, connect_timeout=5)
         self.base_dn = base_dn
 
     def authenticate_and_get_info(self, principal, password):
@@ -52,12 +52,12 @@ class LDAPUserService:
                 }
                 return user_data
 
-        except LDAPBindError as e:
+        except (LDAPBindError, LDAPSocketOpenError) as e:
             print(f"LDAP authentication failed: {e}")
             return None
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     ldap_service = LDAPUserService(
         ldap_server="ldaps://d.psi.ch", base_dn="OU=users,OU=psi,DC=d,DC=psi,DC=ch"
     )
