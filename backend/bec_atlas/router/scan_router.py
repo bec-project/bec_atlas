@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import json
 
-from fastapi import APIRouter, Depends, Query
+from bson import ObjectId
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from bec_atlas.authentication import get_current_user
 from bec_atlas.datasources.mongodb.mongodb import MongoDBDatasource
@@ -26,7 +29,7 @@ class ScanRouter(BaseRouter):
             self.scans_with_id,
             methods=["GET"],
             description="Get a single scan by id for a session",
-            response_model=ScanStatusPartial,
+            response_model=ScanStatusPartial | None,
             response_model_exclude_none=True,
         )
         self.router.add_api_route(
@@ -73,19 +76,18 @@ class ScanRouter(BaseRouter):
         """
 
         if fields:
-            fields = {
-                field: 1
-                for field in fields
-                if field in ScanStatusPartial.model_json_schema()["properties"].keys()
-            }
+            fields = self._update_fields(fields)
 
+        if not ObjectId.is_valid(session_id):
+            raise HTTPException(status_code=400, detail="Invalid session ID")
         filters = {"session_id": session_id}
+
         if filter:
-            filter = json.loads(filter)
+            filter = self._update_filter(filter)
             filters.update(filter)
 
         if sort:
-            sort = json.loads(sort)
+            sort = self._update_sort(sort)
 
         return self.db.find(
             "scans",
@@ -111,15 +113,12 @@ class ScanRouter(BaseRouter):
             scan_id (str): The scan id
         """
         if fields:
-            fields = {
-                field: 1
-                for field in fields
-                if field in ScanStatusPartial.model_json_schema()["properties"].keys()
-            }
+            fields = self._update_fields(fields)
         return self.db.find_one(
             collection="scans",
             query_filter={"_id": scan_id},
             dtype=ScanStatusPartial,
+            fields=fields,
             user=current_user,
         )
 
@@ -145,7 +144,7 @@ class ScanRouter(BaseRouter):
             return_document=True,
         )
         if out is None:
-            return {"message": "Scan not found."}
+            raise HTTPException(status_code=404, detail="Scan not found")
         return {"message": "Scan user data updated."}
 
     async def count_scans(
@@ -163,11 +162,81 @@ class ScanRouter(BaseRouter):
         """
         pipeline = []
         if filter:
-            filter = json.loads(filter)
+            filter = self._update_filter(filter)
             pipeline.append({"$match": filter})
         pipeline.append({"$count": "count"})
 
         out = self.db.aggregate("scans", pipeline=pipeline, dtype=None, user=current_user)
         if out:
             return out[0]
-        return {"count": 0}
+        # I don't think this will ever be reached
+        else:  # pragma: no cover
+            return {"count": 0}
+
+    def _update_filter(self, filter: str) -> dict:
+        """
+        Update the filter for the query.
+
+        Args:
+            filter (str): JSON filter for the query, e.g. '{"name": "test"}'
+
+        Returns:
+            dict: The filter for the query
+        """
+        exc = HTTPException(status_code=400, detail="Invalid filter. Must be a JSON object.")
+        try:
+            filter = json.loads(filter)
+        except json.JSONDecodeError:
+            # pylint: disable=raise-missing-from
+            raise exc
+        if not isinstance(filter, dict):
+            raise exc
+        return filter
+
+    def _update_fields(self, fields: list[str]) -> dict:
+        """
+        Update the fields to return in the query.
+
+        Args:
+            fields (list[str]): List of fields to return
+
+        Returns:
+            dict: The fields to return
+        """
+        exc = HTTPException(
+            status_code=400, detail="Invalid fields. Must be a list of valid fields."
+        )
+        if not all(
+            field in ScanStatusPartial.model_json_schema()["properties"].keys() for field in fields
+        ):
+            raise exc
+        fields = {field: 1 for field in fields}
+        return fields
+
+    def _update_sort(self, sort: str) -> dict:
+        """
+        Update the sort order for the query.
+
+        Args:
+            sort (str): Sort order for the query, e.g. '{"name": 1}' for ascending order,
+                '{"name": -1}' for descending order. Multiple fields can be sorted by
+                separating them with a comma, e.g. '{"name": 1, "description": -1}'
+
+        Returns:
+            dict: The sort order
+        """
+        exc = HTTPException(
+            status_code=400, detail="Invalid sort order. Must be a JSON object with valid keys."
+        )
+        try:
+            sort = json.loads(sort)
+        except json.JSONDecodeError:
+            # pylint: disable=raise-missing-from
+            raise exc
+        if not isinstance(sort, dict):
+            raise exc
+        if not all(
+            key in ScanStatusPartial.model_json_schema()["properties"].keys() for key in sort.keys()
+        ):
+            raise exc
+        return sort

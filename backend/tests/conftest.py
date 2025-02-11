@@ -73,13 +73,13 @@ def convert_to_object_id(data):
     return data
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture()
 def redis_server():
     redis_server = fakeredis.FakeServer()
     yield redis_server
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture()
 def backend(redis_server):
 
     def _fake_redis(host, port):
