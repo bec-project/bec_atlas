@@ -1,0 +1,11 @@
+<h2>Control Panel</h2>
+<mat-form-field appearance="outline" class="side-panel-item">
+    <mat-label>Select Session</mat-label>
+    <mat-select [value]="selectedSession" (selectionChange)="onSessionChange($event.value)">
+        <mat-option>--</mat-option>
+        @for (session of sessions; track session) {
+        <mat-option [value]="session">{{session.name}}</mat-option>
+        }
+    </mat-select>
+</mat-form-field>
+<h2>Add Filters</h2>

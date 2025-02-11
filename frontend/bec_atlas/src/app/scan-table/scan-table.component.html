@@ -1,69 +1,76 @@
 <!-- Table -->
-<div class="table-container">
-    <mat-card>
-        <!-- Toolbar -->
-        <mat-toolbar color="primary"> 
-            Table with Scan Data
-            <span class="spacer"></span>
-            <button mat-icon-button (click)="ngOnInit()">
-                <mat-icon>search</mat-icon>
-            </button>
-            <button mat-icon-button (click)="handleRefresh()">
-                <mat-icon>refresh</mat-icon>
-            </button>
-            <button mat-icon-button (click)="openDialog()">
-                <mat-icon>settings</mat-icon>
-            </button>
-        </mat-toolbar>
-        <!-- Table -->
-        <table mat-table *ngIf="tableData() as data" [dataSource]="data" class="mat-elevation-z8">
-            @for (column of displayedColumns(); track column) {
-                <ng-container [matColumnDef]="column">
-                    <th mat-header-cell *matHeaderCellDef mat-sort-header> {{ column | titlecase }}</th>
-                    <td mat-cell class="table-cell" *matCellDef="let element">
-                        @if (column === 'timestamp') {
-                            {{ element[column] * 1000 | date :'HH:mm:ss'}} 
-                            <br>
-                            {{ element[column] * 1000 | date :'dd/MM/yyyy'}}
-                        }
-                        @else if (column === 'user_rating') {
-                            <star-rating 
-                                [starType]="'svg'" 
-                                [hoverEnabled]="true" 
-                                (ratingChange)="handleOnRatingChanged($event, element)"
-                                [rating]="element[column]">
-                            </star-rating>
-                        }
-                        @else if (column === 'user_comments') {
-                            <mat-form-field appearance="outline">
-                                <textarea matInput ></textarea>
-                            </mat-form-field>
+<div class="main-container">
+    <mat-sidenav-container class="sidenav-container">
 
-                        }
-                        @else{
-                            <p> {{ element[column] }}</p>
-                        }
-                </ng-container>
-            }
-            <!-- Header Row -->
-            <tr mat-header-row *matHeaderRowDef="displayedColumns(); sticky: true"></tr>
-            <!-- Data Rows -->
-            <tr mat-row *matRowDef="let row; columns: displayedColumns()"></tr>
-        </table>
-    </mat-card> 
-</div>
-<!-- Paginator -->
-<div class="table-paginator">   
-    <mat-paginator 
-        #paginator 
-        class="table-paginator" 
-        (page) = "handlePageEvent($event)"
-        [length]="totalScanCount()"
-        [pageSize]= "limit()"
-        [showFirstLastButtons]="true" 
-        [pageSizeOptions]="[5, 10, 25, 100]" 
-        [pageIndex]="offset()/limit()"
-        aria-label="Select page"
-        sticky= true>
-    </mat-paginator>
+        <mat-sidenav-content>
+        <div class="table-container">
+            <mat-card>
+                <!-- Toolbar -->
+                <mat-toolbar color="primary">
+                    Scan Data for {{session()?.name}}
+                    <span class="spacer"></span>
+                    <button mat-icon-button> 
+                        <!-- Search is not working yet and not hooked up-->
+                        <mat-icon>search</mat-icon>
+                    </button>
+                    <button mat-icon-button (click)="handleRefresh()">
+                        <mat-icon>refresh</mat-icon>
+                    </button>
+                    <button mat-icon-button (click)="openDialog()">
+                        <mat-icon>settings</mat-icon>
+                    </button>
+                </mat-toolbar>
+                <!-- Table -->
+                <table mat-table *ngIf="tableData() as data" [dataSource]="data" class="mat-elevation-z8">
+                    @for (column of displayedColumns(); track column) {
+                        <ng-container [matColumnDef]="column">
+                            <th mat-header-cell *matHeaderCellDef mat-sort-header> {{ column | titlecase }}</th>
+                            <td mat-cell class="table-cell" *matCellDef="let element">
+                                @if (column === 'timestamp') {
+                                    {{ element[column] * 1000 | date :'HH:mm:ss'}} 
+                                    <br>
+                                    {{ element[column] * 1000 | date :'dd/MM/yyyy'}}
+                                }
+                                @else if (column === 'user_rating') {
+                                    <star-rating 
+                                        [starType]="'svg'" 
+                                        [hoverEnabled]="true" 
+                                        (ratingChange)="handleOnRatingChanged($event, element)"
+                                        [rating]="element[column]">
+                                    </star-rating>
+                                }
+                                @else{
+                                    <p> {{ element[column] }}</p>
+                                }
+                        </ng-container>
+                    }
+                    <!-- Header Row -->
+                    <tr mat-header-row *matHeaderRowDef="displayedColumns(); sticky: true"></tr>
+                    <!-- Data Rows -->
+                    <tr mat-row *matRowDef="let row; columns: displayedColumns()"></tr>
+                </table>
+            </mat-card> 
+        </div>
+        <!-- Paginator -->
+        <div class="table-paginator">   
+            <mat-paginator 
+                #paginator 
+                class="table-paginator" 
+                (page) = "handlePageEvent($event)"
+                [length]="totalScanCount()"
+                [pageSize]= "limit()"
+                [showFirstLastButtons]="true" 
+                [pageSizeOptions]="[5, 10, 25, 100]" 
+                [pageIndex]="offset()/limit()"
+                aria-label="Select page"
+                sticky= true>
+            </mat-paginator>
+        </div>
+    </mat-sidenav-content>
+    <!-- Right side panel -->
+    <mat-sidenav #rightSidenav mode="side" opened="true" position="end" class="sidenav">
+        <!-- Embed the side-panel component here -->
+        <app-side-panel (sessionChanged)="onSessionChange($event)"></app-side-panel>
+    </mat-sidenav>
+</mat-sidenav-container>
 </div>

@@ -6,6 +6,7 @@ import {
   resource,
   Signal,
   inject,
+  WritableSignal,
 } from '@angular/core';
 import { ScanDataService } from '../core/remote-data.service';
 import { ScanDataResponse } from '../core/model/scan-data';
@@ -31,15 +32,9 @@ import { MatDialog } from '@angular/material/dialog';
 import { ColumnSelectionDialogComponent } from './column-selection-dialog/column-selection-dialog.component';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-
-export interface ResourceStatus {
-  status: any;
-}
-export interface ResourceLoaderParams {
-  request: any;
-  abortSignal: AbortSignal;
-  previous: ResourceStatus;
-}
+import { SidePanelComponent } from './side-panel/side-panel.component';
+import { MatSidenavModule } from '@angular/material/sidenav';
+import { Session } from '../core/model/session';
 
 @Component({
   selector: 'app-scan-table',
@@ -59,20 +54,21 @@ export interface ResourceLoaderParams {
     MatCheckboxModule,
     MatFormFieldModule,
     MatInputModule,
+    SidePanelComponent,
+    MatSidenavModule,
   ],
   templateUrl: './scan-table.component.html',
   styleUrl: './scan-table.component.scss',
 })
 export class ScanTableComponent {
+  //  --------------------------------
+  // -------------Signals-------------
+  //  --------------------------------
   tableData: Signal<ScanDataResponse[]>;
   totalScanCount: Signal<number>;
   limit = signal<number>(10);
   offset = signal<number>(0);
-  sessionId = signal<string>('');
-  dialog = inject(MatDialog);
-  pageEvent: PageEvent = new PageEvent();
-  isEditingUserComments: boolean = false;
-  sorting: number = -1;
+  session: WritableSignal<Session | null> = signal(null);
   displayedColumns = signal<string[]>([
     'scan_number',
     'status',
@@ -82,8 +78,15 @@ export class ScanTableComponent {
     'dataset_number',
     'timestamp',
     'user_rating',
-    'user_comments',
   ]);
+
+  // -----------------------------------
+  // -------------Variables-------------
+  // -----------------------------------
+  dialog = inject(MatDialog);
+  pageEvent: PageEvent = new PageEvent();
+  isEditingUserComments: boolean = false;
+  sorting: number = -1;
   allColumns: string[] = [
     'scan_id',
     'scan_number',
@@ -116,17 +119,28 @@ export class ScanTableComponent {
     'info',
   ];
 
+  //  ----------------------------------------
+  // -------------Compute Signals-------------
+  //  ----------------------------------------
+
+  // Available columns are all columns that are not ignored
   availableColumns = computed(() =>
     this.allColumns.filter((element) => !this.ignoredEntries.includes(element))
   );
 
+  // Reload criteria is the criteria used to reload the scan data
   reloadCriteria = computed(() => ({
-    sessionId: this.sessionId(),
+    session: this.session(),
     offset: this.offset(),
     limit: this.limit(),
     column: this.displayedColumns(),
   }));
 
+  //  -----------------------------------
+  //  -------------Resources-------------
+  //  -----------------------------------
+
+  // Load scan data resource
   loadScanDataResource = resource({
     request: () => this.reloadCriteria(),
     loader: ({ request, abortSignal }): Promise<ScanDataResponse[]> => {
@@ -142,10 +156,11 @@ export class ScanTableComponent {
           : element
       );
       columns.push('scan_id'); // always include scan_id
+      let sessionId = request.session ? request.session._id : '';
       console.log('Columns', columns);
       return firstValueFrom(
         this.scanData.getScanData(
-          request.sessionId,
+          sessionId,
           request.offset,
           request.limit,
           columns,
@@ -156,13 +171,18 @@ export class ScanTableComponent {
     },
   });
 
+  // Load scan count resource
   loadScanCountResource = resource({
     request: () => this.reloadCriteria(),
     loader: ({ request, abortSignal }): Promise<ScanCountResponse> => {
-      return firstValueFrom(this.scanData.getScanCount(request.sessionId));
+      let sessionId = request.session ? request.session._id : '';
+      return firstValueFrom(this.scanData.getScanCount(sessionId));
     },
   });
 
+  // -----------------------------------
+  // -------------Functions-------------
+  // -----------------------------------
   handleScanData(data: ScanDataResponse[] | []) {
     for (const entry of data) {
       if (entry?.user_data !== undefined) {
@@ -201,11 +221,9 @@ export class ScanTableComponent {
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
 
-  ngOnInit(): void {
-    this.sessionId.set('6793628df62026a414d9338e');
-    // this.updateUI();
-  }
-
+  //  ----------------------------------------
+  //  -------------Event Handlers-------------
+  //  ----------------------------------------
   handlePageEvent(event: PageEvent) {
     this.pageEvent = event;
     this.offset.set(event.pageIndex * event.pageSize);
@@ -228,14 +246,14 @@ export class ScanTableComponent {
     dialogRef.afterClosed().subscribe((result: string[] | null) => {
       if (result !== null) {
         this.displayedColumns.set(result);
-        // this.handleRefresh();
       }
     });
   }
 
-  handleColumnSelection(event: any) {}
-
-  toggleAllEdit() {}
+  onSessionChange(session: Session | null): void {
+    console.log('Session changed', session);
+    this.session.set(session);
+  }
 
   async handleOnRatingChanged(event: any, element: ScanDataResponse) {
     console.log('Event', event, 'Element', element);

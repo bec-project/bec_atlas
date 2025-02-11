@@ -1,5 +1,6 @@
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
+import { Session } from './model/session';
 import { ServerSettingsService } from '../server-settings.service';
 import { ScanDataResponse } from './model/scan-data';
 import { Realm } from './model/realm';
@@ -225,6 +226,29 @@ export class ScanDataService extends RemoteDataService {
       'scans/user_data',
       { scan_id: scanId },
       userData,
+      headers
+    );
+  }
+}
+
+@Injectable({
+  providedIn: 'root',
+})
+export class SessionDataService extends RemoteDataService {
+  /**
+   * Method for getting the available sessions
+   * @param offset Pagination offset (default = 0)
+   * @param limit Number of records to retrieve (default = 100)
+   * @returns response from the server with the scan data
+   * @throws HttpErrorResponse if the request fails
+   * @throws TimeoutError if the request takes too long
+   */
+  getSessions(offset: number = 0, limit: number = 100) {
+    let headers = new HttpHeaders();
+    headers = headers.set('Content-Type', 'application/json; charset=utf-8');
+    return this.get<Session[]>(
+      'sessions',
+      { offset: offset.toString(), limit: limit.toString() },
       headers
     );
   }
