@@ -5,10 +5,14 @@
     padding-left: 16px;
     padding-bottom: 16px;
 }
+.sidenav-container{
+    height:calc(100vh - 48px);
+}
 
 .table-container{
-    width: auto;
+    // width: auto;
     padding-right: 16px;
+    padding-left: 16px;
 }
 .mat-mdc-row:hover {
     background-color: var(--mat-sys-secondary-container);
@@ -24,8 +28,9 @@
 }
 
 .main-container {
-    // display: flex;
-    // flex-direction: column;
+    display: flex;
+    flex-direction: column;
     height: 100%;
     width:100%;
+    padding: 12px;
 }

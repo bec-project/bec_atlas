@@ -93,6 +93,8 @@ mat-panel-title mat-icon {
 mat-sidenav-content {
   background-color: var(--mat-sys-surface-dim);
   height: 100vh;
+  width: 100%;
+  padding: 12px;
 }
 
 .spacer {

@@ -1,5 +1,6 @@
 <!-- Table -->
-<div class="main-container">
+
+<mat-card class="main-container">
     <mat-sidenav-container class="sidenav-container">
 
         <mat-sidenav-content>
@@ -68,9 +69,9 @@
         </div>
     </mat-sidenav-content>
     <!-- Right side panel -->
-    <mat-sidenav #rightSidenav mode="side" opened="true" position="end" class="sidenav">
+    <mat-sidenav #rightSidenav mode="side" [opened]="true" position="end" class="sidenav">
         <!-- Embed the side-panel component here -->
         <app-side-panel (sessionChanged)="onSessionChange($event)"></app-side-panel>
     </mat-sidenav>
 </mat-sidenav-container>
-</div>
+</mat-card>
