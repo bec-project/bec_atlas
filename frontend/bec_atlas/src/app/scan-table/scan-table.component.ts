@@ -24,7 +24,6 @@ import {
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { StarRatingModule } from 'angular-star-rating';
 import { MatSort } from '@angular/material/sort';
-import { firstValueFrom, Observable } from 'rxjs';
 import { ScanCountResponse } from '../core/model/scan-count';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -155,19 +154,17 @@ export class ScanTableComponent {
           ? 'user_data'
           : element
       );
-      columns.push('scan_id'); // always include scan_id
+      columns.includes('scan_id') ? null : columns.push('scan_id'); // always include scan_id
       let sessionId = request.session ? request.session._id : '';
       console.log('Columns', columns);
-      return firstValueFrom(
-        this.scanData.getScanData(
+      return this.scanData.getScanData(
           sessionId,
           request.offset,
           request.limit,
           columns,
           false,
           { scan_number: this.sorting }
-        )
-      );
+        );
     },
   });
 
@@ -176,7 +173,7 @@ export class ScanTableComponent {
     request: () => this.reloadCriteria(),
     loader: ({ request, abortSignal }): Promise<ScanCountResponse> => {
       let sessionId = request.session ? request.session._id : '';
-      return firstValueFrom(this.scanData.getScanCount(sessionId));
+      return this.scanData.getScanCount(sessionId);
     },
   });
 
@@ -208,6 +205,10 @@ export class ScanTableComponent {
     }
     return data.count;
   }
+
+  // -----------------------------------------
+  // -------------Constructor-----------------
+  //  ----------------------------------------
 
   constructor(private scanData: ScanDataService) {
     this.tableData = computed(() =>
@@ -268,7 +269,7 @@ export class ScanTableComponent {
     console.log('Scan ID', scanId);
     if (scanId) {
       console.log('Updating user data', userData);
-      await firstValueFrom(this.scanData.updateUserData(scanId, userData));
+      await this.scanData.updateUserData(scanId, userData);
     }
   }
 }

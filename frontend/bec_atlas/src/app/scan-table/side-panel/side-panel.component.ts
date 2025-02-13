@@ -22,8 +22,10 @@ export class SidePanelComponent {
   constructor(private sessionDataService: SessionDataService) {}
 
   ngOnInit(): void {
-    this.sessionDataService.getSessions().subscribe((sessions) => {
+    this.sessionDataService.getSessions().then((sessions) => {
       this.sessions = sessions;
+    }).catch((error) => {
+      console.error('Failed to load sessions', error);
     });
   }
 

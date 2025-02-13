@@ -1,5 +1,6 @@
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
 import { Session } from './model/session';
 import { ServerSettingsService } from '../server-settings.service';
 import { ScanDataResponse } from './model/scan-data';
@@ -167,7 +168,7 @@ export class ScanDataService extends RemoteDataService {
   ) {
     let headers = new HttpHeaders();
     headers = headers.set('Content-Type', 'application/json; charset=utf-8');
-    return this.get<Array<ScanDataResponse>>(
+    return firstValueFrom(this.get<Array<ScanDataResponse>>(
       'scans/session',
       {
         session_id: sessionId,
@@ -178,7 +179,7 @@ export class ScanDataService extends RemoteDataService {
         includeUserData: includeUserData.toString(),
       },
       headers
-    );
+    ));
   }
   /**
    * Method for getting the scan count
@@ -207,7 +208,7 @@ export class ScanDataService extends RemoteDataService {
     if (datasetNumber !== null) {
       filters['dataset_number'] = datasetNumber;
     }
-    return this.get<ScanCountResponse>('scans/count', filters, headers);
+    return firstValueFrom(this.get<ScanCountResponse>('scans/count', filters, headers));
   }
 
   /**
@@ -222,12 +223,12 @@ export class ScanDataService extends RemoteDataService {
     let headers = new HttpHeaders();
     headers = headers.set('Content-Type', 'application/json; charset=utf-8');
     console.log('Updating user data', userData);
-    return this.patch<string>(
+    return firstValueFrom(this.patch<string>(
       'scans/user_data',
       { scan_id: scanId },
       userData,
       headers
-    );
+    ));
   }
 }
 
@@ -246,10 +247,10 @@ export class SessionDataService extends RemoteDataService {
   getSessions(offset: number = 0, limit: number = 100) {
     let headers = new HttpHeaders();
     headers = headers.set('Content-Type', 'application/json; charset=utf-8');
-    return this.get<Session[]>(
+    return firstValueFrom(this.get<Session[]>(
       'sessions',
       { offset: offset.toString(), limit: limit.toString() },
       headers
-    );
+    ));
   }
 }
