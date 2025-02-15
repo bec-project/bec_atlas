@@ -1,4 +1,4 @@
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { Session } from './model/session';
@@ -45,7 +45,7 @@ export class RemoteDataService {
    */
   protected get<T>(
     path: string,
-    params: { [key: string]: string | number | Array<string> },
+    params: { [key: string]: string | number | Array<string> } | HttpParams,
     headers: HttpHeaders
   ) {
     return this.httpClient.get<T>(
@@ -165,21 +165,23 @@ export class ScanDataService extends RemoteDataService {
     fields: Array<string> | null = null,
     includeUserData: boolean = false,
     sort: { [key: string]: number } | null = null
-  ) {
+  ): Promise<Array<ScanDataResponse>> {
     let headers = new HttpHeaders();
     headers = headers.set('Content-Type', 'application/json; charset=utf-8');
-    return firstValueFrom(this.get<Array<ScanDataResponse>>(
-      'scans/session',
-      {
-        session_id: sessionId,
-        offset: offset.toString(),
-        limit: limit.toString(),
-        fields: fields ? fields : '',
-        sort: sort ? JSON.stringify(sort) : '',
-        includeUserData: includeUserData.toString(),
-      },
-      headers
-    ));
+    return firstValueFrom(
+      this.get<Array<ScanDataResponse>>(
+        'scans/session',
+        {
+          session_id: sessionId,
+          offset: offset.toString(),
+          limit: limit.toString(),
+          fields: fields ? fields : '',
+          sort: sort ? JSON.stringify(sort) : '',
+          includeUserData: includeUserData.toString(),
+        },
+        headers
+      )
+    );
   }
   /**
    * Method for getting the scan count
@@ -195,7 +197,7 @@ export class ScanDataService extends RemoteDataService {
     sessionId: string | null = null,
     scanName: string | null = null,
     datasetNumber: number | null = null
-  ) {
+  ): Promise<ScanCountResponse> {
     let headers = new HttpHeaders();
     let filters: { [key: string]: string | number } = {};
     headers = headers.set('Content-Type', 'application/json; charset=utf-8');
@@ -208,7 +210,9 @@ export class ScanDataService extends RemoteDataService {
     if (datasetNumber !== null) {
       filters['dataset_number'] = datasetNumber;
     }
-    return firstValueFrom(this.get<ScanCountResponse>('scans/count', filters, headers));
+    return firstValueFrom(
+      this.get<ScanCountResponse>('scans/count', filters, headers)
+    );
   }
 
   /**
@@ -219,16 +223,18 @@ export class ScanDataService extends RemoteDataService {
    * @throws HttpErrorResponse if the request fails
    * @throws TimeoutError if the request takes too long
    */
-  updateUserData(scanId: string, userData: ScanUserData) {
+  updateUserData(scanId: string, userData: ScanUserData): Promise<string> {
     let headers = new HttpHeaders();
     headers = headers.set('Content-Type', 'application/json; charset=utf-8');
     console.log('Updating user data', userData);
-    return firstValueFrom(this.patch<string>(
-      'scans/user_data',
-      { scan_id: scanId },
-      userData,
-      headers
-    ));
+    return firstValueFrom(
+      this.patch<string>(
+        'scans/user_data',
+        { scan_id: scanId },
+        userData,
+        headers
+      )
+    );
   }
 }
 
@@ -244,13 +250,15 @@ export class SessionDataService extends RemoteDataService {
    * @throws HttpErrorResponse if the request fails
    * @throws TimeoutError if the request takes too long
    */
-  getSessions(offset: number = 0, limit: number = 100) {
+  getSessions(offset: number = 0, limit: number = 100): Promise<Session[]> {
     let headers = new HttpHeaders();
     headers = headers.set('Content-Type', 'application/json; charset=utf-8');
-    return firstValueFrom(this.get<Session[]>(
-      'sessions',
-      { offset: offset.toString(), limit: limit.toString() },
-      headers
-    ));
+    return firstValueFrom(
+      this.get<Session[]>(
+        'sessions',
+        { offset: offset.toString(), limit: limit.toString() },
+        headers
+      )
+    );
   }
 }
