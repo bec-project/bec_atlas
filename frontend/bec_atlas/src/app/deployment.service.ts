@@ -13,13 +13,19 @@ export class DeploymentService {
     if (!deployment) {
       return;
     }
-    this.deploymentDataService
-      .getDeployment(deployment)
-      .subscribe((deployment) => {
-        if (deployment) {
-          this.selectedDeployment.next(deployment);
-        }
-      });
+    this.update_deployment(deployment);
+  }
+
+  async update_deployment(deploymentId: string | null): Promise<void> {
+    if (!deploymentId) {
+      this.selectedDeployment.next(null);
+      return;
+    }
+
+    let deployment_info = await this.deploymentDataService.getDeployment(
+      deploymentId
+    );
+    this.selectedDeployment.next(deployment_info);
   }
 
   selectDeployment(deployment: Deployment | null): void {

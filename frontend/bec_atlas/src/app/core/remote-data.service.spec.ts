@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 
 import {
+  DeploymentDataService,
   RemoteDataService,
   ScanDataService,
   SessionDataService,
@@ -13,6 +14,7 @@ import {
 import { AppConfigService } from '../app-config.service';
 import { ScanDataResponse } from './model/scan-data';
 import { ScanUserData } from './model/scan-user-data';
+import { Deployment } from './model/deployment';
 
 describe('RemoteDataService', () => {
   let service: RemoteDataService;
@@ -241,5 +243,65 @@ describe('RemoteDataService', () => {
 
     const result = await promise;
     expect(result).toBe(mockResponse);
+  });
+
+  it('should get deployments', async () => {
+    const mockDeployments: Deployment[] = [
+      {
+        _id: '1',
+        realm_id: 'realm1',
+        name: 'Deployment 1',
+        owner_groups: ['group1'],
+        access_groups: ['group2'],
+        config_templates: ['template1'],
+      },
+      {
+        _id: '2',
+        realm_id: 'realm2',
+        name: 'Deployment 2',
+        owner_groups: ['group3'],
+        access_groups: ['group4'],
+        config_templates: ['template2'],
+      },
+    ];
+
+    const deploymentService = TestBed.inject(DeploymentDataService);
+    const promise = deploymentService.getDeployments();
+
+    const req = httpTesting.expectOne((request) =>
+      request.url.includes('deployments')
+    );
+    expect(req.request.method).toBe('GET');
+    expect(req.request.params.keys().length).toBe(0);
+
+    req.flush(mockDeployments);
+
+    const result = await promise;
+    expect(result).toEqual(mockDeployments);
+  });
+
+  it('should get deployment by id', async () => {
+    const mockDeployment: Deployment = {
+      _id: '1',
+      realm_id: 'realm1',
+      name: 'Deployment 1',
+      owner_groups: ['group1'],
+      access_groups: ['group2'],
+      config_templates: ['template1'],
+    };
+
+    const deploymentService = TestBed.inject(DeploymentDataService);
+    const promise = deploymentService.getDeployment('1');
+
+    const req = httpTesting.expectOne((request) =>
+      request.url.includes('deployments/id')
+    );
+    expect(req.request.method).toBe('GET');
+    expect(req.request.params.get('deployment_id')).toBe('1');
+
+    req.flush(mockDeployment);
+
+    const result = await promise;
+    expect(result).toEqual(mockDeployment);
   });
 });

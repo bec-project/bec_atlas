@@ -125,19 +125,23 @@ export class RealmDataService extends RemoteDataService {
   providedIn: 'root',
 })
 export class DeploymentDataService extends RemoteDataService {
-  getDeployments() {
+  getDeployments(): Promise<Array<Deployment>> {
     let headers = new HttpHeaders();
     headers = headers.set('Content-Type', 'application/json; charset=utf-8');
-    return this.get<Array<Deployment>>('deployments', {}, headers);
+    return firstValueFrom(
+      this.get<Array<Deployment>>('deployments', {}, headers)
+    );
   }
 
-  getDeployment(deploymentId: string) {
+  getDeployment(deploymentId: string): Promise<Deployment> {
     let headers = new HttpHeaders();
     headers = headers.set('Content-Type', 'application/json; charset=utf-8');
-    return this.get<Deployment>(
-      'deployments/id',
-      { deployment_id: deploymentId },
-      headers
+    return firstValueFrom(
+      this.get<Deployment>(
+        'deployments/id',
+        { deployment_id: deploymentId },
+        headers
+      )
     );
   }
 }
