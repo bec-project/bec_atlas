@@ -104,6 +104,16 @@ export class AuthDataService extends RemoteDataService {
       headers
     );
   }
+
+  /**
+   * Method for logging out of BEC
+   * @returns response from the server
+   */
+  logout(): Promise<string> {
+    let headers = new HttpHeaders();
+    headers = headers.set('Content-Type', 'application/json; charset=utf-8');
+    return firstValueFrom(this.post<string>('user/logout', {}, headers));
+  }
 }
 
 @Injectable({

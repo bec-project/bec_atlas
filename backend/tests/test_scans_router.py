@@ -14,7 +14,6 @@ def logged_in_client(backend):
     token = response.json()
     assert isinstance(token, str)
     assert len(token) > 20
-    client.headers.update({"Authorization": f"Bearer {token}"})
     return client
 
 

@@ -1,11 +1,16 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 from fastapi.exceptions import HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel
 
-from bec_atlas.authentication import create_access_token, get_current_user, verify_password
+from bec_atlas.authentication import (
+    convert_to_user,
+    create_access_token,
+    get_current_user,
+    verify_password,
+)
 from bec_atlas.datasources.mongodb.mongodb import MongoDBDatasource
 from bec_atlas.model import UserInfo
 from bec_atlas.model.model import User
@@ -19,8 +24,9 @@ class UserLoginRequest(BaseModel):
 
 
 class UserRouter(BaseRouter):
-    def __init__(self, prefix="/api/v1", datasources=None):
+    def __init__(self, prefix="/api/v1", datasources=None, use_ssl=True):
         super().__init__(prefix, datasources)
+        self.use_ssl = use_ssl
         self.db: MongoDBDatasource = self.datasources.datasources.get("mongodb")
         self.ldap = LDAPUserService(
             ldap_server="ldaps://d.psi.ch", base_dn="OU=users,OU=psi,DC=d,DC=psi,DC=ch"
@@ -31,23 +37,30 @@ class UserRouter(BaseRouter):
         self.router.add_api_route(
             "/user/login/form", self.form_login, methods=["POST"], dependencies=[]
         )
+        self.router.add_api_route("/user/logout", self.user_logout, methods=["POST"])
 
-    async def user_me(self, user: UserInfo = Depends(get_current_user)):
-        data = self.db.get_user_by_email(user.email)
-        if data is None:
-            raise HTTPException(status_code=404, detail="User not found")
-        return data
+    @convert_to_user
+    async def user_me(self, user: User = Depends(get_current_user)):
+        return user
 
-    async def form_login(self, form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
+    async def form_login(
+        self, form_data: Annotated[OAuth2PasswordRequestForm, Depends()], response: Response
+    ):
         user_login = UserLoginRequest(username=form_data.username, password=form_data.password)
-        out = await self.user_login(user_login)
+        out = await self.user_login(user_login, response)
         return {"access_token": out, "token_type": "bearer"}
 
-    async def user_login(self, user_login: UserLoginRequest):
+    async def user_login(self, user_login: UserLoginRequest, response: Response):
         user = self._get_user(user_login)
         if user is None:
             raise HTTPException(status_code=401, detail="User not found or password is incorrect")
-        return create_access_token(data={"groups": list(user.groups), "email": user.email})
+        token = create_access_token(data={"groups": list(user.groups), "email": user.email})
+        response.set_cookie(key="access_token", value=token, httponly=True, secure=self.use_ssl)
+        return token
+
+    async def user_logout(self, response: Response):
+        response.delete_cookie("access_token")
+        return {"message": "Logged out"}
 
     def _get_user(self, user_login: UserLoginRequest) -> UserInfo | None:
         user = self._get_functional_account(user_login)

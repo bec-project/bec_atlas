@@ -7,9 +7,9 @@ from bec_lib.serialization import MsgpackSerialization
 from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException
 
-from bec_atlas.authentication import get_current_user
+from bec_atlas.authentication import convert_to_user, get_current_user
 from bec_atlas.datasources.mongodb.mongodb import MongoDBDatasource
-from bec_atlas.model.model import BECAccessProfile, DeploymentAccess, UserInfo
+from bec_atlas.model.model import BECAccessProfile, DeploymentAccess, User
 from bec_atlas.router.base_router import BaseRouter
 from bec_atlas.router.redis_router import RedisAtlasEndpoints
 
@@ -37,8 +37,9 @@ class DeploymentAccessRouter(BaseRouter):
             response_model=DeploymentAccess,
         )
 
+    @convert_to_user
     async def get_deployment_access(
-        self, deployment_id: str, current_user: UserInfo = Depends(get_current_user)
+        self, deployment_id: str, current_user: User = Depends(get_current_user)
     ) -> DeploymentAccess:
         """
         Get the access lists for a specific deployment.
@@ -56,11 +57,12 @@ class DeploymentAccessRouter(BaseRouter):
             "deployments", {"_id": ObjectId(deployment_id)}, DeploymentAccess, user=current_user
         )
 
+    @convert_to_user
     async def patch_deployment_access(
         self,
         deployment_id: str,
         deployment_access: dict,
-        current_user: UserInfo = Depends(get_current_user),
+        current_user: User = Depends(get_current_user),
     ) -> DeploymentAccess:
         """
         Update the access lists for a specific deployment.

@@ -5,7 +5,7 @@ import { BreakpointObserver } from '@angular/cdk/layout';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDividerModule } from '@angular/material/divider';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { DeploymentService } from '../deployment.service';
 import {
@@ -15,6 +15,7 @@ import {
 } from '@angular/material/dialog';
 import { DeploymentSelectionComponent } from '../deployment-selection/deployment-selection.component';
 import { RedisConnectorService } from '../core/redis-connector.service';
+import { AuthDataService } from '../core/remote-data.service';
 @Component({
   selector: 'app-dashboard',
   imports: [
@@ -41,7 +42,9 @@ export class DashboardComponent {
 
   constructor(
     private breakpointObserver: BreakpointObserver,
-    private deploymentService: DeploymentService
+    private deploymentService: DeploymentService,
+    private authDataService: AuthDataService,
+    private router: Router
   ) {}
 
   ngOnInit(): void {
@@ -88,5 +91,10 @@ export class DashboardComponent {
     if (!this.deploymentService.selectedDeployment.value) {
       this.openDeploymentDialog();
     }
+  }
+
+  logout() {
+    this.authDataService.logout();
+    this.router.navigate(['/login']);
   }
 }

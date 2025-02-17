@@ -4,9 +4,9 @@ from typing import TYPE_CHECKING
 from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException
 
-from bec_atlas.authentication import get_current_user
+from bec_atlas.authentication import convert_to_user, get_current_user
 from bec_atlas.datasources.mongodb.mongodb import MongoDBDatasource
-from bec_atlas.model.model import DeploymentCredential, Deployments, UserInfo
+from bec_atlas.model.model import DeploymentCredential, Deployments, User
 from bec_atlas.router.base_router import BaseRouter
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -34,8 +34,9 @@ class DeploymentsRouter(BaseRouter):
         )
         self.update_available_deployments()
 
+    @convert_to_user
     async def deployments(
-        self, realm: str, current_user: UserInfo = Depends(get_current_user)
+        self, realm: str, current_user: User = Depends(get_current_user)
     ) -> list[Deployments]:
         """
         Get all deployments for a realm.
@@ -48,8 +49,9 @@ class DeploymentsRouter(BaseRouter):
         """
         return self.db.find("deployments", {"realm_id": realm}, Deployments, user=current_user)
 
+    @convert_to_user
     async def deployment_with_id(
-        self, deployment_id: str, current_user: UserInfo = Depends(get_current_user)
+        self, deployment_id: str, current_user: User = Depends(get_current_user)
     ):
         """
         Get deployment with id from realm

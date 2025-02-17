@@ -1,4 +1,5 @@
 import asyncio
+import enum
 import functools
 import inspect
 import json
@@ -10,14 +11,23 @@ import socketio
 from bec_lib.endpoints import EndpointInfo, MessageEndpoints, MessageOp
 from bec_lib.logger import bec_logger
 from bec_lib.serialization import MsgpackSerialization, json_ext
-from fastapi import APIRouter, Query, Response
+from bson import ObjectId
+from fastapi import APIRouter, Depends, Query, Response
 
+from bec_atlas.authentication import convert_to_user, get_current_user, get_current_user_sync
+from bec_atlas.model.model import DeploymentAccess, User
 from bec_atlas.router.base_router import BaseRouter
 
 logger = bec_logger.logger
 
 if TYPE_CHECKING:
     from bec_lib.redis_connector import RedisConnector
+
+
+class RemoteAccess(enum.Enum):
+    READ = "read"
+    READ_WRITE = "read_write"
+    NONE = "none"
 
 
 class RedisAtlasEndpoints:
@@ -133,7 +143,10 @@ class RedisRouter(BaseRouter):
         self.router.add_api_route("/redis", self.redis_post, methods=["POST"])
         self.router.add_api_route("/redis", self.redis_delete, methods=["DELETE"])
 
-    async def redis_get(self, deployment: str, key: str = Query(...)):
+    @convert_to_user
+    async def redis_get(
+        self, deployment: str, key: str = Query(...), current_user: User = Depends(get_current_user)
+    ):
         request_id = uuid.uuid4().hex
         response_endpoint = RedisAtlasEndpoints.redis_request_response(deployment, request_id)
         request_endpoint = RedisAtlasEndpoints.redis_request(deployment)
@@ -149,10 +162,14 @@ class RedisRouter(BaseRouter):
 
         return json_ext.dumps({"data": out.content, "metadata": out.metadata})
 
-    async def redis_post(self, key: str, value: str):
+    @convert_to_user
+    async def redis_post(
+        self, key: str, value: str, current_user: User = Depends(get_current_user)
+    ):
         return self.redis.set(key, value)
 
-    async def redis_delete(self, key: str):
+    @convert_to_user
+    async def redis_delete(self, key: str, current_user: User = Depends(get_current_user)):
         return self.redis.delete(key)
 
 
@@ -268,6 +285,7 @@ class RedisWebsocket:
         redis_host = datasources.datasources["redis"].config["host"]
         redis_port = datasources.datasources["redis"].config["port"]
         redis_password = datasources.datasources["redis"].config.get("password", "ingestor")
+        self.db = datasources.datasources["mongodb"]
         self.socket = socketio.AsyncServer(
             transports=["websocket"],
             ping_timeout=60,
@@ -289,7 +307,7 @@ class RedisWebsocket:
         self.socket.on("disconnect", self.disconnect_client)
         print("Redis websocket started")
 
-    def _validate_new_user(self, http_query: str | None):
+    def _validate_new_user(self, http_query: str | None, auth_token: str) -> tuple:
         """
         Validate the connection of a new user. In particular,
         the user must provide a valid token as well as have access
@@ -310,19 +328,41 @@ class RedisWebsocket:
         else:
             query = http_query
 
-        if "user" not in query:
-            raise ValueError("User not found in query parameters")
-        user = query["user"]
-
-        # TODO: Validate the user token
+        user_info = get_current_user_sync(auth_token)
+        user = self.db.find_one("users", {"email": user_info.email}, User)
 
         deployment = query.get("deployment")
         if not deployment:
             raise ValueError("Deployment not found in query parameters")
 
-        # TODO: Validate the user has access to the deployment
+        deployment_access = self.db.find_one(
+            "deployments", {"_id": ObjectId(deployment)}, DeploymentAccess
+        )
+        if not deployment_access:
+            raise ValueError("Deployment not found")
 
-        return user, deployment
+        access = self.get_access(user, deployment_access)
+        if access == RemoteAccess.NONE:
+            raise ValueError("User does not have remote access to the deployment")
+
+        return user, deployment, access
+
+    def get_access(self, user: User, deployment_access: DeploymentAccess) -> RemoteAccess:
+        """
+        Get the access level of the user to the deployment.
+        """
+        access = RemoteAccess.NONE
+        groups = set(user.groups)
+        if user.username is not None:
+            groups.add(user.username)
+        if user.email is not None:
+            groups.add(user.email)
+
+        if groups & set(deployment_access.remote_read_access):
+            access = RemoteAccess.READ
+        if groups & set(deployment_access.remote_write_access):
+            access = RemoteAccess.READ_WRITE
+        return access
 
     @safe_socket
     async def connect_client(self, sid, environ=None, auth=None, **kwargs):
@@ -332,7 +372,23 @@ class RedisWebsocket:
 
         http_query = environ.get("HTTP_QUERY") or auth
 
-        user, deployment = self._validate_new_user(http_query)
+        cookies = environ.get("HTTP_COOKIE", "")
+        auth_token = None
+
+        for cookie in cookies.split("; "):
+            if cookie.startswith("access_token="):
+                auth_token = cookie.split("=")[1]
+                break
+
+        if not auth_token:
+            await self.disconnect_client(sid)  # Reject connection
+            return
+
+        try:
+            user, deployment, access = self._validate_new_user(http_query, auth_token)
+        except ValueError:
+            await self.disconnect_client(sid, reason="Invalid user or deployment")
+            return
 
         # check if the user was already registered in redis
         socketio_server_keys = await self.socket.manager.redis.keys(
@@ -350,22 +406,25 @@ class RedisWebsocket:
             for value in obj.values():
                 info[value["user"]] = value["subscriptions"]
 
-        if user in info:
-            self.users[sid] = {"user": user, "subscriptions": [], "deployment": deployment}
+        if user.email in info:
+            self.users[sid] = {"user": user.email, "subscriptions": [], "deployment": deployment}
             for endpoint, endpoint_request in info[user]:
                 print(f"Registering {endpoint}")
                 await self._update_user_subscriptions(sid, endpoint, endpoint_request)
         else:
-            self.users[sid] = {"user": user, "subscriptions": [], "deployment": deployment}
+            self.users[sid] = {"user": user.email, "subscriptions": [], "deployment": deployment}
 
         await self.socket.manager.update_websocket_states()
 
-    async def disconnect_client(self, sid, _environ=None):
-        print("Client disconnected")
+    async def disconnect_client(self, sid, reason: str = None, _environ=None):
         is_exit = self.fastapi_app.server.should_exit
         if is_exit:
             return
-        await self.socket.manager.remove_user(sid)
+        if reason:
+            await self.socket.emit("error", {"error": reason}, room=sid)
+        if sid in self.users:
+            del self.users[sid]
+        await self.socket.disconnect(sid)
 
     @safe_socket
     async def redis_register(self, sid: str, msg: str):

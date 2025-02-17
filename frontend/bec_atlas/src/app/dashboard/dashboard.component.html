@@ -20,7 +20,7 @@
 
       <button mat-button>Profile</button>
       <button mat-button>Settings</button>
-      <button mat-button>Logout</button>
+      <button mat-button (click)="logout()">Logout</button>
     </mat-expansion-panel>
 
     <mat-divider></mat-divider>
@@ -36,15 +36,10 @@
         mat-button
         class="menu-item"
         [routerLink]="['/dashboard/scan-table']"
-        > Scan Data
+      >
+        Scan Data
       </button>
-      <button 
-        mat-button
-        class="menu-item"
-        > Device Data
-      </button>
-
-
+      <button mat-button class="menu-item">Device Data</button>
     </mat-expansion-panel>
 
     <!-- Experiment Control Expansion -->

@@ -1,15 +1,10 @@
 import json
-from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
-from fastapi.exceptions import HTTPException
-from fastapi.security import OAuth2PasswordRequestForm
-from pydantic import BaseModel
 
-from bec_atlas.authentication import create_access_token, get_current_user, verify_password
+from bec_atlas.authentication import convert_to_user, get_current_user
 from bec_atlas.datasources.mongodb.mongodb import MongoDBDatasource
-from bec_atlas.model import UserInfo
-from bec_atlas.model.model import Session
+from bec_atlas.model.model import Session, User
 from bec_atlas.router.base_router import BaseRouter
 
 
@@ -35,6 +30,7 @@ class SessionRouter(BaseRouter):
             response_model_exclude_none=True,
         )
 
+    @convert_to_user
     async def sessions(
         self,
         filter: str | None = None,
@@ -42,7 +38,7 @@ class SessionRouter(BaseRouter):
         offset: int = 0,
         limit: int = 100,
         sort: str | None = None,
-        current_user: UserInfo = Depends(get_current_user),
+        current_user: User = Depends(get_current_user),
     ) -> list[Session]:
         """
         Get all sessions.
@@ -55,7 +51,7 @@ class SessionRouter(BaseRouter):
             sort (str): Sort order for the query, e.g. '{"name": 1}' for ascending order,
                 '{"name": -1}' for descending order. Multiple fields can be sorted by
                 separating them with a comma, e.g. '{"name": 1, "description": -1}'
-            current_user (UserInfo): The current user
+            current_user (User): The current user
 
         Returns:
             list[Sessions]: List of sessions
@@ -82,6 +78,7 @@ class SessionRouter(BaseRouter):
             user=current_user,
         )
 
+    @convert_to_user
     async def sessions_by_realm(
         self,
         realm_id: str,
@@ -90,7 +87,7 @@ class SessionRouter(BaseRouter):
         offset: int = 0,
         limit: int = 100,
         sort: str | None = None,
-        current_user: UserInfo = Depends(get_current_user),
+        current_user: User = Depends(get_current_user),
     ) -> list[Session]:
         """
         Get all sessions for a realm.

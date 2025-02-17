@@ -1,8 +1,7 @@
 import { Injectable, signal, WritableSignal } from '@angular/core';
 import { io, Socket } from 'socket.io-client';
 import { Observable } from 'rxjs';
-import { MessageEndpoints, EndpointInfo } from './redis_endpoints';
-import { AppConfigService } from '../app-config.service';
+import { EndpointInfo } from './redis_endpoints';
 import { ServerSettingsService } from '../server-settings.service';
 import { DeploymentService } from '../deployment.service';
 
@@ -36,8 +35,6 @@ export class RedisConnectorService {
       timeout: 500, // Connection timeout in milliseconds
       path: '/api/v1/ws', // Path to the WebSocket server
       auth: {
-        user: 'john_doe',
-        token: '1234',
         deployment: id,
       },
     });

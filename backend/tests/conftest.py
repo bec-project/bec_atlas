@@ -118,4 +118,5 @@ def backend(redis_server):
         "bec_atlas.router.redis_router.BECAsyncRedisManager", PatchedBECAsyncRedisManager
     ):
         with TestClient(app.app) as _client:
+            app.user_router.use_ssl = False  # disable ssl to allow for httponly cookies
             yield _client, app

@@ -11,29 +11,28 @@ import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 
 function logout() {
-  localStorage.removeItem('id_token');
   localStorage.removeItem('id_session');
   location.href = '/login';
 }
 
 function handle_request(handler: HttpHandler, req: HttpRequest<any>) {
   return handler.handle(req).pipe(
-    tap(
-      (event: HttpEvent<any>) => {
+    tap({
+      next: (event: HttpEvent<any>) => {
         if (event instanceof HttpResponse) {
           // console.log(cloned);
           // console.log("Service Response thr Interceptor");
         }
       },
-      (err: any) => {
+      error: (err: any) => {
         if (err instanceof HttpErrorResponse) {
           console.log('err.status', err);
           if (err.status === 401) {
             logout();
           }
         }
-      }
-    )
+      },
+    })
   );
 }
 
@@ -45,16 +44,10 @@ export class AuthInterceptor implements HttpInterceptor {
     req: HttpRequest<any>,
     next: HttpHandler
   ): Observable<HttpEvent<any>> {
-    const idToken = localStorage.getItem('id_token');
+    const cloned = req.clone({
+      withCredentials: true,
+    });
 
-    if (idToken) {
-      const cloned = req.clone({
-        headers: req.headers.set('Authorization', 'Bearer ' + idToken),
-      });
-
-      return handle_request(next, cloned);
-    } else {
-      return handle_request(next, req);
-    }
+    return handle_request(next, cloned);
   }
 }

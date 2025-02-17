@@ -5,9 +5,9 @@ import json
 from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-from bec_atlas.authentication import get_current_user
+from bec_atlas.authentication import convert_to_user, get_current_user
 from bec_atlas.datasources.mongodb.mongodb import MongoDBDatasource
-from bec_atlas.model.model import ScanStatusPartial, ScanUserData, UserInfo
+from bec_atlas.model.model import ScanStatusPartial, ScanUserData, User, UserInfo
 from bec_atlas.router.base_router import BaseRouter
 
 
@@ -47,6 +47,7 @@ class ScanRouter(BaseRouter):
             response_model=dict,
         )
 
+    @convert_to_user
     async def scans(
         self,
         session_id: str,
@@ -55,7 +56,7 @@ class ScanRouter(BaseRouter):
         offset: int = 0,
         limit: int = 100,
         sort: str | None = None,
-        current_user: UserInfo = Depends(get_current_user),
+        current_user: User = Depends(get_current_user),
     ) -> list[ScanStatusPartial]:
         """
         Get all scans for a session.
@@ -69,7 +70,7 @@ class ScanRouter(BaseRouter):
             sort (str): Sort order for the query, e.g. '{"name": 1}' for ascending order,
                 '{"name": -1}' for descending order. Multiple fields can be sorted by
                 separating them with a comma, e.g. '{"name": 1, "description": -1}'
-            current_user (UserInfo): The current user
+            current_user (User): The current user
 
         Returns:
             list[ScanStatusPartial]: List of scans
@@ -100,11 +101,12 @@ class ScanRouter(BaseRouter):
             user=current_user,
         )
 
+    @convert_to_user
     async def scans_with_id(
         self,
         scan_id: str,
         fields: list[str] = Query(default=None),
-        current_user: UserInfo = Depends(get_current_user),
+        current_user: User = Depends(get_current_user),
     ):
         """
         Get scan with id from session
@@ -135,6 +137,7 @@ class ScanRouter(BaseRouter):
             scan_id (str): The scan id
             user_data (dict): The user data to update
         """
+        current_user = self.get_user_from_db(current_user.token, current_user.email)
         out = self.db.patch(
             "scans",
             id=scan_id,
@@ -147,15 +150,16 @@ class ScanRouter(BaseRouter):
             raise HTTPException(status_code=404, detail="Scan not found")
         return {"message": "Scan user data updated."}
 
+    @convert_to_user
     async def count_scans(
-        self, filter: str | None = None, current_user: UserInfo = Depends(get_current_user)
+        self, filter: str | None = None, current_user: User = Depends(get_current_user)
     ) -> int:
         """
         Count the number of scans.
 
         Args:
             filter (str): JSON filter for the query, e.g. '{"name": "test"}'
-            current_user (UserInfo): The current user
+            current_user (User): The current user
 
         Returns:
             int: The number of scans

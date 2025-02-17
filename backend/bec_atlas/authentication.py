@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import os
 from datetime import datetime, timedelta
-from typing import Annotated
+from functools import wraps
 
 import jwt
-from fastapi import Depends, HTTPException, status
+from fastapi import HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from jwt.exceptions import InvalidTokenError
 from pwdlib import PasswordHash
@@ -17,6 +17,24 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/user/login/form")
 password_hash = PasswordHash.recommended()
+
+
+def convert_to_user(func):
+    """
+    Decorator to convert the current_user parameter to a User object.
+    """
+
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        if "current_user" in kwargs:
+            current_user = kwargs["current_user"]
+            if current_user:
+                router = args[0]
+                user = router.get_user_from_db(current_user.token, current_user.email)
+                kwargs["current_user"] = user
+        return await func(*args, **kwargs)
+
+    return wrapper
 
 
 def get_secret_key():
@@ -56,7 +74,12 @@ def decode_token(token: str):
         raise credentials_exception from exc
 
 
-async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]) -> UserInfo:
+async def get_current_user(request: Request) -> UserInfo:
+    token = request.cookies.get("access_token")
+    return get_current_user_sync(token)
+
+
+def get_current_user_sync(token: str) -> UserInfo:
     credentials_exception = HTTPException(
         status_code=401,
         detail="Could not validate credentials",
@@ -70,4 +93,4 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]) -> Use
             raise credentials_exception
     except Exception as exc:
         raise credentials_exception from exc
-    return UserInfo(groups=groups, email=email)
+    return UserInfo(email=email, token=token)

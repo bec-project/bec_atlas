@@ -67,7 +67,7 @@ class User(MongoBaseModel, AccessProfile):
 
 class UserInfo(BaseModel):
     email: str
-    groups: list[str]
+    token: str
 
 
 class Deployments(MongoBaseModel, AccessProfile):

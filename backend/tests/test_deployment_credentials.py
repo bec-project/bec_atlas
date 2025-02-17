@@ -11,7 +11,6 @@ def logged_in_client(backend):
     token = response.json()
     assert isinstance(token, str)
     assert len(token) > 20
-    client.headers.update({"Authorization": f"Bearer {token}"})
     return client
 
 
@@ -70,7 +69,6 @@ def test_deployment_credential_rejects_unauthorized_user(backend):
     token = response.json()
     assert isinstance(token, str)
     assert len(token) > 20
-    client.headers.update({"Authorization": f"Bearer {token}"})
 
     deployments = client.get(
         "/api/v1/deployments/realm", params={"realm": "demo_beamline_1"}
@@ -96,7 +94,6 @@ def test_refresh_deployment_credentials_rejects_unauthorized_user(backend):
     token = response.json()
     assert isinstance(token, str)
     assert len(token) > 20
-    client.headers.update({"Authorization": f"Bearer {token}"})
 
     deployments = client.get(
         "/api/v1/deployments/realm", params={"realm": "demo_beamline_1"}

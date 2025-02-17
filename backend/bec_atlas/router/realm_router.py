@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends
 
-from bec_atlas.authentication import get_current_user
+from bec_atlas.authentication import convert_to_user, get_current_user
 from bec_atlas.datasources.mongodb.mongodb import MongoDBDatasource
-from bec_atlas.model.model import DeploymentAccess, Realm, UserInfo
+from bec_atlas.model.model import DeploymentAccess, Realm, User
 from bec_atlas.router.base_router import BaseRouter
 
 
@@ -36,8 +36,9 @@ class RealmRouter(BaseRouter):
             response_model_exclude_none=True,
         )
 
+    @convert_to_user
     async def realms(
-        self, include_deployments: bool = False, current_user: UserInfo = Depends(get_current_user)
+        self, include_deployments: bool = False, current_user: User = Depends(get_current_user)
     ) -> list[Realm]:
         """
         Get all realms.
@@ -62,8 +63,9 @@ class RealmRouter(BaseRouter):
             return self.db.aggregate("realms", include, Realm, user=current_user)
         return self.db.find("realms", {}, Realm, user=current_user)
 
+    @convert_to_user
     async def realm_with_deployment_access(
-        self, owner_only: bool = False, current_user: UserInfo = Depends(get_current_user)
+        self, owner_only: bool = False, current_user: User = Depends(get_current_user)
     ):
         """
         Get all realms with deployment access.
@@ -96,9 +98,8 @@ class RealmRouter(BaseRouter):
         ]
         return self.db.aggregate("realms", include, Realm, user=current_user)
 
-    async def realm_with_id(
-        self, realm_id: str, current_user: UserInfo = Depends(get_current_user)
-    ):
+    @convert_to_user
+    async def realm_with_id(self, realm_id: str, current_user: User = Depends(get_current_user)):
         """
         Get realm with id.
 

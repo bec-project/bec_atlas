@@ -91,7 +91,6 @@ def test_scan_ingestor_create_scan(scan_ingestor, backend):
     response = client.post(
         "/api/v1/user/login", json={"username": "admin@bec_atlas.ch", "password": "admin"}
     )
-    client.headers.update({"Authorization": f"Bearer {response.json()}"})
 
     session_id = msg.info.get("session_id")
     scan_id = msg.scan_id
