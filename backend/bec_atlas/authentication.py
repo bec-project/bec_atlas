@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from functools import wraps
 
 import jwt
-from fastapi import HTTPException, Request, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from jwt.exceptions import InvalidTokenError
 from pwdlib import PasswordHash
@@ -72,6 +72,10 @@ def decode_token(token: str):
         return payload
     except InvalidTokenError as exc:
         raise credentials_exception from exc
+
+
+async def get_current_user_token(token: str = Depends(oauth2_scheme)) -> UserInfo:
+    return get_current_user_sync(token)
 
 
 async def get_current_user(request: Request) -> UserInfo:
