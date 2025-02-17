@@ -27,7 +27,7 @@ function handle_request(handler: HttpHandler, req: HttpRequest<any>) {
       error: (err: any) => {
         if (err instanceof HttpErrorResponse) {
           console.log('err.status', err);
-          if (err.status === 401) {
+          if (err.status === 401 && !err.url?.includes('login')) {
             logout();
           }
         }

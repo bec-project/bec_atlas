@@ -60,7 +60,7 @@ class UserRouter(BaseRouter):
         user = self._get_user(user_login)
         if user is None:
             raise HTTPException(status_code=401, detail="User not found or password is incorrect")
-        token = create_access_token(data={"groups": list(user.groups), "email": user.email})
+        token = create_access_token(data={"email": user.email})
         response.set_cookie(key="access_token", value=token, httponly=True, secure=self.use_ssl)
         return token
 

@@ -91,9 +91,8 @@ def get_current_user_sync(token: str) -> UserInfo:
     )
     try:
         payload = decode_token(token)
-        groups = payload.get("groups")
         email = payload.get("email")
-        if not groups or not email:
+        if not email:
             raise credentials_exception
     except Exception as exc:
         raise credentials_exception from exc

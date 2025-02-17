@@ -21,7 +21,6 @@ export class AuthService {
   }
 
   setSession(authResult: string) {
-    console.log(authResult);
     // it would be good to get an expiration date for the token...
     localStorage.setItem('id_session', this.getRandomId());
   }
