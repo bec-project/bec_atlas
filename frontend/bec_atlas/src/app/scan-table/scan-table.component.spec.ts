@@ -16,7 +16,7 @@ describe('ScanTableComponent', () => {
 
     sessionDataServiceMock = jasmine.createSpyObj('SessionDataService', ['getSessions']);
     sessionDataServiceMock.getSessions.and.returnValue(Promise.resolve([{ _id: '1', name: 'test'}]));
-    scanDataServiceMock = jasmine.createSpyObj('ScanDataService', ['getScanData', 'getScanCount']);
+    scanDataServiceMock = jasmine.createSpyObj('ScanDataService', ['getScanData', 'getScanCount', 'updateUserData']);
     scanDataServiceMock.getScanCount.and.returnValue(Promise.resolve({count: 5}));
     scanDataServiceMock.getScanData.and.returnValue(Promise.resolve([
       { scan_id: '1', scan_number: 1, status: 'open'},
@@ -25,6 +25,7 @@ describe('ScanTableComponent', () => {
       { scan_id: '4', scan_number: 4, status: 'closed'},
       { scan_id: '5', scan_number: 5, status: 'closed'}
     ]));
+    scanDataServiceMock.updateUserData.and.returnValue(Promise.resolve('1'));
 
     await TestBed.configureTestingModule({
       imports: [MatTableModule, MatPaginatorModule, MatDialogModule],
@@ -73,4 +74,30 @@ describe('ScanTableComponent', () => {
     await fixture.detectChanges();
     expect(scanDataServiceMock.getScanData).toHaveBeenCalledWith('1', 4, 1, columns, false, { scan_number: component.sorting });
     });
+
+  it('should handle page changes', async () => {
+    let columns = ['scan_id', 'scan_number', 'status'];
+    component.displayedColumns.set(columns);
+    component.onSessionChange({ _id: '1', name: 'test'});
+    component.handlePageEvent({pageIndex: 1, pageSize: 1, length: 5});
+    await fixture.detectChanges();
+    expect(component.offset()).toEqual(1);
+    expect(component.limit()).toEqual(1);
+    expect(scanDataServiceMock.getScanData).toHaveBeenCalledWith('1', 1, 1, columns, false, { scan_number: component.sorting });
+  });
+
+  it('should handle refresh', async () => {
+    component.handleRefresh();
+    await fixture.detectChanges();
+    expect(scanDataServiceMock.getScanData).toHaveBeenCalled();
+    expect(scanDataServiceMock.getScanCount).toHaveBeenCalled();
+  });
+
+  it('should change star rating', async () => {
+    let columns = ['scan_id', 'scan_number', 'status'];
+    component.displayedColumns.set(columns);
+    component.onSessionChange({ _id: '1', name: 'test'});
+    await component.handleOnRatingChanged({rating : 3}, { scan_id: '1', scan_number: 1, status: 'open'});
+    expect(scanDataServiceMock.updateUserData).toHaveBeenCalledWith('1', { user_rating: 3 , user_comments: '', system_rating: 0, system_comments: '', name: ''});
+  });
 });
