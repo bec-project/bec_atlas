@@ -1,10 +1,16 @@
+from __future__ import annotations
+
 from functools import lru_cache
+from typing import TYPE_CHECKING
 
 from bec_atlas.model.model import User
 
+if TYPE_CHECKING:  # pragma: no cover
+    from bec_atlas.datasources.datasource_manager import DatasourceManager
+
 
 class BaseRouter:
-    def __init__(self, prefix: str = "/api/v1", datasources=None) -> None:
+    def __init__(self, prefix: str = "/api/v1", datasources: DatasourceManager = None) -> None:
         self.datasources = datasources
         self.prefix = prefix
 

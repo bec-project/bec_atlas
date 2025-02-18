@@ -86,6 +86,11 @@ def backend(redis_server):
         return fakeredis.FakeStrictRedis(server=redis_server)
 
     mongo_client = mongomock.MongoClient("localhost", 27027)
+    fake_async_redis = fakeredis.FakeAsyncRedis(
+        server=redis_server, username="ingestor", password="ingestor"
+    )
+    fake_async_redis.connection_pool.connection_kwargs["username"] = "ingestor"
+    fake_async_redis.connection_pool.connection_kwargs["password"] = "ingestor"
 
     config = {
         "redis": {
@@ -94,7 +99,7 @@ def backend(redis_server):
             "username": "ingestor",
             "password": "ingestor",
             "sync_instance": RedisConnector("localhost:1", redis_cls=_fake_redis),
-            "async_instance": fakeredis.FakeAsyncRedis(server=redis_server),
+            "async_instance": fake_async_redis,
         },
         "mongodb": {"host": "localhost", "port": 27027, "mongodb_client": mongo_client},
     }
@@ -105,13 +110,7 @@ def backend(redis_server):
 
     class PatchedBECAsyncRedisManager(BECAsyncRedisManager):
         def _redis_connect(self):
-            self.redis = fakeredis.FakeAsyncRedis(
-                server=redis_server,
-                username=config["redis"]["username"],
-                password=config["redis"]["password"],
-            )
-            self.redis.connection_pool.connection_kwargs["username"] = config["redis"]["username"]
-            self.redis.connection_pool.connection_kwargs["password"] = config["redis"]["password"]
+            self.redis = fake_async_redis
             self.pubsub = self.redis.pubsub(ignore_subscribe_messages=True)
 
     with mock.patch(

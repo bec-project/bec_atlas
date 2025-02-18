@@ -28,7 +28,7 @@ def backend_client(backend):
 async def connected_ws(backend_client):
     client, app = backend_client
     deployment = client.get("/api/v1/deployments/realm", params={"realm": "demo_beamline_1"}).json()
-    with mock.patch.object(app.redis_websocket, "get_access", return_value=RemoteAccess.READ):
+    with mock.patch.object(app.redis_router, "get_access", return_value=RemoteAccess.READ):
         await app.redis_websocket.socket.handlers["/"]["connect"](
             "sid",
             {

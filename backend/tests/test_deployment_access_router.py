@@ -1,3 +1,5 @@
+from unittest import mock
+
 import pytest
 
 from bec_atlas.model.model import DeploymentAccess
@@ -42,10 +44,11 @@ def test_deployment_access_router(logged_in_client):
     out = DeploymentAccess(**out)
 
 
-def test_patch_deployment_access(logged_in_client):
+def test_patch_deployment_access(logged_in_client, backend):
     """
     Test that the deployment access endpoint returns a 200 when the deployment id is valid.
     """
+    _, app = backend
     deployments = logged_in_client.get(
         "/api/v1/deployments/realm", params={"realm": "demo_beamline_1"}
     ).json()
@@ -58,18 +61,19 @@ def test_patch_deployment_access(logged_in_client):
     out = response.json()
     out = DeploymentAccess(**out)
 
-    response = logged_in_client.patch(
-        "/api/v1/deployment_access",
-        params={"deployment_id": deployment_id},
-        json={
-            "user_read_access": ["test1"],
-            "user_write_access": ["test2"],
-            "su_read_access": ["test3"],
-            "su_write_access": ["test4"],
-            "remote_read_access": ["test5"],
-            "remote_write_access": ["test6"],
-        },
-    )
+    with mock.patch.object(app.deployment_access_router, "_is_valid_user", return_value=True):
+        response = logged_in_client.patch(
+            "/api/v1/deployment_access",
+            params={"deployment_id": deployment_id},
+            json={
+                "user_read_access": ["test1"],
+                "user_write_access": ["test2"],
+                "su_read_access": ["test3"],
+                "su_write_access": ["test4"],
+                "remote_read_access": ["test5"],
+                "remote_write_access": ["test6"],
+            },
+        )
     assert response.status_code == 200
     out = response.json()
     out = DeploymentAccess(**out)

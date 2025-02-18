@@ -118,6 +118,12 @@ class DeploymentAccessRouter(BaseRouter):
             + original.su_read_access
             + original.su_write_access
         )
+        for profile in new_profiles:
+            # check if the user exists
+            user = self._is_valid_user(profile)
+            if not user:
+                raise HTTPException(status_code=400, detail=f"User {profile} does not exist")
+
         removed_profiles = old_profiles - new_profiles
         for profile in removed_profiles:
             db.delete_one("bec_access_profiles", {"username": profile, "deployment_id": updated.id})
@@ -173,6 +179,20 @@ class DeploymentAccessRouter(BaseRouter):
         )
 
         redis.connector.set_and_publish(endpoint_info, MsgpackSerialization.dumps(profiles))
+
+    def _is_valid_user(self, user: str) -> bool:
+        """
+        Check if the user exists.
+
+        Args:
+            user (str): The user's email
+
+        Returns:
+            bool: True if the user exists, False otherwise
+        """
+        db: MongoDBDatasource = self.datasources.datasources.get("mongodb")
+        user = db.find_one("users", {"email": user}, User)
+        return user is not None
 
     def _get_redis_access_profile(self, access_profile: str, username: str, deployment_id: str):
         """
