@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 from datetime import datetime, timedelta
-from functools import wraps
+from functools import lru_cache, wraps
 
 import jwt
 from fastapi import Depends, HTTPException, Request, status
@@ -37,9 +37,17 @@ def convert_to_user(func):
     return wrapper
 
 
+@lru_cache()
 def get_secret_key():
-    val = os.getenv("SECRET_KEY", "test_secret")
-    return val
+    """
+    Load the JWT secret from disk or use a default value.
+    """
+    deployment_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "deployment")
+    secret_file = os.path.join(deployment_dir, ".jwt_secret")
+    if not os.path.exists(secret_file):
+        return "test_secret"
+    with open(secret_file, "r", encoding="utf-8") as token_file:
+        return token_file.read().strip()
 
 
 def verify_password(plain_password, hashed_password):
