@@ -1,4 +1,3 @@
-import asyncio
 from unittest import mock
 
 import pytest
@@ -332,8 +331,7 @@ def test_bec_access_profile_allows_op(backend, bec_access, key, redis_op, raise_
         app.redis_router.bec_access_profile_allows_op(bec_access, key, redis_op)
 
 
-# @pytest.mark.asyncio
-def test_redis_get(logged_in_client, deployment, backend):
+async def test_redis_get(logged_in_client, deployment, backend):
     client = logged_in_client
     _, app = backend
     response = client.patch(
@@ -364,7 +362,5 @@ def test_redis_get(logged_in_client, deployment, backend):
             "/api/v1/redis", params={"deployment": deployment["_id"], "key": "test_key"}
         )
         assert response.status_code == 200
-        assert response.json() == {
-            "data": {"data": {"test_key": "test"}},
-            "metadata": {"message": "test"},
-        }
+        test_response = {"data": {"data": {"test_key": "test"}}, "metadata": {"message": "test"}}
+        assert response.json() == test_response

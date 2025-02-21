@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 from unittest import mock
@@ -12,6 +13,11 @@ from fastapi.testclient import TestClient
 
 from bec_atlas.main import AtlasApp
 from bec_atlas.router.redis_router import BECAsyncRedisManager
+
+
+class TestRedis(fakeredis.FakeAsyncRedis):
+    async def execute_command(self, *args, **options):
+        return await asyncio.shield(super().execute_command(*args, **options))
 
 
 def import_mongodb_data(mongo_client: pymongo.MongoClient):
@@ -86,9 +92,7 @@ def backend(redis_server):
         return fakeredis.FakeStrictRedis(server=redis_server)
 
     mongo_client = mongomock.MongoClient("localhost", 27027)
-    fake_async_redis = fakeredis.FakeAsyncRedis(
-        server=redis_server, username="ingestor", password="ingestor"
-    )
+    fake_async_redis = TestRedis(server=redis_server, username="ingestor", password="ingestor")
     fake_async_redis.connection_pool.connection_kwargs["username"] = "ingestor"
     fake_async_redis.connection_pool.connection_kwargs["password"] = "ingestor"
 
