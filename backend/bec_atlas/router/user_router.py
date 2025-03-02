@@ -28,7 +28,7 @@ class UserRouter(BaseRouter):
     def __init__(self, prefix="/api/v1", datasources=None, use_ssl=True):
         super().__init__(prefix, datasources)
         self.use_ssl = use_ssl
-        self.db: MongoDBDatasource = self.datasources.datasources.get("mongodb")
+        self.db: MongoDBDatasource = self.datasources.mongodb
         self.ldap = LDAPUserService(
             ldap_server="ldaps://d.psi.ch", base_dn="OU=users,OU=psi,DC=d,DC=psi,DC=ch"
         )

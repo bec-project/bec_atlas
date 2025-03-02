@@ -25,7 +25,7 @@ def test_scan_ingestor_create_scan(scan_ingestor, backend):
     Test that the login endpoint returns a token.
     """
     client, app = backend
-    mongo: MongoDBDatasource = app.datasources.datasources["mongodb"]
+    mongo: MongoDBDatasource = app.datasources.mongodb
     deployment_id = str(mongo.find_one("deployments", {}, dtype=Deployments).id)
     session_id = str(mongo.find_one("sessions", {"deployment_id": deployment_id}, dtype=Session).id)
     msg = messages.ScanStatusMessage(

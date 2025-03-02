@@ -1,15 +1,26 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from bec_atlas.authentication import convert_to_user, get_current_user
 from bec_atlas.datasources.mongodb.mongodb import MongoDBDatasource
-from bec_atlas.model.model import BECAccessProfile, User, UserInfo
+from bec_atlas.model.model import BECAccessProfile, User
 from bec_atlas.router.base_router import BaseRouter
+
+if TYPE_CHECKING:  # pragma: no cover
+    from bec_atlas.datasources.datasource_manager import DatasourceManager
 
 
 class BECAccessRouter(BaseRouter):
-    def __init__(self, prefix="/api/v1", datasources=None):
+    def __init__(self, prefix="/api/v1", datasources: DatasourceManager | None = None):
         super().__init__(prefix, datasources)
-        self.db: MongoDBDatasource = self.datasources.datasources.get("mongodb")
+
+        if not self.datasources:
+            raise RuntimeError("Datasources not loaded")
+
+        self.db: MongoDBDatasource = self.datasources.mongodb
         self.router = APIRouter(prefix=prefix)
         self.router.add_api_route(
             "/bec_access",

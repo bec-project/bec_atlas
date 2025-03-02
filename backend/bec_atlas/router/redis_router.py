@@ -141,8 +141,8 @@ class RedisRouter(BaseRouter):
 
     def __init__(self, prefix="/api/v1", datasources: DatasourceManager = None):
         super().__init__(prefix, datasources)
-        self.redis = self.datasources.datasources["redis"].async_connector
-        self.db = self.datasources.datasources["mongodb"]
+        self.redis = self.datasources.redis.async_connector
+        self.db = self.datasources.mongodb
 
         self.router = APIRouter(prefix=prefix)
         self.router.add_api_route(
@@ -474,15 +474,15 @@ class RedisWebsocket:
     """
 
     def __init__(self, prefix="/api/v1", datasources=None, app: AtlasApp = None):
-        self.redis: RedisConnector = datasources.datasources["redis"].connector
+        self.redis: RedisConnector = datasources.redis.connector
         self.prefix = prefix
         self.fastapi_app = app
         self.redis_router = app.redis_router
         self.active_connections = set()
-        redis_host = datasources.datasources["redis"].config["host"]
-        redis_port = datasources.datasources["redis"].config["port"]
-        redis_password = datasources.datasources["redis"].config.get("password", "ingestor")
-        self.db = datasources.datasources["mongodb"]
+        redis_host = datasources.redis.config["host"]
+        redis_port = datasources.redis.config["port"]
+        redis_password = datasources.redis.config.get("password", "ingestor")
+        self.db = datasources.mongodb
         self.socket = socketio.AsyncServer(
             transports=["websocket"],
             ping_timeout=60,

@@ -58,7 +58,7 @@ class AtlasApp:
 
     def add_routers(self):
         # pylint: disable=attribute-defined-outside-init
-        if not self.datasources.datasources:
+        if not self.datasources.redis or not self.datasources.mongodb:
             raise ValueError("Datasources not loaded")
 
         # User

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from bec_lib.logger import bec_logger
 
 from bec_atlas.datasources.mongodb.mongodb import MongoDBDatasource
@@ -9,26 +11,36 @@ logger = bec_logger.logger
 class DatasourceManager:
     def __init__(self, config: dict):
         self.config = config
-        self.datasources = {}
+        self._redis: RedisDatasource | None = None
+        self._mongodb: MongoDBDatasource | None = None
         self.load_datasources()
 
     def connect(self):
-        for datasource in self.datasources.values():
-            datasource.connect()
+        self.redis.connect()
+        self.mongodb.connect()
 
     def load_datasources(self):
-        for datasource_name, datasource_config in self.config.items():
-            if datasource_name == "redis":
-                logger.info(
-                    f"Loading Redis datasource. Host: {datasource_config.get('host')}, Port: {datasource_config.get('port')}, Username: {datasource_config.get('username')}"
-                )
-                self.datasources[datasource_name] = RedisDatasource(datasource_config)
-            if datasource_name == "mongodb":
-                logger.info(
-                    f"Loading MongoDB datasource. Host: {datasource_config.get('host')}, Port: {datasource_config.get('port')}, Username: {datasource_config.get('username')}"
-                )
-                self.datasources[datasource_name] = MongoDBDatasource(datasource_config)
+        redis_config = self.config.get("redis")
+        if redis_config:
+            self._redis = RedisDatasource(redis_config)
+        mongodb_config = self.config.get("mongodb")
+        if mongodb_config:
+            self._mongodb = MongoDBDatasource(mongodb_config)
+
+    @property
+    def redis(self) -> RedisDatasource:
+        if not self._redis:
+            raise RuntimeError("Redis datasource not loaded")
+        return self._redis
+
+    @property
+    def mongodb(self) -> MongoDBDatasource:
+        if not self._mongodb:
+            raise RuntimeError("MongoDB datasource not loaded")
+        return self._mongodb
 
     def shutdown(self):
-        for datasource in self.datasources.values():
-            datasource.shutdown()
+        if self._redis:
+            self._redis.shutdown()
+        if self._mongodb:
+            self._mongodb.shutdown()

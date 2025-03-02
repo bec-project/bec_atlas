@@ -16,7 +16,7 @@ if TYPE_CHECKING:  # pragma: no cover
 class DeploymentsRouter(BaseRouter):
     def __init__(self, prefix="/api/v1", datasources=None):
         super().__init__(prefix, datasources)
-        self.db: MongoDBDatasource = self.datasources.datasources.get("mongodb")
+        self.db: MongoDBDatasource = self.datasources.mongodb
         self.router = APIRouter(prefix=prefix)
         self.router.add_api_route(
             "/deployments/realm",
@@ -72,7 +72,7 @@ class DeploymentsRouter(BaseRouter):
         self.available_deployments = self.db.find("deployments", {}, Deployments)
         credentials = self.db.find("deployment_credentials", {}, DeploymentCredential)
 
-        redis: RedisDatasource = self.datasources.datasources.get("redis")
+        redis: RedisDatasource = self.datasources.redis
         msg = json.dumps([msg.model_dump() for msg in self.available_deployments])
         redis.connector.set_and_publish("deployments", msg)
         for deployment in credentials:

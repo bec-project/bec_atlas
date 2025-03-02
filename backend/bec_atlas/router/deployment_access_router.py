@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import secrets
 import time
 from typing import TYPE_CHECKING, Any
@@ -14,13 +16,16 @@ from bec_atlas.router.base_router import BaseRouter
 from bec_atlas.router.redis_router import RedisAtlasEndpoints
 
 if TYPE_CHECKING:  # pragma: no cover
+    from bec_atlas.datasources.datasource_manager import DatasourceManager
     from bec_atlas.datasources.redis_datasource import RedisDatasource
 
 
 class DeploymentAccessRouter(BaseRouter):
-    def __init__(self, prefix="/api/v1", datasources=None):
+    def __init__(self, prefix="/api/v1", datasources: DatasourceManager | None = None):
         super().__init__(prefix, datasources)
-        self.db: MongoDBDatasource = self.datasources.datasources.get("mongodb")
+        if not self.datasources:
+            raise RuntimeError("Datasources not loaded")
+        self.db: MongoDBDatasource = self.datasources.mongodb
         self.router = APIRouter(prefix=prefix)
         self.router.add_api_route(
             "/deployment_access",
@@ -40,7 +45,7 @@ class DeploymentAccessRouter(BaseRouter):
     @convert_to_user
     async def get_deployment_access(
         self, deployment_id: str, current_user: User = Depends(get_current_user)
-    ) -> DeploymentAccess:
+    ) -> DeploymentAccess | None:
         """
         Get the access lists for a specific deployment.
 
@@ -104,7 +109,7 @@ class DeploymentAccessRouter(BaseRouter):
         Args:
             deployment_access (DeploymentAccess): The deployment access object
         """
-        db: MongoDBDatasource = self.datasources.datasources.get("mongodb")
+        db: MongoDBDatasource = self.datasources.mongodb
 
         new_profiles = set(
             updated.user_read_access
@@ -160,8 +165,8 @@ class DeploymentAccessRouter(BaseRouter):
         """
         Refresh the redis BEC access.
         """
-        redis: RedisDatasource = self.datasources.datasources.get("redis")
-        db: MongoDBDatasource = self.datasources.datasources.get("mongodb")
+        redis: RedisDatasource = self.datasources.redis
+        db: MongoDBDatasource = self.datasources.mongodb
         profiles = db.find(
             collection="bec_access_profiles",
             query_filter={"deployment_id": deployment_id},
@@ -190,7 +195,7 @@ class DeploymentAccessRouter(BaseRouter):
         Returns:
             bool: True if the user exists, False otherwise
         """
-        db: MongoDBDatasource = self.datasources.datasources.get("mongodb")
+        db: MongoDBDatasource = self.datasources.mongodb
         user = db.find_one("users", {"email": user}, User)
         return user is not None
 

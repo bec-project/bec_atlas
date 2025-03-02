@@ -11,7 +11,7 @@ from bec_atlas.router.base_router import BaseRouter
 class SessionRouter(BaseRouter):
     def __init__(self, prefix="/api/v1", datasources=None):
         super().__init__(prefix, datasources)
-        self.db: MongoDBDatasource = self.datasources.datasources.get("mongodb")
+        self.db: MongoDBDatasource = self.datasources.mongodb
         self.router = APIRouter(prefix=prefix)
         self.router.add_api_route(
             "/sessions",
