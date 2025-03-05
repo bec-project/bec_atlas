@@ -57,16 +57,21 @@ class UserRouter(BaseRouter):
         return {"access_token": out, "token_type": "bearer"}
 
     async def user_login(self, user_login: UserLoginRequest, response: Response):
-        user = self._get_user(user_login)
-        if user is None:
-            raise HTTPException(status_code=401, detail="User not found or password is incorrect")
-        token = create_access_token(data={"email": user.email})
-        response.set_cookie(key="access_token", value=token, httponly=True, secure=self.use_ssl)
+        token = self._user_login(user_login, response)
         return token
 
     async def user_logout(self, response: Response):
         response.delete_cookie("access_token")
         return {"message": "Logged out"}
+
+    def _user_login(self, user_login: UserLoginRequest, response: Response | None) -> str:
+        user = self._get_user(user_login)
+        if user is None:
+            raise HTTPException(status_code=401, detail="User not found or password is incorrect")
+        token = create_access_token(data={"email": user.email})
+        if response:
+            response.set_cookie(key="access_token", value=token, httponly=True, secure=self.use_ssl)
+        return token
 
     def _get_user(self, user_login: UserLoginRequest) -> UserInfo | None:
         user = self._get_functional_account(user_login)

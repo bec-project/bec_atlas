@@ -97,3 +97,15 @@ def test_patch_deployment_access(logged_in_client, backend):
             "/api/v1/bec_access", params={"deployment_id": deployment_id, "user": user}
         )
         assert out.status_code == 404
+
+    # Test that the access can also be retrieved directly
+    client, _ = backend
+    client.post("/api/v1/user/logout")
+    response = client.post(
+        "/api/v1/bec_access_login",
+        json={"username": "admin@bec_atlas.ch", "password": "admin"},
+        params={"deployment_id": deployment_id, "user": "test1"},
+    )
+    assert response.status_code == 200
+    out = response.json()
+    assert "token" in out

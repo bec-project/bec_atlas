@@ -88,7 +88,9 @@ class AtlasApp:
         self.app.include_router(self.deployment_access_router.router, tags=["Deployment Access"])
 
         # BEC Access
-        self.bec_access_router = BECAccessRouter(prefix=self.prefix, datasources=self.datasources)
+        self.bec_access_router = BECAccessRouter(
+            prefix=self.prefix, datasources=self.datasources, app=self
+        )
         self.app.include_router(self.bec_access_router.router, tags=["BEC Access"])
 
         # Session
