@@ -4,46 +4,23 @@
       <img
         src="assets/BEC-Atlas-full-transparent.png"
         alt="BEC"
-        width="80"
-        height="80"
+        width="25"
+        height="25"
         style="margin: 10px"
       />
     </div>
-    <mat-divider></mat-divider>
-
-    <!-- Username expansion panel -->
-    <mat-expansion-panel>
-      <mat-expansion-panel-header>
-        <mat-icon>account_circle</mat-icon>
-        <span class="menu-text">Username</span>
-      </mat-expansion-panel-header>
-
-      <button mat-button>Profile</button>
-      <button mat-button>Settings</button>
-      <button mat-button (click)="logout()">Logout</button>
-    </mat-expansion-panel>
 
     <mat-divider></mat-divider>
-
-    <!--  Data Browser -->
-    <mat-expansion-panel>
-      <mat-expansion-panel-header>
-        <mat-icon>table_chart</mat-icon>
-        <span class="menu-text">Data Browser</span>
-      </mat-expansion-panel-header>
-
-      <button
-        mat-button
-        class="menu-item"
-        [routerLink]="['/dashboard/scan-table']"
-      >
-        Scan Data
-      </button>
-      <button mat-button class="menu-item">Device Data</button>
-    </mat-expansion-panel>
+    <app-sidepanel-icon icon="science" label="Experiment"></app-sidepanel-icon>
+    <app-sidepanel-icon icon="description" label="Data"></app-sidepanel-icon>
+    <app-sidepanel-icon
+      icon="manage_accounts"
+      label="Access"
+      [active]="true"
+    ></app-sidepanel-icon>
 
     <!-- Experiment Control Expansion -->
-    <mat-expansion-panel
+    <!-- <mat-expansion-panel
       (opened)="panelOpened()"
       [hideToggle]="hideExperimentPanel"
     >
@@ -70,10 +47,10 @@
       <button mat-button class="menu-item" (click)="openDeploymentDialog()">
         <span class="menu-text">{{ selectOrSwitchButtonTitle }}</span>
       </button>
-    </mat-expansion-panel>
+    </mat-expansion-panel> -->
 
     <!-- Help -->
-    <button mat-button class="menu-item">
+    <!-- <button mat-button class="menu-item">
       <mat-icon>help</mat-icon>
       <span class="menu-text">Help</span>
     </button>
@@ -84,7 +61,7 @@
       <div class="menu-text">{{ realm_name }}</div>
       <div class="menu-text">{{ deployment_name }}</div>
     </div>
-    }
+    } -->
   </mat-sidenav>
 
   <mat-sidenav-content>

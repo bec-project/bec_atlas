@@ -171,6 +171,8 @@ class State(AccessProfile):
 class Session(MongoBaseModel, AccessProfile):
     deployment_id: str
     name: str
+    prefix: str = ""
+    description: str = ""
 
 
 SessionPartial = make_all_fields_optional(Session, "SessionPartial")

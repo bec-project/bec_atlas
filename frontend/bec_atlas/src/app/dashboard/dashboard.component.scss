@@ -7,10 +7,9 @@
 }
 
 mat-sidenav {
-  width: 250px;
+  width: 70px;
   background: var(--mat-sys-surface-container);
   border-radius: 0px;
-  padding-left: 6px;
   text-align: center;
   @include mat.elevation(3);
 }

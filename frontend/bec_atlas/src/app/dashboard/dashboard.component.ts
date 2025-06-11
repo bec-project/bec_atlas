@@ -16,6 +16,9 @@ import {
 import { DeploymentSelectionComponent } from '../deployment-selection/deployment-selection.component';
 import { RedisConnectorService } from '../core/redis-connector.service';
 import { AuthDataService } from '../core/remote-data.service';
+import { SidePanelComponent } from '../scan-table/side-panel/side-panel.component';
+import { SidepanelIconComponent } from './sidepanel-icon/sidepanel-icon.component';
+
 @Component({
   selector: 'app-dashboard',
   imports: [
@@ -27,6 +30,8 @@ import { AuthDataService } from '../core/remote-data.service';
     MatButtonModule,
     MatDialogModule,
     RouterModule,
+    SidePanelComponent,
+    SidepanelIconComponent,
   ],
   providers: [DeploymentService, RedisConnectorService],
   templateUrl: './dashboard.component.html',
@@ -50,21 +55,20 @@ export class DashboardComponent {
   ngOnInit(): void {
     // check if the user has already selected a deployment
     // if not, open the deployment selection dialog
-    this.deploymentService.selectedDeployment.subscribe((deployment) => {
-      if (deployment) {
-        console.log('Updating deployment name to: ', deployment.name);
-        this.deployment_name = deployment.name;
-        this.realm_name = deployment.realm_id;
-        this.hideExperimentPanel = false;
-        this.selectOrSwitchButtonTitle = 'Switch Deployment';
-      } else {
-        this.deployment_name = '';
-        this.realm_name = '';
-        this.hideExperimentPanel = true;
-        this.selectOrSwitchButtonTitle = 'Select Deployment';
-      }
-    });
-
+    // this.deploymentService.selectedDeployment.subscribe((deployment) => {
+    //   if (deployment) {
+    //     console.log('Updating deployment name to: ', deployment.name);
+    //     this.deployment_name = deployment.name;
+    //     this.realm_name = deployment.realm_id;
+    //     this.hideExperimentPanel = false;
+    //     this.selectOrSwitchButtonTitle = 'Switch Deployment';
+    //   } else {
+    //     this.deployment_name = '';
+    //     this.realm_name = '';
+    //     this.hideExperimentPanel = true;
+    //     this.selectOrSwitchButtonTitle = 'Select Deployment';
+    //   }
+    // });
     // this.breakpointObserver
     //   .observe([Breakpoints.Small, Breakpoints.XSmall])
     //   .subscribe((result) => {
@@ -72,26 +76,26 @@ export class DashboardComponent {
     //   });
   }
 
-  openDeploymentDialog() {
-    // open deployment dialog
-    let dialogConfig: MatDialogConfig = {
-      disableClose: true,
-      width: '80%',
-    };
-    let dialogRef = this.dialog.open(
-      DeploymentSelectionComponent,
-      dialogConfig
-    );
-    dialogRef.afterClosed().subscribe((result) => {
-      this.deploymentService.selectDeployment(result);
-    });
-  }
+  // openDeploymentDialog() {
+  //   // open deployment dialog
+  //   let dialogConfig: MatDialogConfig = {
+  //     disableClose: true,
+  //     width: '80%',
+  //   };
+  //   let dialogRef = this.dialog.open(
+  //     DeploymentSelectionComponent,
+  //     dialogConfig
+  //   );
+  //   dialogRef.afterClosed().subscribe((result) => {
+  //     this.deploymentService.selectDeployment(result);
+  //   });
+  // }
 
-  panelOpened() {
-    if (!this.deploymentService.selectedDeployment.value) {
-      this.openDeploymentDialog();
-    }
-  }
+  // panelOpened() {
+  //   if (!this.deploymentService.selectedDeployment.value) {
+  //     this.openDeploymentDialog();
+  //   }
+  // }
 
   logout() {
     this.authDataService.logout();
