@@ -2,10 +2,10 @@ import json
 from unittest import mock
 
 import pytest
+import pytest_asyncio
 from bec_lib.endpoints import MessageEndpoints
 
 from bec_atlas.router.redis_router import RedisAtlasEndpoints, RemoteAccess
-import pytest_asyncio
 
 
 @pytest.fixture
