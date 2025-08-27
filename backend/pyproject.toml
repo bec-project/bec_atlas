@@ -30,13 +30,15 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "coverage~=7.0",
-    "pytest-random-order~=1.1",
-    "pytest-timeout~=2.2",
-    "pytest~=8.0",
     "fakeredis",
     "mongomock~=4.3",
     "isort~=5.13, >=5.13.2",
     "pytest-asyncio",
+    "pytest-random-order~=1.1",
+    "pytest-timeout~=2.2",
+    "pytest-xvfb~=3.0",
+    "pytest~=8.0",
+    "pytest-cov~=6.1.1",
 ]
 
 [project.scripts]

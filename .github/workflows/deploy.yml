@@ -1,0 +1,50 @@
+name: Deployment
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      BEC_CORE_BRANCH:
+        description: 'Branch of BEC Core to install'
+        required: false
+        type: string
+      BEC_ATLAS_BRANCH:
+        description: 'Branch of BEC Atlas to install'
+        required: false
+        type: string
+      BEC_DEPLOYMENT_ENVIRONMENT:
+        description: 'Deployment environment (e.g., dev, qa or prod)'
+        required: false
+        default: 'qa'
+        type: string
+
+# default: least privileged permissions across all jobs
+permissions:
+  contents: read
+
+
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: ${{ github.workflow }}-release-${{ github.ref_name }}
+      cancel-in-progress: false
+
+    steps:
+      - name: Run deployment
+        shell: bash
+        run: |
+          echo "Deploying application to $BEC_DEPLOYMENT_ENVIRONMENT environment..."
+          curl -X 'POST' \
+          "https://gitea.psi.ch/api/v1/repos/bec/bec_atlas_ci/actions/workflows/deploy.yml/dispatches?token=${{ secrets.CI_DEPLOY_GITEA }}" \
+          -H 'accept: application/json' \
+          -H 'Content-Type: application/json' \
+          -d "{
+          \"inputs\": {
+              \"ATLAS_SERVER\": \"${{ inputs.BEC_DEPLOYMENT_ENVIRONMENT }}\"
+          },
+          \"ref\": \"refs/heads/${{ inputs.BEC_ATLAS_BRANCH || 'main' }}\"
+          }"

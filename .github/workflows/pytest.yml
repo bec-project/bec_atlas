@@ -33,17 +33,26 @@ jobs:
       QT_QPA_PLATFORM: "offscreen"
 
     steps:
-      - name: Install BEC Widgets and dependencies
+      - name: Checkout BEC Atlas
+        uses: actions/checkout@v4
+        with:
+          repository: bec-project/bec_atlas
+          ref: ${{ inputs.BEC_ATLAS_BRANCH }}
+
+      - name: Install BEC Atlas and dependencies
         uses: ./.github/actions/atlas_be_install
         with:
           BEC_ATLAS_BRANCH: ${{ inputs.BEC_ATLAS_BRANCH }}
           BEC_CORE_BRANCH: ${{ inputs.BEC_CORE_BRANCH }}
           PYTHON_VERSION: 3.11
+
       - name: Run Pytest with Coverage
         id: coverage
         run: | 
-          cd ./__ci__/bec_atlas/backend
-          pytest --random-order --cov=bec_atlas --cov-config=pyproject.toml --cov-branch --cov-report=xml --no-cov-on-fail tests/
+          cd ./__ci__/bec_atlas/
+          coverage run --source=./backend --omit=*/backend/tests/* -m pytest -v --junitxml=report.xml --random-order --full-trace ./backend/tests
+          coverage report 
+          coverage xml
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5

@@ -1,0 +1,49 @@
+name: Run FE tests with Coverage
+on: 
+  workflow_call:
+    inputs:
+      BEC_ATLAS_BRANCH:
+        description: 'Branch of BEC Atlas to install'
+        required: false
+        default: 'main'
+        type: string
+    secrets:
+      CODECOV_TOKEN:
+        required: true
+
+
+permissions:
+  pull-requests: write
+
+jobs:
+  fe_tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout BEC Atlas
+        uses: actions/checkout@v4
+        with:
+          repository: bec-project/bec_atlas
+          ref: ${{ inputs.BEC_ATLAS_BRANCH }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '22'
+      - name: Install Node.js dependencies
+        run: |
+          cd ./frontend/bec_atlas
+          npm install
+
+      - name: Run Tests with Coverage
+        id: coverage
+        run: | 
+          cd ./frontend/bec_atlas
+          npx ng test --no-watch --no-progress --browsers=ChromeHeadlessCI --code-coverage
+
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: bec-project/bec_atlas
