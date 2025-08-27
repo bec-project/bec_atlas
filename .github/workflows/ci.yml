@@ -22,11 +22,21 @@ jobs:
     uses: ./.github/workflows/formatter.yml
 
 
-#   unit-test-backend:
-#     needs: [check_pr_status, formatter]
-#     if: needs.check_pr_status.outputs.branch-pr == ''
-#     uses: ./.github/workflows/pytest.yml
-#     with:
-#       BEC_CORE_BRANCH: ${{ inputs.BEC_CORE_BRANCH || 'main' }}
-#     secrets:
-#       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+  unit-test-backend:
+    needs: [check_pr_status, formatter]
+    if: needs.check_pr_status.outputs.branch-pr == ''
+    uses: ./.github/workflows/pytest.yml
+    with:
+      BEC_CORE_BRANCH: ${{ inputs.BEC_CORE_BRANCH || 'main' }}
+      BEC_ATLAS_BRANCH: ${{ inputs.BEC_ATLAS_BRANCH || github.head_ref || github.sha }}
+    secrets:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+  unit-test-frontend:
+    needs: [check_pr_status, formatter]
+    if: needs.check_pr_status.outputs.branch-pr == ''
+    uses: ./.github/workflows/fe_unit_test.yml
+    with:
+      BEC_ATLAS_BRANCH: ${{ inputs.BEC_ATLAS_BRANCH || github.head_ref || github.sha }}
+    secrets:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}

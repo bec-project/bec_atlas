@@ -23,6 +23,7 @@ runs:
         python-version: ${{ inputs.PYTHON_VERSION }}
 
     - name: Prepare
+      shell: bash
       run: |
         mkdir -p ./__ci__
 
@@ -40,14 +41,8 @@ runs:
         ref: ${{ inputs.BEC_CORE_BRANCH }}
         path: ./__ci__/bec
 
-    - name: Install OS dependencies
-      shell: bash
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y libgl1 libegl1 x11-utils libxkbcommon-x11-0 libdbus-1-3 xvfb
-        sudo apt-get -y install libnss3 libxdamage1 libasound2t64 libatomic1 libxcursor1
-
     - name: Install Python dependencies
+      shell: bash
       run: |
         pip install uv 
         uv pip install --system ./__ci__/bec/bec_lib[dev]
