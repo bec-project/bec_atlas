@@ -1,0 +1,54 @@
+name: "BEC Atlas Install"
+description: "Install BEC Atlas and related os dependencies"
+inputs:
+  BEC_ATLAS_BRANCH:
+    required: false
+    default: "main"
+    description: "Branch of BEC Atlas to install"
+  BEC_CORE_BRANCH: # id of input
+    required: false
+    default: "main"
+    description: "Branch of BEC Core to install"
+  PYTHON_VERSION: # id of input
+    required: false
+    default: "3.11"
+    description: "Python version to use"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.PYTHON_VERSION }}
+
+    - name: Prepare
+      run: |
+        mkdir -p ./__ci__
+
+    - name: Checkout BEC Atlas
+      uses: actions/checkout@v4
+      with:
+        repository: bec-project/bec_atlas
+        ref: ${{ inputs.BEC_ATLAS_BRANCH }}
+        path: ./__ci__/bec_atlas
+
+    - name: Checkout BEC Core
+      uses: actions/checkout@v4
+      with:
+        repository: bec-project/bec
+        ref: ${{ inputs.BEC_CORE_BRANCH }}
+        path: ./__ci__/bec
+
+    - name: Install OS dependencies
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libgl1 libegl1 x11-utils libxkbcommon-x11-0 libdbus-1-3 xvfb
+        sudo apt-get -y install libnss3 libxdamage1 libasound2t64 libatomic1 libxcursor1
+
+    - name: Install Python dependencies
+      run: |
+        pip install uv 
+        uv pip install --system ./__ci__/bec/bec_lib[dev]
+        uv pip install --system ./__ci__/bec_atlas/backend[dev]

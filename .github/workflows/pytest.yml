@@ -1,0 +1,52 @@
+name: Run Pytest with Coverage
+on: 
+  workflow_call:
+    inputs:
+      pr_number:
+        description: 'Pull request number'
+        required: false
+        type: number
+      BEC_CORE_BRANCH:
+        description: 'Branch of BEC Core to install'
+        required: false
+        default: 'main'
+        type: string
+      BEC_ATLAS_BRANCH:
+        description: 'Branch of BEC Atlas to install'
+        required: false
+        default: 'main'
+        type: string
+    secrets:
+      CODECOV_TOKEN:
+        required: true
+
+
+permissions:
+  pull-requests: write
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+
+    env:
+      QTWEBENGINE_DISABLE_SANDBOX: 1
+      QT_QPA_PLATFORM: "offscreen"
+
+    steps:
+      - name: Install BEC Widgets and dependencies
+        uses: ./.github/actions/atlas_be_install
+        with:
+          BEC_ATLAS_BRANCH: ${{ inputs.BEC_ATLAS_BRANCH }}
+          BEC_CORE_BRANCH: ${{ inputs.BEC_CORE_BRANCH }}
+          PYTHON_VERSION: 3.11
+      - name: Run Pytest with Coverage
+        id: coverage
+        run: | 
+          cd ./__ci__/bec_atlas/backend
+          pytest --random-order --cov=bec_atlas --cov-config=pyproject.toml --cov-branch --cov-report=xml --no-cov-on-fail tests/
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: bec-project/bec_atlas
