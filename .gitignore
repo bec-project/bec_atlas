@@ -6,6 +6,8 @@
 **/out
 **/.pytest_cache
 **/*.egg*
+*.env
+
 
 # recovery_config files
 recovery_config_*

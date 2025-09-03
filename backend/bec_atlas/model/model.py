@@ -1,13 +1,65 @@
 from __future__ import annotations
 
-from types import UnionType
-from typing import Any, Literal, Optional, Type, TypeVar, Union
+from typing import Any, Literal, Type, TypeVar
 
 from bec_lib import messages
 from bson import ObjectId
-from pydantic import BaseModel, ConfigDict, Field, create_model, field_serializer
+from pydantic import BaseModel, ConfigDict, Field, create_model, field_serializer, field_validator
 
 T = TypeVar("T")
+
+
+XNAME_MAPPING = {
+    "x01da": ("Debye",),
+    "x02da": ("S-TOMCAT", "TOMCAT"),
+    "x02sa": ("I-TOMCAT",),
+    "x03da": ("PEARL",),
+    "x03ma": ("ADRESS", "ADRESS-RIXS", "ADRESS-SX-ARPES"),
+    "x04db": ("VUV",),
+    "x04sa": ("ADDAMS", "MS-Powder", "MS-Surf-Diffr"),
+    "x05la": ("microXAS", "Micro-XAS-FEMTO", "Micro-XAS"),
+    "x06da": ("PXIII",),
+    "x06sa": ("PXI",),
+    "x07da": ("PolLux", "NanoXAS"),
+    "x07db": ("ISS", "In Situ Spectroscopy"),
+    "x07ma": ("X-Treme", "XTreme"),
+    "x07mb": ("Phoenix",),
+    "x09la": ("SIS", "SIS-ULTRA", "SIS-Cophee"),
+    "x09lb": ("XIL", "XIL-II"),
+    "x10da": ("SuperXAS", "Super-XAS"),
+    "x10sa": ("PXII",),
+    "x11ma": ("SIM",),
+    "x12sa": ("cSAXS",),
+}
+
+ALIAS_TO_CANONICAL = {}
+for xname, aliases in XNAME_MAPPING.items():
+    canonical = aliases[0]
+    # map all aliases
+    for alias in aliases:
+        ALIAS_TO_CANONICAL[alias.lower()] = canonical
+    # map xname itself
+    ALIAS_TO_CANONICAL[xname.lower()] = canonical
+
+_available_xnames = set()
+
+
+def is_valid_beamline_name(name: str) -> bool:
+    """Check if the given name is a valid beamline name."""
+    return name.lower() in ALIAS_TO_CANONICAL
+
+
+def xname_to_canonical(name: str) -> str | None:
+    """Convert a beamline name to its canonical form."""
+    return ALIAS_TO_CANONICAL.get(name.lower())
+
+
+def name_to_xname(name: str) -> str | None:
+    """Convert a canonical beamline name to its xname form."""
+    for xname, names in XNAME_MAPPING.items():
+        if name in names:
+            return xname
+    return None
 
 
 def make_all_fields_optional(model: Type[T], model_name: str) -> Type[T]:
@@ -136,15 +188,41 @@ class Realm(MongoBaseModel, AccessProfile):
     realm_id: str
     deployments: list[Deployments | DeploymentsPartial] = []
     name: str
+    xname: str | None = None
+    managers: list[str] = []
 
 
-class Experiments(AccessProfile):
+class Experiment(MongoBaseModel, AccessProfile):
     realm_id: str
-    pgroup: str
     proposal: str
-    text: str
+    title: str
+    firstname: str
+    lastname: str
+    email: str
+    account: str
+    pi_firstname: str
+    pi_lastname: str
+    pi_email: str
+    pi_account: str
+    eaccount: str
+    pgroup: str
+    abstract: str
+    schedule: list[dict] | None = None
+    proposal_submitted: str | None = None
+    proposal_expire: str | None = None
+    proposal_status: str | None = None
+    delta_last_schedule: int | None = None
+    mainproposal: str | None = None
 
     model_config = ConfigDict(populate_by_name=True, arbitrary_types_allowed=True)
+
+    @field_validator("realm_id", mode="before")
+    @classmethod
+    def normalize_beamline(cls, v: str) -> str:
+        if not isinstance(v, str):
+            return v
+        key = v.lower()
+        return ALIAS_TO_CANONICAL.get(key, v)
 
 
 class StateCondition(AccessProfile):
