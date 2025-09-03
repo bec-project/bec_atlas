@@ -1,67 +1,195 @@
+# This file defines the deployments for various beamlines at PSI.
+# The structure is as follows:
+#
+# Realm:
+#   xname: <xname> # Optional: xname if available e.g. X12SA
+#   managers: # defining the manager groups
+#     - <access_group>
+#   deployments:
+#     bec-vm-host-00x.psi.ch:
+#       name: <name>
+#       description: <description>
+#       deployment_access: # defining permissions to change the DeploymentAccess and thus the ACLs
+#         - <access_group>
+#       experiment_access: # defining additional groups to retrieve the Experiment info
+#         - <access_group>
 
 ADDAMS:
+  xname: x04sa
+  managers:
+    - unx-sls_x04sa_bs
+  deployments:
     x04sa-bec-001.psi.ch:
-        name: production
-        description: Primary deployment for ADDAMS
+      name: production
+      description: Primary deployment for ADDAMS
+      deployment_access:
+        - unx-sls_x04sa_bs
+      experiment_access:
+        - unx-sls_x04sa_bs
 cSAXS:
+  xname: x12sa
+  managers:
+    - unx-sls_x12sa_bs
+  deployments:
     x12sa-bec-001.psi.ch:
-        name: production
-        description: Primary deployment for cSAXS
+      name: production
+      description: Primary deployment for cSAXS
+      deployment_access:
+        - unx-sls_x12sa_bs
+      experiment_access:
+        - unx-sls_x12sa_bs
     x12sa-bec-002.psi.ch:
-        name: test
-        description: Test environment for cSAXS
+      name: test
+      description: Test environment for cSAXS
+      deployment_access:
+        - unx-sls_x12sa_bs
+      experiment_access:
+        - unx-sls_x12sa_bs
 Debye:
+  xname: x01da
+  managers:
+    - unx-sls_x01da_bs
+  deployments:
     x01da-bec-001.psi.ch:
-        name: production
-        description: Primary deployment for Debye
-MicroXAS:
+      name: production
+      description: Primary deployment for Debye
+      deployment_access:
+        - unx-sls_x01da_bs
+      experiment_access:
+        - unx-sls_x01da_bs
+microXAS:
+  xname: x05la
+  managers:
+    - unx-sls_x05la_bs
+  deployments:
     x05la-bec-001.psi.ch:
-        name: production
-        description: Primary deployment for MicroXAS
+      name: production
+      description: Primary deployment for MicroXAS
+      deployment_access:
+        - unx-sls_x05la_bs
+      experiment_access:
+        - unx-sls_x05la_bs
     x05la-bec-002.psi.ch:
-        name: test
-        description: Test environment for MicroXAS
+      name: test
+      description: Test environment for MicroXAS
+      deployment_access:
+        - unx-sls_x05la_bs
+      experiment_access:
+        - unx-sls_x05la_bs
 Phoenix:
+  xname: x07mb
+  managers:
+    - unx-sls_x07mb_bs
+  deployments:
     x07mb-bec-001.psi.ch:
-        name: production
-        description: Primary deployment for Phoenix
+      name: production
+      description: Primary deployment for Phoenix
+      deployment_access:
+        - unx-sls_x07mb_bs
+      experiment_access:
+        - unx-sls_x07mb_bs
 PolLux:
+  xname: x07da
+  managers:
+    - unx-sls_x07da_bs
+  deployments:
     x07da-bec-001.psi.ch:
-        name: production
-        description: Primary deployment for PolLux
+      name: production
+      description: Primary deployment for PolLux
+      deployment_access:
+        - unx-sls_x07da_bs
+      experiment_access:
+        - unx-sls_x07da_bs
 PXI:
+  xname: x06sa
+  managers:
+    - unx-sls_x06sa_bs
+  deployments:
     x06sa-bec-001.psi.ch:
-        name: production
-        description: Primary deployment for PXI
+      name: production
+      description: Primary deployment for PXI
+      deployment_access:
+        - unx-sls_x06sa_bs
+      experiment_access:
+        - unx-sls_x06sa_bs
 PXII:
+  xname: x10sa
+  managers:
+    - unx-sls_x10sa_bs
+  deployments:
     x10sa-bec-001.psi.ch:
-        name: production
-        description: Primary deployment for PXII
+      name: production
+      description: Primary deployment for PXII
+      deployment_access:
+        - unx-sls_x10sa_bs
+      experiment_access:
+        - unx-sls_x10sa_bs
 PXIII:
+  xname: x06da
+  managers:
+    - unx-sls_x06da_bs
+  deployments:
     x06da-bec-001.psi.ch:
-        name: production
-        description: Primary deployment for PXIII
+      name: production
+      description: Primary deployment for PXIII
+
+      deployment_access:
+        - unx-sls_x06da_bs
+      experiment_access:
+        - unx-sls_x06da_bs
 SIM:
+  xname: x11ma
+  managers:
+    - unx-sls_x11ma_bs
+  deployments:
     x11ma-bec-001.psi.ch:
-        name: production
-        description: Primary deployment for SIM
+      name: production
+      description: Primary deployment for SIM
+      deployment_access:
+        - unx-sls_x11ma_bs
+      experiment_access:
+        - unx-sls_x11ma_bs
 SuperXAS:
-    x10da-bec-001.psi.ch: 
-        name: production
-        description: Primary deployment for SuperXAS
-I-TOMCAT:
+  xname: x10da
+  managers:
+    - unx-sls_x10da_bs
+  deployments:
+    x10da-bec-001.psi.ch:
+      name: production
+      description: Primary deployment for SuperXAS
+      deployment_access:
+        - unx-sls_x10da_bs
+      experiment_access:
+        - unx-sls_x10da_bs
+S-TOMCAT:
+  xname: x02da
+  managers:
+    - unx-sls_x02da_bs
+  deployments:
     x02da-bec-001.psi.ch:
-        name: production
-        description: Primary deployment for I-TOMCAT
+      name: production
+      description: Primary deployment for S-TOMCAT
+      deployment_access:
+        - unx-sls_x02da_bs
+      experiment_access:
+        - unx-sls_x02da_bs
     x02da-bec-002.psi.ch:
-        name: test
-        description: Test environment for I-TOMCAT
+      name: test
+      description: Test environment for S-TOMCAT
+      deployment_access:
+        - unx-sls_x02da_bs
+      experiment_access:
+        - unx-sls_x02da_bs
 X-Treme:
+  xname: x07ma
+  managers:
+    - unx-sls_x07ma_bs
+  deployments:
     x07ma-bec-001.psi.ch:
-        name: production
-        description: Primary deployment for X-Treme
-
-
-
-
-
+      name: production
+      description: Primary deployment for X-Treme
+      xname: x07ma
+      deployment_access:
+        - unx-sls_x07ma_bs
+      experiment_access:
+        - unx-sls_x07ma_bs
