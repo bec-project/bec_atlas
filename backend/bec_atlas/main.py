@@ -7,6 +7,7 @@ from bec_atlas.router.bec_access_router import BECAccessRouter
 from bec_atlas.router.deployment_access_router import DeploymentAccessRouter
 from bec_atlas.router.deployment_credentials import DeploymentCredentialsRouter
 from bec_atlas.router.deployments_router import DeploymentsRouter
+from bec_atlas.router.health_router import HealthRouter
 from bec_atlas.router.realm_router import RealmRouter
 from bec_atlas.router.redis_router import RedisRouter, RedisWebsocket
 from bec_atlas.router.scan_router import ScanRouter
@@ -60,6 +61,10 @@ class AtlasApp:
         # pylint: disable=attribute-defined-outside-init
         if not self.datasources.redis or not self.datasources.mongodb:
             raise ValueError("Datasources not loaded")
+
+        # Health
+        self.health_router = HealthRouter(prefix=self.prefix, datasources=self.datasources)
+        self.app.include_router(self.health_router.router, tags=["Health"])
 
         # User
         self.user_router = UserRouter(prefix=self.prefix, datasources=self.datasources)
