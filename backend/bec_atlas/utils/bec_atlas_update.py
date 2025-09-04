@@ -1,6 +1,7 @@
 import os
 
 import typer
+import yaml
 
 from bec_atlas.ingestor.deployment_ingestor import DeploymentIngestor
 from bec_atlas.ingestor.proposal_ingestor import ProposalIngestor
@@ -18,7 +19,7 @@ def update_deployments(file_path: str):
         raise typer.Exit(code=1)
 
     with open(file_path, "r") as f:
-        data = f.read()
+        data = yaml.safe_load(f)
         # Process the YAML data
         typer.echo(f"Updating deployments with data from {file_path}")
     DeploymentIngestor({"host": "localhost", "port": 27017}).load(data)
