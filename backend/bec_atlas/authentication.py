@@ -1,12 +1,12 @@
-from __future__ import annotations
-
 import os
 from datetime import datetime, timedelta
 from functools import lru_cache, wraps
+from typing import Optional
 
 import jwt
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
+from fastapi.security.utils import get_authorization_scheme_param
 from jwt.exceptions import InvalidTokenError
 from pwdlib import PasswordHash
 
@@ -17,6 +17,27 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/user/login/form")
 password_hash = PasswordHash.recommended()
+
+
+class OptionalOAuth2PasswordBearer(OAuth2PasswordBearer):
+    """
+    OAuth2PasswordBearer that returns None instead of raising HTTPException
+    when no Authorization header is present.
+    """
+
+    async def __call__(self, request: Request) -> Optional[str]:
+        authorization = request.headers.get("Authorization")
+        if not authorization:
+            return None
+
+        scheme, param = get_authorization_scheme_param(authorization)
+        if not authorization or scheme.lower() != "bearer":
+            return None
+
+        return param
+
+
+optional_oauth2_scheme = OptionalOAuth2PasswordBearer(tokenUrl="/api/v1/user/login/form")
 
 
 def convert_to_user(func):
@@ -82,13 +103,31 @@ def decode_token(token: str):
         raise credentials_exception from exc
 
 
-async def get_current_user_token(token: str = Depends(oauth2_scheme)) -> UserInfo:
-    return get_current_user_sync(token)
+async def get_current_user(
+    request: Request, token: Optional[str] = Depends(optional_oauth2_scheme)
+) -> UserInfo:
+    """
+    Unified authentication method that supports both token and cookie-based authentication.
+    Tries to extract token from Authorization header first, then falls back to cookies.
+    """
+    auth_token = None
 
+    # First try to get token from OAuth2 scheme (Authorization header)
+    if token:
+        auth_token = token
 
-async def get_current_user(request: Request) -> UserInfo:
-    token = request.cookies.get("access_token")
-    return get_current_user_sync(token)
+    # If no token from Authorization header, try cookies
+    if not auth_token:
+        auth_token = request.cookies.get("access_token")
+
+    if not auth_token:
+        raise HTTPException(
+            status_code=401,
+            detail="Could not validate credentials - no token found",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    return get_current_user_sync(auth_token)
 
 
 def get_current_user_sync(token: str) -> UserInfo:

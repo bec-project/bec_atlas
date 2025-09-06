@@ -9,7 +9,6 @@ from bec_atlas.authentication import (
     convert_to_user,
     create_access_token,
     get_current_user,
-    get_current_user_token,
     verify_password,
 )
 from bec_atlas.datasources.mongodb.mongodb import MongoDBDatasource
@@ -46,7 +45,7 @@ class UserRouter(BaseRouter):
     async def user_me(self, user: User = Depends(get_current_user)):
         return user
 
-    async def test_login(self, user: UserInfo = Depends(get_current_user_token)):
+    async def test_login(self, user: UserInfo = Depends(get_current_user)):
         return user
 
     async def form_login(
