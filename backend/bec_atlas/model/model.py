@@ -261,23 +261,40 @@ class Session(MongoBaseModel, AccessProfile):
 SessionPartial = make_all_fields_optional(Session, "SessionPartial")
 
 
-class Datasets(MongoBaseModel, AccessProfile):
+class Dataset(MongoBaseModel, AccessProfile):
     realm_id: str
-    dataset_id: str
     name: str
     description: str
+    user_data: DatasetUserData | None = None
+    scans: list[ScanStatus] = []
 
     model_config = ConfigDict(populate_by_name=True, arbitrary_types_allowed=True)
 
 
-class DatasetUserData(MongoBaseModel, AccessProfile):
+class DatasetUserData(AccessProfile):
+    """
+    DatasetUserData is an extension to the Dataset model and is access controlled through
+    the dataset's user permissions. It cannot be queried independently of the dataset.
+
+    It is designed to encapsulate all user-specific data related to a dataset, such as
+    user ratings and comments.
+    """
+
     dataset_id: str
     name: str
 
     model_config = ConfigDict(populate_by_name=True, arbitrary_types_allowed=True)
 
 
-class ScanUserData(MongoBaseModel, BaseModel):
+class ScanUserData(BaseModel):
+    """
+    ScanUserData is an extension to the Scan model and is access controlled through
+    the scan's user permissions. It cannot be queried independently of the scan.
+
+    It is designed to encapsulate all user-specific data related to a scan, such as
+    user ratings and comments.
+    """
+
     name: str | None = None
     user_rating: int | None = None
     system_rating: int | None = None
