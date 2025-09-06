@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import os
 import threading
 from functools import lru_cache
@@ -11,7 +10,6 @@ from bec_lib.redis_connector import RedisConnector
 from bec_lib.serialization import MsgpackSerialization
 
 # from redis import Redis
-from bson import ObjectId
 from redis.exceptions import ResponseError
 
 from bec_atlas.datasources.mongodb.mongodb import MongoDBDatasource
