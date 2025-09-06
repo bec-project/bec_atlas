@@ -70,7 +70,10 @@ class DemoSetupLoader:
             }
             self.db["deployment_access"].insert_one(deployment_access)
 
-        if self.db["sessions"].find_one({"name": "_default_"}) is None:
+        if (
+            self.db["sessions"].find_one({"name": "_default_", "deployment_id": deployment["_id"]})
+            is None
+        ):
             deployment = self.db["deployments"].find_one({"name": deployment["name"]})
             default_session = Session(
                 owner_groups=["admin", "demo"],
