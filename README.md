@@ -1,21 +1,65 @@
 # BEC Atlas
 
+BEC Atlas is a web-based management system for BEC (Beamline Experiment Control) deployments at scientific facilities. It provides centralized access control, deployment management, and real-time monitoring capabilities for beamline experiments.
+
+## Features
+
+- **Deployment Management**: Create and manage BEC deployments across multiple beamlines
+- **Access Control**: Role-based access control with user, group, and admin permissions
+- **Real-time Monitoring**: Live monitoring and control of beamline experiments
+- **Authentication**: JWT-based authentication with LDAP integration
+- **REST API**: Comprehensive API for programmatic access and integration
+
 ## Prerequisites
-* Install redis
-* Install docker
-* Python environment >= 3.10
-* tmux
-* nginx (optional)
 
-## Installation
-* `pip install -e './backend[dev]'`
-* `docker run --name scylla -p 9042:9042 -p 9160:9160 -p 9180:9180 -d scylladb/scylla`
-* Optional: `nginx -c $(pwd)/utils/nginx.conf`
-* `bec-atlas start` to start the backend. This will start two instances of the fastapi server plus the redis server.
+- Python >= 3.10
+- Redis server
+- MongoDB
+- Docker
+- tmux
+- nginx (optional, for load balancing)
 
-Once the backend is running, you can access the API at `http://localhost/docs` through your browser. 
+## Quick Start
 
-```{note}
-The fastapi server will be running on port 8000 and 8001. The redis server will be running on port 6379. However, nginx will expose it directly to port 80. Therefore, you can access the API at `http://localhost/docs` through your browser. If you want to access the API directly, you can use `http://localhost:8000/docs` or `http://localhost:8001/docs`.
-```
+1. **Install the package:**
+   ```bash
+   pip install -e './backend[dev]'
+   ```
+
+2. **Start required services:**
+   ```bash
+   # Start MongoDB (if using Docker)
+   docker run --name mongodb -p 27017:27017 -d mongo:latest
+   
+   # Optional: Start nginx for load balancing
+   nginx -c $(pwd)/utils/nginx.conf
+   ```
+
+3. **Start BEC Atlas:**
+   ```bash
+   bec-atlas start
+   ```
+   This will start two instances of the FastAPI server plus the Redis server.
+
+4. **Access the application:**
+   - Web interface: `http://localhost:4200`
+   - API documentation: `http://localhost/docs`
+   - Direct API access: `http://localhost:8000/docs` or `http://localhost:8001/docs`
+
+## Commands
+
+- `bec-atlas start` - Start all services in tmux session
+- `bec-atlas stop` - Stop all services
+- `bec-atlas restart` - Restart all services  
+- `bec-atlas attach` - Attach to running tmux session
+- `bec-atlas-get-key` - Retrieve deployment environment files
+
+## Development
+
+The application consists of:
+- **Backend**: FastAPI application with MongoDB and Redis
+- **Frontend**: Angular web application
+- **Services**: Two FastAPI instances (ports 8000/8001) with Redis (port 6379)
+
+For development setup, see the individual README files in `backend/` and `frontend/` directories.
 
