@@ -25,6 +25,7 @@ dependencies = [
     "pymongo",
     "ldap3",
     "typer",
+    "requests",
 ]
 
 
@@ -47,6 +48,7 @@ bec-atlas-fastapi = "bec_atlas.main:main"
 bec-atlas = "bec_atlas.utils.launch:main"
 bec-atlas-ingestor = "bec_atlas.ingestor:main"
 bec-atlas-update = "bec_atlas.utils.bec_atlas_update:app"
+bec-atlas-get-key = "bec_atlas.utils.bec_atlas_get_key:app"
 
 [project.urls]
 "Bug Tracker" = "https://gitlab.psi.ch/bec/bec_atlas/issues"
