@@ -247,14 +247,21 @@ class State(AccessProfile):
 
 
 class Session(MongoBaseModel, AccessProfile):
+    """
+    A session represents a logical unit of work within a deployment. Most commonly,
+    there is only a single session per Experiment.
+    """
+
     deployment_id: str
     name: str
+    experiment_id: str | None = None
+    device_config_collections: list[DeviceConfigCollection] = []
 
 
 SessionPartial = make_all_fields_optional(Session, "SessionPartial")
 
 
-class Datasets(AccessProfile):
+class Datasets(MongoBaseModel, AccessProfile):
     realm_id: str
     dataset_id: str
     name: str
@@ -263,14 +270,14 @@ class Datasets(AccessProfile):
     model_config = ConfigDict(populate_by_name=True, arbitrary_types_allowed=True)
 
 
-class DatasetUserData(AccessProfile):
+class DatasetUserData(MongoBaseModel, AccessProfile):
     dataset_id: str
     name: str
 
     model_config = ConfigDict(populate_by_name=True, arbitrary_types_allowed=True)
 
 
-class ScanUserData(BaseModel):
+class ScanUserData(MongoBaseModel, BaseModel):
     name: str | None = None
     user_rating: int | None = None
     system_rating: int | None = None
@@ -279,13 +286,30 @@ class ScanUserData(BaseModel):
     preview: str | None = None
 
 
-class DeviceConfig(AccessProfile):
+class DeviceConfig(MongoBaseModel, AccessProfile):
     device_name: str
     readout_priority: Literal["monitored", "baseline", "on_request", "async", "continuous"]
     device_config: dict
     device_class: str
+    device_hash: str
     tags: list[str] = []
     software_trigger: bool
+
+
+class DeviceHash(MongoBaseModel, AccessProfile):
+    realm_id: str
+    name: str
+    description: str = ""
+    hash_config: dict
+    device_tags: list[str] = []
+    variant_tags: list[str] = []
+    latest_config: str | None = None
+    reference_config: str | None = None
+
+
+class DeviceConfigCollection(MongoBaseModel, AccessProfile):
+    session_id: str
+    configs: list[str] = []
 
 
 class SignalData(AccessProfile, MongoBaseModel):
