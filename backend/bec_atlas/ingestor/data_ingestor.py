@@ -8,8 +8,6 @@ from bec_lib import messages
 from bec_lib.logger import bec_logger
 from bec_lib.redis_connector import RedisConnector
 from bec_lib.serialization import MsgpackSerialization
-
-# from redis import Redis
 from redis.exceptions import ResponseError
 
 from bec_atlas.datasources.mongodb.mongodb import MongoDBDatasource
@@ -171,15 +169,18 @@ class DataIngestor:
 
         Args:
             msg_dict (dict): The message dictionary.
-            parent (DataIngestor): The parent object.
+            deployment_id (str): The deployment id
 
         """
-        data = msg_dict.get("data")
-        if data is None:
-            return
-
-        if isinstance(data, messages.ScanStatusMessage):
-            self.update_scan_status(data, deployment_id)
+        for key, val in msg_dict.items():
+            match key:
+                case "scan_status":
+                    if not isinstance(val, messages.ScanStatusMessage):
+                        logger.error("Invalid scan_status message format.")
+                        continue
+                    self.update_scan_status(val, deployment_id)
+                case _:
+                    logger.warning(f"Unknown message type: {key}")
 
     @lru_cache()
     def get_default_session_id(self, deployment_id: str):
