@@ -13,7 +13,7 @@ from bec_lib.serialization import MsgpackSerialization
 from redis.exceptions import ResponseError
 
 from bec_atlas.datasources.mongodb.mongodb import MongoDBDatasource
-from bec_atlas.model.model import ScanStatus
+from bec_atlas.model.model import ScanStatus, Session
 
 logger = bec_logger.logger
 
@@ -182,7 +182,7 @@ class DataIngestor:
             self.update_scan_status(data, deployment_id)
 
     @lru_cache()
-    def get_default_session_id(self, deployment_id: str):
+    def get_default_session(self, deployment_id: str):
         """
         Get the session id for a deployment.
 
@@ -196,9 +196,7 @@ class DataIngestor:
         out = self.datasource.db["sessions"].find_one(
             {"name": "_default_", "deployment_id": deployment_id}
         )
-        if out is None:
-            return None
-        return out["_id"]
+        return out
 
     def update_scan_status(self, msg: messages.ScanStatusMessage, deployment_id: str):
         """
@@ -209,32 +207,31 @@ class DataIngestor:
             deployment_id (str): The deployment id
 
         """
-        if not hasattr(msg, "session_id"):
-            # TODO for compatibility with the old message format; remove once the bec_lib is updated
-            session_id = msg.info.get("session_id")
-        else:
-            session_id = msg.session_id
+        session_id = msg.session_id
         if not session_id:
             session_id = "_default_"
 
         if session_id == "_default_":
-            session_id = self.get_default_session_id(deployment_id)
-            if session_id is None:
-                logger.error("Default session not found.")
-                return
+            session = self.get_default_session(deployment_id)
+        else:
+            session = self.datasource.db["sessions"].find_one({"_id": session_id})
+
+        if session is None:
+            logger.error(f"Session {session_id} not found.")
+            return
+
+        session = Session(**session)
 
         # scans are indexed by the scan_id, hence we can use find_one and search by the ObjectId
         data = self.datasource.db["scans"].find_one({"_id": msg.scan_id})
         if data is None:
             msg_conv = ScanStatus(
-                owner_groups=["admin"], access_groups=["admin"], **msg.model_dump()
+                owner_groups=["admin"], access_groups=session.access_groups, **msg.model_dump()
             )
+            msg_conv.session_id = str(session.id)
 
             out = msg_conv.model_dump(exclude_none=True)
             out["_id"] = msg.scan_id
-
-            # TODO for compatibility with the old message format; remove once the bec_lib is updated
-            out["session_id"] = str(session_id)
 
             self.datasource.db["scans"].insert_one(out)
         else:
