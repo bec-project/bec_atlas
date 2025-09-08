@@ -53,11 +53,15 @@ class DeploymentIngestor:
                 )
 
                 # Check if the deployment already exists in the database and insert if not
-                existing_deployment = self.db["deployments"].find_one({"name": deployment.name})
+                existing_deployment = self.db["deployments"].find_one(
+                    {"name": deployment.name, "realm_id": deployment.realm_id}
+                )
                 if existing_deployment is None:
                     print(f"Inserting deployment: {deployment.name}")
                     self.db["deployments"].insert_one(deployment.__dict__)
-                    existing_deployment = self.db["deployments"].find_one({"name": deployment.name})
+                    existing_deployment = self.db["deployments"].find_one(
+                        {"name": deployment.name, "realm_id": deployment.realm_id}
+                    )
                 else:
                     # Update the access groups if necessary
                     if existing_deployment["access_groups"] != deployment.access_groups:
@@ -141,9 +145,12 @@ class DeploymentIngestor:
 
 
 if __name__ == "__main__":
+    import glob
 
-    default_path = os.path.abspath(os.path.dirname(os.path.dirname(os.path.dirname((__file__)))))
+    default_path = os.path.abspath(os.path.dirname(os.path.dirname((__file__))))
     loader = DeploymentIngestor({"host": "localhost", "port": 27017})
-    with open(os.path.join(default_path, "utils/sls_deployments.yaml"), "r") as file:
-        data = yaml.safe_load(file)
-    loader.load(data)
+    realm_files = glob.glob(os.path.join(default_path, "deployment/realms/*.yaml"))
+    for realm_file in realm_files:
+        with open(realm_file, "r") as file:
+            data = yaml.safe_load(file)
+        loader.load(data)
