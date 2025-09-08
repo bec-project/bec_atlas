@@ -15,9 +15,9 @@ on:
         required: false
         type: string
       BEC_DEPLOYMENT_ENVIRONMENT:
-        description: 'Deployment environment (e.g., dev, qa or prod)'
+        description: 'Deployment environment (e.g., bec-atlas-dev.psi.ch)'
         required: false
-        default: 'qa'
+        default: 'bec-atlas-qa.psi.ch'
         type: string
 
 # default: least privileged permissions across all jobs
@@ -38,18 +38,19 @@ jobs:
         shell: bash
         run: |
           # Use inputs if available (workflow_dispatch), otherwise use defaults for push
-          DEPLOYMENT_ENV="${{ inputs.BEC_DEPLOYMENT_ENVIRONMENT || 'qa' }}"
+          DEPLOYMENT_ENV="${{ inputs.BEC_DEPLOYMENT_ENVIRONMENT || 'bec-atlas-qa.psi.ch' }}"
           ATLAS_BRANCH="${{ inputs.BEC_ATLAS_BRANCH || 'main' }}"
           
           echo "Deploying application to ${DEPLOYMENT_ENV} environment..."
           curl -X 'POST' \
-          "https://gitea.psi.ch/api/v1/repos/bec/bec_atlas_ci/actions/workflows/deploy.yml/dispatches?token=${{ secrets.CI_DEPLOY_GITEA }}" \
+          "https://gitea.psi.ch/api/v1/repos/bec/ansible_bec/actions/workflows/deploy_bec_atlas.yml/dispatches?token=${{ secrets.CI_DEPLOY_GITEA }}" \
           -H 'accept: application/json' \
           -H 'Content-Type: application/json' \
           -d "{
           \"inputs\": {
               \"ATLAS_SERVER\": \"${DEPLOYMENT_ENV}\",
-              \"BEC_ATLAS_BRANCH\": \"${ATLAS_BRANCH}\"
+              \"BEC_ATLAS_BRANCH\": \"${ATLAS_BRANCH}\",
+              \"BEC_CORE_BRANCH\": \"${CORE_BRANCH}\"
           },
           \"ref\": \"refs/heads/main\"
           }"
