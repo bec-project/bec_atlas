@@ -1,3 +1,4 @@
+import glob
 import os
 
 import typer
@@ -10,19 +11,29 @@ app = typer.Typer(add_completion=False)
 
 
 @app.command("deployments")
-def update_deployments(file_path: str):
+def update_deployments(file_path: str = typer.Argument(None, help="Path to the YAML file")):
     """
     Update the available realms and deployments using the provided YAML file.
+    If no path is specified, the deployment realms are used (deployment/realms/*.yaml)
     """
-    if not os.path.exists(file_path):
-        typer.echo(f"File not found: {file_path}")
-        raise typer.Exit(code=1)
+    if file_path is not None:
+        if not os.path.exists(file_path):
+            typer.echo(f"File not found: {file_path}")
+            raise typer.Exit(code=1)
+        files = [file_path]
 
-    with open(file_path, "r") as f:
-        data = yaml.safe_load(f)
-        # Process the YAML data
-        typer.echo(f"Updating deployments with data from {file_path}")
-    DeploymentIngestor({"host": "localhost", "port": 27017}).load(data)
+    else:
+        base_path = os.path.abspath(os.path.dirname(os.path.dirname((__file__))))
+        realm_path = os.path.join(base_path, "deployment/realms/*.yaml")
+
+        files = glob.glob(realm_path)
+
+    for file in files:
+        with open(file, "r") as f:
+            data = yaml.safe_load(f)
+            # Process the YAML data
+            typer.echo(f"Updating deployments with data from {file}")
+        DeploymentIngestor({"host": "localhost", "port": 27017}).load(data)
 
 
 @app.command("experiments")

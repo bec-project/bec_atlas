@@ -1,0 +1,63 @@
+# This file defines the deployments for various beamlines at PSI.
+# The structure is as follows:
+#
+# Realm:
+#   xname: <xname> # Optional: xname if available e.g. X12SA
+#   managers: # defining the manager groups
+#     - <access_group>
+#   deployments:
+#     bec-vm-host-00x.psi.ch:
+#       name: <name>
+#       description: <description>
+#       deployment_access: # defining permissions to change the DeploymentAccess and thus the ACLs
+#         - <access_group>
+#       experiment_access: # defining additional groups to retrieve the Experiment info
+#         - <access_group>
+
+BL_wakonig:
+  managers:
+    - wakonig_k
+  deployments:
+    localhost:
+      name: production
+      description: Primary deployment for BL_wakonig
+      deployment_access:
+        - wakonig_k
+      experiment_access:
+        - wakonig_k
+
+BL_appel:
+  managers:
+    - appel_c
+  deployments:
+    localhost:
+      name: production
+      description: Primary deployment for BL_appel
+      deployment_access:
+        - appel_c
+      experiment_access:
+        - appel_c
+
+BL_wyzula:
+  managers:
+    - wyzula_j
+  deployments:
+    localhost:
+      name: production
+      description: Primary deployment for BL_wyzula
+      deployment_access:
+        - wyzula_j
+      experiment_access:
+        - wyzula_j
+
+BL_perl:
+  managers:
+    - perl_d
+  deployments:
+    localhost:
+      name: production
+      description: Primary deployment for BL_perl
+      deployment_access:
+        - perl_d
+      experiment_access:
+        - perl_d
