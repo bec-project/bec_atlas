@@ -1,3 +1,4 @@
+import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Response
@@ -16,6 +17,8 @@ from bec_atlas.model import UserInfo
 from bec_atlas.model.model import User
 from bec_atlas.router.base_router import BaseRouter
 from bec_atlas.utils.ldap_auth import LDAPUserService
+
+logger = logging.getLogger(__name__)
 
 
 class UserLoginRequest(BaseModel):
@@ -56,7 +59,9 @@ class UserRouter(BaseRouter):
         return {"access_token": out, "token_type": "bearer"}
 
     async def user_login(self, user_login: UserLoginRequest, response: Response):
+        logger.info(f"Attempting login for user: {user_login.username}")
         token = self._user_login(user_login, response)
+        logger.info(f"Login successful for user: {user_login.username}")
         return token
 
     async def user_logout(self, response: Response):
