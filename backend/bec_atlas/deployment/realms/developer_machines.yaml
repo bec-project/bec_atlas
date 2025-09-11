@@ -61,3 +61,50 @@ BL_perl:
         - perl_d
       experiment_access:
         - perl_d
+
+PSI_office_BEC_VM:
+  managers:
+    - unx-bec_core
+  deployments:
+    awi-bec-dev-01.psi.ch:
+      name: AWI BEC Development VM 01
+      description: Development machine in the office network
+      deployment_access:
+        - unx-bec_core
+      experiment_access:
+        - unx-bec_core
+    awi-bec-dev-02.psi.ch:
+      name: AWI BEC Development VM 02
+      description: Development machine in the office network
+      deployment_access:
+        - unx-bec_core
+      experiment_access:
+        - unx-bec_core
+    awi-bec-dev-03.psi.ch:
+      name: AWI BEC Development VM 03
+      description: Development machine in the office network
+      deployment_access:
+        - unx-bec_core
+      experiment_access:
+        - unx-bec_core
+    awi-bec-dev-04.psi.ch:
+      name: AWI BEC Development VM 04
+      description: Development machine in the office network
+      deployment_access:
+        - unx-bec_core
+      experiment_access:
+        - unx-bec_core
+    awi-bec-dev-05.psi.ch:
+      name: AWI BEC Development VM 05
+      description: Development machine in the office network
+      deployment_access:
+        - unx-bec_core
+      experiment_access:
+        - unx-bec_core
+    awi-bec-dev-06.psi.ch:
+      name: AWI BEC Development VM 06
+      description: Development machine in the office network
+      deployment_access:
+        - unx-bec_core
+      experiment_access:
+        - unx-bec_core
