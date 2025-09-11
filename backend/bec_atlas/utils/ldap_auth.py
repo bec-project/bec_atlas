@@ -1,5 +1,9 @@
+import logging
+
 from ldap3 import ALL, SUBTREE, Connection, Server
 from ldap3.core.exceptions import LDAPBindError, LDAPSocketOpenError
+
+logger = logging.getLogger(__name__)
 
 
 class LDAPUserService:
@@ -52,8 +56,8 @@ class LDAPUserService:
                 }
                 return user_data
 
-        except (LDAPBindError, LDAPSocketOpenError) as e:
-            print(f"LDAP authentication failed: {e}")
+        except Exception as e:
+            logger.error(f"LDAP authentication failed: {e}")
             return None
 
 
