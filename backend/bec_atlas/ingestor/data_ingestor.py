@@ -255,6 +255,8 @@ class DataIngestor:
 def main():  # pragma: no cover
     from bec_atlas.main import CONFIG
 
+    bec_logger.level = bec_logger.LOGLEVEL.INFO
+
     ingestor = DataIngestor(config=CONFIG)
     event = threading.Event()
     while not event.is_set():
@@ -266,5 +268,4 @@ def main():  # pragma: no cover
 
 
 if __name__ == "__main__":
-    bec_logger.level = bec_logger.LOGLEVEL.INFO
     main()
