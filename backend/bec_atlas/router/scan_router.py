@@ -29,7 +29,7 @@ class ScanRouter(BaseRouter):
             self.scans_with_id,
             methods=["GET"],
             description="Get a single scan by id for a session",
-            response_model=ScanStatusPartial | None,
+            response_model=ScanStatusPartial,
             response_model_exclude_none=True,
         )
         self.router.add_api_route(
@@ -116,13 +116,16 @@ class ScanRouter(BaseRouter):
         """
         if fields:
             fields = self._update_fields(fields)
-        return self.db.find_one(
+        result = self.db.find_one(
             collection="scans",
             query_filter={"_id": scan_id},
             dtype=ScanStatusPartial,
             fields=fields,
             user=current_user,
         )
+        if result is None:
+            raise HTTPException(status_code=404, detail="Scan not found")
+        return result
 
     async def update_scan_user_data(
         self,
