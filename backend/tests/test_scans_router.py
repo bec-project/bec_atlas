@@ -264,13 +264,13 @@ def test_get_scan_with_id(logged_in_client):
 @pytest.mark.timeout(60)
 def test_get_scan_with_id_wrong_id(logged_in_client):
     """
-    Test that the scans/id endpoint returns None for a wrong scan id.
+    Test that the scans/id endpoint returns a 404 for a wrong scan id.
     """
     client = logged_in_client
 
     response = client.get("/api/v1/scans/id", params={"scan_id": "wrong_id"})
-    assert response.status_code == 200
-    assert response.json() is None
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Scan not found"}
 
 
 @pytest.mark.timeout(60)
