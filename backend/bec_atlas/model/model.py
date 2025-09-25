@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from typing import Any, Literal, Type, TypeVar
+from typing import Any, Literal, TypeVar
 
 from bec_lib import messages
+from bec_lib.atlas_models import make_all_fields_optional
 from bson import ObjectId
-from pydantic import BaseModel, ConfigDict, Field, create_model, field_serializer, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_serializer, field_validator
 
 T = TypeVar("T")
 
@@ -41,8 +42,6 @@ for xname, aliases in XNAME_MAPPING.items():
     # map xname itself
     ALIAS_TO_CANONICAL[xname.lower()] = canonical
 
-_available_xnames = set()
-
 
 def is_valid_beamline_name(name: str) -> bool:
     """Check if the given name is a valid beamline name."""
@@ -60,19 +59,6 @@ def name_to_xname(name: str) -> str | None:
         if name in names:
             return xname
     return None
-
-
-def make_all_fields_optional(model: Type[T], model_name: str) -> Type[T]:
-    """Convert all fields in a Pydantic model to Optional."""
-
-    # create a dictionary of fields with the same name but with the type Optional[field]
-    # and a default value of None
-    fields = {}
-
-    for name, field in model.__fields__.items():
-        fields[name] = (field.annotation, None)
-
-    return create_model(model_name, **fields, __config__=model.model_config)
 
 
 class MongoBaseModel(BaseModel):
@@ -97,8 +83,28 @@ class AccessProfilePartial(AccessProfile):
     access_groups: list[str] | None = None
 
 
+class ScanUserData(BaseModel):
+    """
+    ScanUserData is an extension to the Scan model and is access controlled through
+    the scan's user permissions. It cannot be queried independently of the scan.
+
+    It is designed to encapsulate all user-specific data related to a scan, such as
+    user ratings and comments.
+    """
+
+    name: str | None = None
+    user_rating: int | None = None
+    system_rating: int | None = None
+    user_comments: str | None = None
+    system_comments: str | None = None
+    preview: str | None = None
+
+
 class ScanStatus(MongoBaseModel, AccessProfile, messages.ScanStatusMessage):
     user_data: ScanUserData | None = None
+    file_path: str | None = None
+    start_time: float | None = None
+    end_time: float | None = None
 
 
 ScanStatusPartial = make_all_fields_optional(ScanStatus, "ScanStatusPartial")
@@ -284,23 +290,6 @@ class DatasetUserData(AccessProfile):
     name: str
 
     model_config = ConfigDict(populate_by_name=True, arbitrary_types_allowed=True)
-
-
-class ScanUserData(BaseModel):
-    """
-    ScanUserData is an extension to the Scan model and is access controlled through
-    the scan's user permissions. It cannot be queried independently of the scan.
-
-    It is designed to encapsulate all user-specific data related to a scan, such as
-    user ratings and comments.
-    """
-
-    name: str | None = None
-    user_rating: int | None = None
-    system_rating: int | None = None
-    user_comments: str | None = None
-    system_comments: str | None = None
-    preview: str | None = None
 
 
 class DeviceConfig(MongoBaseModel, AccessProfile):
