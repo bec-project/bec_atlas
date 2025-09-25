@@ -90,6 +90,7 @@ class RedisDatasource:
                 f"internal/deployment/{dep_id}/*/state",
                 f"internal/deployment/{dep_id}/*/data/*",
                 f"internal/deployment/{dep_id}/bec_access",
+                f"internal/deployment/{dep_id}/deployment_info",
             ],
             channels=[
                 f"internal/deployment/{dep_id}/*/state",
