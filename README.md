@@ -41,10 +41,29 @@ BEC Atlas is a web-based management system for BEC (Beamline Experiment Control)
    ```
    This will start two instances of the FastAPI server plus the Redis server.
 
-4. **Access the application:**
+4. **Update the available deployments:**
+   ```bash
+   bec-atlas-update deployments
+   ```
+   This will update the available deployments located in backend/bec_atlas/deployments/realms
+
+6. **Start the data ingestor:**
+   ```bash
+   bec-atlas-ingestor
+   ```
+   This will start the data ingestor, needed to populate the database with new scans.
+
+9. **Access the application:**
    - Web interface: `http://localhost:4200`
    - API documentation: `http://localhost/docs`
    - Direct API access: `http://localhost:8000/docs` or `http://localhost:8001/docs`
+
+10. **Connect BEC to BEC Atlas:**
+    - Go to `http://localhost/docs` and log in using the admin account.
+       - On the local demo instance, the username and password is `admin@bec_atlas.ch` / `admin`.
+    - Fetch a new deployment file, save it as `.atlas.env` in your root BEC directory
+    - Restart the BEC server.
+    - Your server should now be connected to Atlas. 
 
 ## Commands
 
