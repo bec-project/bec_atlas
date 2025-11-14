@@ -1,4 +1,5 @@
 import json
+import logging
 from typing import TYPE_CHECKING
 
 from bson import ObjectId
@@ -11,6 +12,8 @@ from bec_atlas.router.base_router import BaseRouter
 
 if TYPE_CHECKING:  # pragma: no cover
     from bec_atlas.datasources.redis_datasource import RedisDatasource
+
+logger = logging.getLogger(__name__)
 
 
 class DeploymentsRouter(BaseRouter):
@@ -77,3 +80,8 @@ class DeploymentsRouter(BaseRouter):
         redis.connector.set_and_publish("deployments", msg)
         for deployment in credentials:
             redis.add_deployment_acl(deployment)
+
+        try:
+            redis.connector._redis_conn.acl_save()
+        except Exception:
+            logger.error("Failed to save ACLs to disk")
