@@ -22,15 +22,12 @@ class RedisDatasource:
         password = config.get("password")
 
         try:
-            self.connector._redis_conn.auth(password, username=username)
+            self.connector.authenticate(username=username, password=password)
             self.reconfigured_acls = False
         except (AuthenticationError, ResponseError):
             self.setup_acls()
-            self.connector._redis_conn.auth(password, username=username)
+            self.connector.authenticate(username=username, password=password)
             self.reconfigured_acls = True
-
-        self.connector._redis_conn.connection_pool.connection_kwargs["username"] = username
-        self.connector._redis_conn.connection_pool.connection_kwargs["password"] = password
 
         if config.get("async_instance"):
             self.async_connector = config.get("async_instance")
