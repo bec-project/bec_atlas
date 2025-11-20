@@ -33,12 +33,10 @@ class DataIngestor:
             self.redis = RedisConnector(
                 f"{redis_host}:{redis_port}"  # username="ingestor", password="ingestor"
             )
-        # self.redis.authenticate(
-        #     config.get("redis", {}).get("password", "ingestor"), username="ingestor"
-        # )
-
-        self.redis._redis_conn.connection_pool.connection_kwargs["username"] = "ingestor"
-        self.redis._redis_conn.connection_pool.connection_kwargs["password"] = "ingestor"
+        username = config.get("redis", {}).get("username", "ingestor")
+        password = config.get("redis", {}).get("password")
+        self.redis.authenticate(password=password, username=username)
+        self.redis.set_retry_enabled(True)
 
         self.shutdown_event = threading.Event()
         self.available_deployments = []
@@ -48,6 +46,7 @@ class DataIngestor:
         self.consumer_name = f"ingestor_{os.getpid()}"
         self.start_deployment_listener()
         self.start_receiver()
+        logger.success("Data ingestor started.")
 
     def start_deployment_listener(self):
         """
@@ -100,9 +99,8 @@ class DataIngestor:
                 )
             except ResponseError as exc:
                 if "BUSYGROUP Consumer Group name already exists" in str(exc):
-                    logger.info("Consumer group already exists.")
-                else:
-                    raise exc
+                    continue
+                raise exc
 
     def reclaim_pending_messages(self):
         """
@@ -161,10 +159,7 @@ class DataIngestor:
                 for key, val in msg.items():
                     out[key.decode()] = MsgpackSerialization.loads(val)
                 deployment_id = stream.decode().split("/")[-2]
-                try:
-                    self.handle_message(out, deployment_id)
-                except Exception as e:
-                    logger.error(f"Error handling message from {stream}: {e}")
+                self.handle_message(out, deployment_id)
                 self.redis._redis_conn.xack(stream, "ingestor", message[0])
 
     def handle_message(self, msg_dict: dict, deployment_id: str):
@@ -353,10 +348,12 @@ class DataIngestor:
 
 def main():  # pragma: no cover
     from bec_atlas.main import CONFIG
+    from bec_atlas.utils.env_loader import load_env
 
     bec_logger.level = bec_logger.LOGLEVEL.INFO
 
-    ingestor = DataIngestor(config=CONFIG)
+    config = load_env()
+    ingestor = DataIngestor(config=config)
     event = threading.Event()
     while not event.is_set():
         try:

@@ -88,7 +88,7 @@ def redis_server():
 @pytest.fixture()
 def backend(redis_server):
 
-    def _fake_redis(host, port):
+    def _fake_redis(host, port, **kwargs):
         return fakeredis.FakeStrictRedis(server=redis_server)
 
     mongo_client = mongomock.MongoClient("localhost", 27027)

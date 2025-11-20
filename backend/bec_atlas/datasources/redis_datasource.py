@@ -35,7 +35,7 @@ class RedisDatasource:
             self.async_connector = AsyncRedis(
                 host=config.get("host"),
                 port=config.get("port"),
-                username="ingestor",
+                username=config.get("username"),
                 password=config.get("password"),
             )
         print("Connected to Redis")
