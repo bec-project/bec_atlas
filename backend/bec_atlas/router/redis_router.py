@@ -481,7 +481,8 @@ class RedisWebsocket:
         self.active_connections = set()
         redis_host = datasources.redis.config["host"]
         redis_port = datasources.redis.config["port"]
-        redis_password = datasources.redis.config.get("password", "ingestor")
+        redis_username = datasources.redis.config.get("username", "ingestor")
+        redis_password = datasources.redis.config.get("password")
         self.db = datasources.mongodb
         self.socket = socketio.AsyncServer(
             transports=["websocket"],
@@ -491,7 +492,7 @@ class RedisWebsocket:
             client_manager=BECAsyncRedisManager(
                 self,
                 url=f"redis://{redis_host}:{redis_port}/0",
-                redis_options={"username": "ingestor", "password": redis_password},
+                redis_options={"username": redis_username, "password": redis_password},
             ),
         )
         self.app = socketio.ASGIApp(self.socket, socketio_path=f"{prefix}/ws")
