@@ -154,7 +154,16 @@ class RedisRouter(BaseRouter):
     @convert_to_user
     async def redis_get(
         self, deployment: str, key: str = Query(...), current_user: User = Depends(get_current_user)
-    ):
+    ) -> str:
+        """
+        Get a message from the BEC instance of the specified deployment.
+        Args:
+            deployment (str): The deployment id
+            key (str): The key in Redis
+            current_user (User): The current user
+        Returns:
+            str: The response message
+        """
         self.validate_user_bec_access(current_user, deployment, key, "get", "read")
         request_id = uuid.uuid4().hex
         response_endpoint = RedisAtlasEndpoints.redis_request_response(deployment, request_id)
@@ -181,7 +190,7 @@ class RedisRouter(BaseRouter):
         redis_op: Literal["send", "set_and_publish", "lpush", "rpush", "set", "xadd"],
         msg_type: str,
         current_user: User = Depends(get_current_user),
-    ):
+    ) -> dict:
         """
         Send a message to the BEC instance of the specified deployment.
 
@@ -192,13 +201,19 @@ class RedisRouter(BaseRouter):
             redis_op (str): The operation to perform
             msg_type (str): The message type
             current_user (User): The current user
+
+        Raises:
+            HTTPException: If the user does not have access to the key or if the message type is invalid
+
+        Returns:
+            dict: The response message
         """
         self.validate_user_bec_access(current_user, deployment, key, redis_op, "write")
-        msg_type = getattr(messages, msg_type, None)
-        if msg_type is None:
-            raise HTTPException(status_code=400, detail="Invalid message type")
+        msg_obj = getattr(messages, msg_type, None)
+        if not isinstance(msg_obj, type) or not issubclass(msg_obj, messages.BECMessage):
+            raise HTTPException(status_code=400, detail="Invalid message type.")
         try:
-            msg = msg_type(**value)
+            msg = msg_obj(**value)
         except TypeError as exc:
             raise HTTPException(status_code=400, detail=str(exc))
         # msg_dump = MsgpackSerialization.dumps(msg)
@@ -240,6 +255,7 @@ class RedisRouter(BaseRouter):
 
         Raises:
             HTTPException: If the user does not have access to the key
+            ValueError: If the operation is invalid
         """
         deployment_access = self.db.find_one(
             "deployment_access", {"_id": ObjectId(deployment)}, DeploymentAccess
@@ -282,6 +298,10 @@ class RedisRouter(BaseRouter):
             bec_access (BECAccessProfile): The BEC access profile
             key (str): The key in Redis
             redis_op (str): The operation to perform
+
+        Raises:
+            HTTPException: If the user does not have access to the key
+            ValueError: If the operation is invalid
         """
         if redis_op in ["lpush", "rpush", "set", "xadd", "delete"]:
             access = self.get_key_pattern_access(key, bec_access.keys)
@@ -306,7 +326,7 @@ class RedisRouter(BaseRouter):
             raise ValueError("Invalid operation")
 
     @staticmethod
-    def get_key_pattern_access(key: str, patterns: list[str]) -> bool:
+    def get_key_pattern_access(key: str, patterns: list[str]) -> RemoteAccess:
         """
         Check if the key matches the pattern.
 
@@ -315,7 +335,7 @@ class RedisRouter(BaseRouter):
             patterns (list[str]): The patterns
 
         Returns:
-            bool: True if the key matches the pattern, False otherwise
+            RemoteAccess: The access level if the key matches the pattern, RemoteAccess.NONE otherwise
         """
         if "*" in patterns:
             return RemoteAccess.READ_WRITE
@@ -333,7 +353,7 @@ class RedisRouter(BaseRouter):
         return RemoteAccess.NONE
 
     @staticmethod
-    def get_channel_pattern_access(channel: str, patterns: list[str]) -> bool:
+    def get_channel_pattern_access(channel: str, patterns: list[str]) -> RemoteAccess:
         """
         Check if the channel matches the pattern.
 
@@ -342,7 +362,7 @@ class RedisRouter(BaseRouter):
             patterns (list[str]): The patterns
 
         Returns:
-            bool: True if the channel matches the pattern, False otherwise
+            RemoteAccess: The access level if the channel matches the pattern, RemoteAccess.NONE otherwise
         """
         for pattern in patterns:
             prefix = pattern.split("*")[0]
@@ -370,6 +390,10 @@ class RedisRouter(BaseRouter):
 
 
 def safe_socket(fcn):
+    """
+    Decorator to safely handle socket functions by catching exceptions and emitting error messages.
+    """
+
     @functools.wraps(fcn)
     async def wrapper(self, sid, *args, **kwargs):
         try:
@@ -401,17 +425,31 @@ class BECAsyncRedisManager(socketio.AsyncRedisManager):
         self.started_update_loop = False
         self.known_deployments = set()
 
-        # task = asyncio.create_task(self._required_channel_heartbeat())
-        # loop.run_until_complete(task)
+    def start_update_loop(self) -> asyncio.Task:
+        """
+        Start the update loop for the websocket state information.
+        This loop will periodically update the state information for all deployments.
 
-    def start_update_loop(self):
+        Returns:
+            asyncio.Task: The task for the update loop
+        """
         self.started_update_loop = True
         loop = asyncio.get_event_loop()
         task = loop.create_task(self._backend_heartbeat())
         return task
 
-    async def disconnect(self, sid, namespace, **kwargs):
-        if kwargs.get("ignore_queue"):
+    async def disconnect(
+        self, sid: str, namespace: str, ignore_queue: bool = False, **kwargs
+    ) -> None:
+        """
+        Disconnect a client from the websocket.
+
+        Args:
+            sid (str): The socket id of the client
+            namespace (str): The namespace of the client
+            ignore_queue (bool): Whether to ignore the message queue and disconnect directly
+        """
+        if ignore_queue:
             await super().disconnect(sid, namespace, **kwargs)
             await self.update_state_info()
             return
@@ -424,20 +462,46 @@ class BECAsyncRedisManager(socketio.AsyncRedisManager):
         await self._handle_disconnect(message)  # handle in this host
         await self._publish(message)  # notify other hosts
 
-    async def enter_room(self, sid, namespace, room, eio_sid=None):
+    async def enter_room(
+        self, sid: str, namespace: str, room: str, eio_sid: str | None = None
+    ) -> None:
+        """
+        Enter a client into a room.
+
+        Args:
+            sid (str): The socket id of the client
+            namespace (str): The namespace of the client
+            room (str): The room to enter
+            eio_sid (str | None, optional): The Engine.IO session id. Defaults to None.
+        """
         await super().enter_room(sid, namespace, room, eio_sid=eio_sid)
         await self.update_state_info()
 
-    async def leave_room(self, sid, namespace, room):
+    async def leave_room(self, sid: str, namespace: str, room: str) -> None:
+        """
+        Leave a client from a room.
+
+        Args:
+            sid (str): The socket id of the client
+            namespace (str): The namespace of the client
+            room (str): The room to leave
+        """
         await super().leave_room(sid, namespace, room)
         await self.update_state_info()
 
-    async def _backend_heartbeat(self):
+    async def _backend_heartbeat(self) -> None:
+        """
+        Backend heartbeat loop to periodically update the state information for all deployments.
+        """
         while not self.parent.fastapi_app.server.should_exit:
             await asyncio.sleep(10)
             await self.update_state_info()
 
     async def update_state_info(self):
+        """
+        Update the state information for all deployments.
+        This includes the users and their subscriptions per deployment.
+        """
         deployments = {deployment: {} for deployment in self.known_deployments}
         for user in self.parent.users:
             deployment = self.parent.users[user]["deployment"]
@@ -467,6 +531,10 @@ class BECAsyncRedisManager(socketio.AsyncRedisManager):
         await self.update_state_info()
 
 
+class AtlasSocketioServer(socketio.AsyncServer):
+    manager: BECAsyncRedisManager
+
+
 class RedisWebsocket:
     """
     This class is a websocket handler for the Redis API. It exposes the redis client through
@@ -474,6 +542,8 @@ class RedisWebsocket:
     """
 
     def __init__(self, prefix="/api/v1", datasources=None, app: AtlasApp = None):
+        if not datasources:
+            raise ValueError("Datasources must be provided")
         self.redis: RedisConnector = datasources.redis.connector
         self.prefix = prefix
         self.fastapi_app = app
@@ -484,7 +554,7 @@ class RedisWebsocket:
         redis_username = datasources.redis.config.get("username", "ingestor")
         redis_password = datasources.redis.config.get("password")
         self.db = datasources.mongodb
-        self.socket = socketio.AsyncServer(
+        self.socket = AtlasSocketioServer(
             transports=["websocket"],
             ping_timeout=60,
             cors_allowed_origins="*",
@@ -514,9 +584,10 @@ class RedisWebsocket:
 
         Args:
             http_query (str): The query parameters of the websocket connection
+            auth_token (str): The authentication token of the user
 
         Returns:
-            str: The user name
+            tuple: The user object, deployment id, and access level
 
         """
         if not http_query:
@@ -546,10 +617,20 @@ class RedisWebsocket:
         return user, deployment, access
 
     @safe_socket
-    async def connect_client(self, sid, environ=None, auth=None, **kwargs):
+    async def connect_client(self, sid, environ: dict | None = None, auth=None, **kwargs):
+        """
+        Connect a new client to the websocket.
+
+        Args:
+            sid (str): The socket id of the client
+            environ (dict): The environment of the websocket connection
+            auth (str): The authentication token of the user
+        """
         if sid in self.users:
             logger.info("User already connected")
             return
+
+        environ = environ or {}
 
         http_query = environ.get("HTTP_QUERY") or auth
 
@@ -598,6 +679,14 @@ class RedisWebsocket:
         await self.socket.manager.update_websocket_states()
 
     async def disconnect_client(self, sid, reason: str = None, _environ=None):
+        """
+        Disconnect a client from the websocket.
+
+        Args:
+            sid (str): The socket id of the client
+            reason (str): The reason for disconnection
+            _environ (dict): The environment of the websocket connection
+        """
         is_exit = self.fastapi_app.server.should_exit
         if is_exit:
             return
