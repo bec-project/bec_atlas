@@ -16,7 +16,6 @@ dependencies = [
     "fastapi[standard]",
     "pyjwt",
     "pwdlib[argon2]",
-    "scylla-driver",
     "bec_lib",
     "python-socketio[asyncio_client]",
     "libtmux",
