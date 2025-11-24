@@ -116,6 +116,7 @@ def backend(redis_server):
         def _redis_connect(self):
             self.redis = fake_async_redis
             self.pubsub = self.redis.pubsub(ignore_subscribe_messages=True)
+            self.connected = True
 
     with mock.patch(
         "bec_atlas.router.redis_router.BECAsyncRedisManager", PatchedBECAsyncRedisManager
