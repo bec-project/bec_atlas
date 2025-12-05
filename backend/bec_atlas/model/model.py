@@ -128,11 +128,18 @@ class UserInfo(BaseModel):
     token: str
 
 
+class MessageServiceConfig(MongoBaseModel, AccessProfile):
+    service_name: Literal["signal", "teams", "scilog"]
+    scopes: list[str] = []
+    enabled: bool = True
+
+
 class Deployments(MongoBaseModel, AccessProfile):
     realm_id: str
     name: str
     active_session_id: str | ObjectId | None = None
     config_templates: list[str | ObjectId] = []
+    messaging_services: list[MessageServiceConfig] = []
 
 
 class DeploymentsPartial(MongoBaseModel, AccessProfilePartial):
