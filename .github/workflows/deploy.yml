@@ -47,7 +47,7 @@ jobs:
 
           echo "Deploying application to ${DEPLOYMENT_ENV} environment..."
           curl -X 'POST' \
-          "https://gitea.psi.ch/api/v1/repos/bec/ansible_bec/actions/workflows/deploy_bec_atlas.yaml/dispatches?token=${{ secrets.CI_DEPLOY_GITEA }}" \
+          "https://gitea.psi.ch/api/v1/repos/bec/ansible_bec/actions/workflows/bec_atlas_workflow.yaml/dispatches?token=${{ secrets.CI_DEPLOY_GITEA }}" \
           -H 'accept: application/json' \
           -H 'Content-Type: application/json' \
           -d "{
