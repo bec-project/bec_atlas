@@ -269,6 +269,7 @@ class Session(MongoBaseModel, AccessProfile):
     name: str
     experiment_id: str | None = None
     device_config_collections: list[DeviceConfigCollection] = []
+    messaging_services: list[MessageServiceConfig] = []
 
 
 SessionPartial = make_all_fields_optional(Session, "SessionPartial")
