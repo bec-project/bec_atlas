@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import threading
-from string import Template
 from typing import Literal
 
 from bec_lib import messages
+from bec_lib.endpoints import EndpointInfo, MessageEndpoints
 from bec_lib.logger import bec_logger
 
 from bec_atlas.ingestor.ingestor_base import IngestorBase
@@ -13,7 +13,9 @@ logger = bec_logger.logger
 
 
 class MessageServiceIngestor(IngestorBase):
-    STREAM_KEY_TEMPLATE = Template("internal/deployment/${deployment_id}/message_service_queue")
+
+    def get_stream_key(self, deployment_id: str) -> EndpointInfo:
+        return MessageEndpoints.message_service_ingest(deployment_name=deployment_id)
 
     def handle_message(
         self, msg_dict: dict[Literal["data"], messages.MessagingServiceMessage], deployment_id: str
