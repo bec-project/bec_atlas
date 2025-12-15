@@ -49,8 +49,8 @@ class ProposalIngestor:
         for item in data.values():
             if not item.pgroup:
                 continue
-            item._id = item.pgroup
-            existing_exp = self.db["experiments"].find_one({"_id": item._id})
+            item.id = item.pgroup
+            existing_exp = self.db["experiments"].find_one({"_id": item.id})
             if existing_exp:
                 existing_exp = Experiment(**existing_exp)
                 input_exp = item.model_dump()
@@ -59,9 +59,11 @@ class ProposalIngestor:
                     input_exp.pop(key, None)
                     reference_exp.pop(key, None)
                 if input_exp != reference_exp:
-                    self.db["experiments"].update_one({"_id": item._id}, {"$set": item.__dict__})
+                    self.db["experiments"].update_one(
+                        {"_id": item.id}, {"$set": item.model_dump(by_alias=True)}
+                    )
                 continue
-            result = self.db["experiments"].insert_one(item.__dict__)
+            result = self.db["experiments"].insert_one(item.model_dump(by_alias=True))
             inserted_pgroup.append(item.pgroup)
 
         return sorted(inserted_pgroup)[-1] if inserted_pgroup else ""
@@ -97,7 +99,7 @@ class ProposalIngestor:
 
         return data
 
-    def _fetch_proposals(self, years: list[int] | None) -> dict:
+    def _fetch_proposals(self, years: list[int]) -> dict:
         out = {}
         for facility in self.facilities:
             for year in years:
@@ -107,6 +109,7 @@ class ProposalIngestor:
                 response.raise_for_status()
                 data = response.json()
                 for item in data:
+                    item["access_groups"] = [item["pgroup"]]
                     if item["proposal"]:
                         if not is_valid_beamline_name(item["beamline"]):
                             continue
@@ -115,7 +118,7 @@ class ProposalIngestor:
                             continue
 
                         item["owner_groups"] = ["admin"]
-                        item["access_groups"] = self.realms_by_xname[xname]["managers"]
+                        item["access_groups"].extend(self.realms_by_xname[xname]["managers"])
                         item["realm_id"] = item.pop("beamline")
                         exp = Experiment(**item)
                         out[item["proposal"]] = exp
@@ -139,9 +142,11 @@ class ProposalIngestor:
             xname = xname.lower()
             if xname not in self.realms_by_xname:
                 continue
+            access_groups = [pgroup]
+            access_groups.extend(self.realms_by_xname[xname]["managers"])
             out[pgroup] = Experiment(
                 owner_groups=["admin"],
-                access_groups=self.realms_by_xname[xname]["managers"],
+                access_groups=access_groups,
                 realm_id=xname,
                 proposal="",
                 title=pgroup,
@@ -160,7 +165,7 @@ class ProposalIngestor:
 
         return out
 
-    def _fetch_proposal_details(self, pgroup):
+    def _fetch_proposal_details(self, pgroup: str) -> dict:
         """
         Fetch proposal details for a specific PGroup.
         """
@@ -171,7 +176,7 @@ class ProposalIngestor:
         return data["group"]
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     import os
 
     import dotenv

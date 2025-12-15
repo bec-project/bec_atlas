@@ -2,12 +2,39 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from bec_lib import messages
+from bec_lib.codecs import BECCodec
+from bec_lib.endpoints import MessageEndpoints
 from bec_lib.redis_connector import RedisConnector
+from bec_lib.serialization import msgpack
+from bson import ObjectId
 from redis.asyncio import Redis as AsyncRedis
 from redis.exceptions import AuthenticationError, ResponseError
 
+from bec_atlas.model import (
+    AvailableMessagingServiceInfo,
+    SciLogServiceInfo,
+    SignalServiceInfo,
+    TeamsServiceInfo,
+)
+
 if TYPE_CHECKING:
-    from bec_atlas.model.model import DeploymentCredential
+    from bec_atlas.model.model import DeploymentCredential, Deployments
+
+
+class ObjectIdCodec(BECCodec):
+    obj_type: list[type] = [ObjectId]
+
+    @staticmethod
+    def encode(obj):
+        return str(obj)
+
+    @staticmethod
+    def decode(typename: str, data):
+        return data
+
+
+msgpack.register_codec(ObjectIdCodec)
 
 
 class RedisDatasource:
@@ -38,6 +65,7 @@ class RedisDatasource:
                 username=config.get("username"),
                 password=config.get("password"),
             )
+        self.connector.set_retry_enabled(True)
         print("Connected to Redis")
 
     def setup_acls(self):
@@ -101,6 +129,66 @@ class RedisDatasource:
             reset_channels=True,
             reset_keys=True,
         )
+
+    def update_deployment_info(self, deployment: Deployments):
+        """
+        Update the deployment info in Redis.
+
+        Args:
+            deployment (Deployments): The deployment object
+        """
+
+        messaging_services = deployment.messaging_services or []
+
+        if messaging_services:
+            messaging_services = self._convert_messaging_services(messaging_services)
+
+        if active_session := deployment.active_session:
+            if active_session.messaging_services:
+                active_session.messaging_services = self._convert_messaging_services(
+                    active_session.messaging_services
+                )
+            active_session = messages.SessionInfoMessage(**active_session.model_dump())
+        msg = messages.DeploymentInfoMessage(
+            deployment_id=str(deployment.id),
+            name=deployment.name,
+            messaging_config=deployment.messaging_config,
+            messaging_services=messaging_services,
+            active_session=(active_session if deployment.active_session else None),
+        )
+        self.connector.xadd(
+            MessageEndpoints.atlas_deployment_info(deployment_name=str(deployment.id)),
+            {"data": msg},
+            max_size=1,
+            approximate=False,
+        )
+
+    def _convert_messaging_services(
+        self, messaging_services: list[AvailableMessagingServiceInfo]
+    ) -> list[AvailableMessagingServiceInfo]:
+        """
+        Convert the messaging services from the database format to the format used in the messages.
+
+        Args:
+            messaging_services (list[AvailableMessagingServiceInfo]): The list of messaging services from the database
+        Returns:
+            list[AvailableMessagingServiceInfo]: The list of messaging services in the format used in the messages
+        """
+        converted_services = []
+        for service in messaging_services:
+            content = service.model_dump()
+            _id = str(content.pop("id"))
+            try:
+                match service.service_type:
+                    case "scilog":
+                        converted_services.append(SciLogServiceInfo(_id=_id, **content))
+                    case "signal":
+                        converted_services.append(SignalServiceInfo(_id=_id, **content))
+                    case "teams":
+                        converted_services.append(TeamsServiceInfo(_id=_id, **content))
+            except Exception as exc:
+                print(f"Error converting messaging service with id {_id}: {exc}")
+        return converted_services
 
     def connect(self):
         pass

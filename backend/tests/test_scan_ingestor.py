@@ -29,7 +29,10 @@ def test_scan_ingestor_create_scan(scan_ingestor, backend):
     client, app = backend
     mongo: MongoDBDatasource = app.datasources.mongodb
     deployment_id = str(mongo.find_one("deployments", {}, dtype=Deployments).id)
-    session_id = str(mongo.find_one("sessions", {"deployment_id": deployment_id}, dtype=Session).id)
+    session_id = str(
+        mongo.find_one("sessions", {"deployment_id": ObjectId(deployment_id)}, dtype=Session).id
+    )
+
     msg = messages.ScanStatusMessage(
         metadata={},
         scan_id="92429a81-4bd4-41c2-82df-eccfaddf3d96",
@@ -132,10 +135,8 @@ def test_scan_ingestor_scan_history(scan_ingestor, backend):
     mongo: MongoDBDatasource = app.datasources.mongodb
     deployment = mongo.find_one("deployments", {}, dtype=Deployments)
     assert deployment is not None, "No deployment found in test data"
-    deployment_id = str(deployment.id)
-    session = mongo.find_one("sessions", {"deployment_id": deployment_id}, dtype=Session)
-    assert session is not None, f"No session found for deployment {deployment_id}"
-    session_id = str(session.id)
+    session = mongo.find_one("sessions", {"deployment_id": deployment.id}, dtype=Session)
+    assert session is not None, f"No session found for deployment {deployment.id}"
 
     # First create a scan using scan_status
     scan_id = "test-scan-history-123"
@@ -143,11 +144,11 @@ def test_scan_ingestor_scan_history(scan_ingestor, backend):
         metadata={},
         scan_id=scan_id,
         status="open",
-        session_id=session_id,  # Put session_id directly on the message
+        session_id=str(session.id),  # Put session_id directly on the message
         info={"scan_name": "test_scan", "scan_number": 1, "dataset_number": 1},
         timestamp=1732610545.15924,
     )
-    scan_ingestor.update_scan_status(status_msg, deployment_id=deployment_id)
+    scan_ingestor.update_scan_status(status_msg, deployment_id=str(deployment.id))
 
     # Now update scan history
     history_msg = messages.ScanHistoryMessage(
@@ -162,7 +163,7 @@ def test_scan_ingestor_scan_history(scan_ingestor, backend):
         num_points=100,
         metadata={"test": "metadata"},
     )
-    scan_ingestor.update_scan_history(history_msg, deployment_id)
+    scan_ingestor.update_scan_history(history_msg, deployment_id=str(deployment.id))
 
     # Login first before making API calls
     response = client.post(
@@ -264,10 +265,9 @@ def test_scan_ingestor_account_update_default_session(scan_ingestor, backend):
 
     # Find the default session
     default_session = mongo.find_one(
-        "sessions", {"name": "_default_", "deployment_id": deployment_id}, dtype=Session
+        "sessions", {"name": "_default_", "deployment_id": ObjectId(deployment_id)}, dtype=Session
     )
     assert default_session is not None, "No default session found"
-    default_session_id = str(default_session.id)
 
     # Create an account update message with None account
     account_msg = messages.VariableMessage(value={"account": None}, metadata={})
@@ -280,7 +280,7 @@ def test_scan_ingestor_account_update_default_session(scan_ingestor, backend):
         "deployments", {"_id": ObjectId(deployment_id)}, dtype=Deployments
     )
     assert updated_deployment is not None
-    assert updated_deployment.active_session_id == default_session_id
+    assert updated_deployment.active_session_id == default_session.id
 
 
 @pytest.mark.timeout(60)
@@ -333,3 +333,85 @@ def test_scan_ingestor_consumer_groups(scan_ingestor, backend):
         mock_xgroup_create.assert_called()
         # The exact number of calls depends on deployments in test data
         assert mock_xgroup_create.call_count > 0
+
+
+@pytest.mark.timeout(60)
+def test_set_scilog_logbook_for_session_matching_logbook(scan_ingestor, backend):
+    """Test that SciLog messaging service is added when matching logbook exists."""
+    client, app = backend
+
+    mongo: MongoDBDatasource = app.datasources.mongodb
+    deployment = mongo.find_one("deployments", {}, dtype=Deployments)
+    deployment_id = str(deployment.id)
+
+    # Create experiment with pgroup
+    experiment_id = "exp_scilog_123"
+    experiment_data = {
+        "_id": experiment_id,
+        "pgroup": "test_pgroup_001",
+        "access_groups": ["test_pgroup_001"],
+        "owner_groups": ["admin"],
+    }
+    mongo.db["experiments"].insert_one(experiment_data)
+
+    # Create session for this experiment
+    session = Session(
+        name=experiment_id,
+        experiment_id=experiment_id,
+        deployment_id=deployment.id,
+        owner_groups=["admin"],
+        access_groups=["test_pgroup_001"],
+    )
+    session_id = mongo.db["sessions"].insert_one(session.model_dump())
+    session.id = session_id.inserted_id
+
+    # Mock Redis response with available logbooks (updateACL must match experiment_id)
+    logbooks = [
+        {"id": "lb1", "name": "Logbook 1", "updateACL": [experiment_id]},
+        {"id": "lb2", "name": "Logbook 2", "updateACL": ["other_group"]},
+    ]
+
+    with mock.patch.object(
+        scan_ingestor.scilog_manager, "fetch_logbooks_for_pgroup", return_value=logbooks
+    ):
+        scan_ingestor._set_scilog_logbook_for_session(session)
+
+    # Verify messaging service was added to the messaging_services collection
+    messaging_service = mongo.db["messaging_services"].find_one(
+        {"parent_id": session_id.inserted_id, "service_type": "scilog"}
+    )
+    assert messaging_service is not None
+    assert messaging_service["service_type"] == "scilog"
+    assert messaging_service["logbook_id"] == "lb1"
+    assert messaging_service["parent_id"] == session_id.inserted_id
+
+
+@pytest.mark.timeout(60)
+def test_set_scilog_logbook_for_session_no_matching_logbook(scan_ingestor, backend):
+    """Test that no messaging service is added when no matching logbook exists."""
+    client, app = backend
+
+    mongo: MongoDBDatasource = app.datasources.mongodb
+    deployment = mongo.find_one("deployments", {}, dtype=Deployments)
+
+    # Create session
+    session = Session(
+        name="test_session",
+        experiment_id="exp_no_match",
+        deployment_id=deployment.id,
+        owner_groups=["admin"],
+        access_groups=["test_group"],
+    )
+    session_id = mongo.db["sessions"].insert_one(session.model_dump())
+    session.id = session_id.inserted_id
+
+    with mock.patch.object(
+        scan_ingestor.scilog_manager, "fetch_logbooks_for_pgroup", return_value=[]
+    ):
+        scan_ingestor._set_scilog_logbook_for_session(session)
+
+    # Verify no messaging service was created
+    messaging_service = mongo.db["messaging_services"].find_one(
+        {"parent_id": session.id, "service_type": "scilog"}
+    )
+    assert messaging_service is None

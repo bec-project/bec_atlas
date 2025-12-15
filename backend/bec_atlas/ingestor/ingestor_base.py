@@ -1,20 +1,23 @@
 from __future__ import annotations
 
+import logging
 import os
 import threading
 from abc import ABC, abstractmethod
 from functools import lru_cache
 
 from bec_lib.endpoints import EndpointInfo
-from bec_lib.logger import bec_logger
 from bec_lib.redis_connector import RedisConnector
 from bec_lib.serialization import MsgpackSerialization
+from bson import ObjectId
 from redis.exceptions import ResponseError
 
 from bec_atlas.datasources.endpoints import RedisAtlasEndpoints
 from bec_atlas.datasources.mongodb.mongodb import MongoDBDatasource
+from bec_atlas.datasources.redis_datasource import RedisDatasource
+from bec_atlas.model import Deployments
 
-logger = bec_logger.logger
+logger = logging.getLogger(__name__)
 
 
 class IngestorBase(ABC):
@@ -24,19 +27,8 @@ class IngestorBase(ABC):
         self.datasource = MongoDBDatasource(config=self.config["mongodb"])
         self.datasource.connect(include_setup=False)
 
-        redis_host = config.get("redis", {}).get("host", "localhost")
-        redis_port = config.get("redis", {}).get("port", 6380)
-
-        if config.get("redis", {}).get("sync_instance"):
-            self.redis = config.get("redis", {}).get("sync_instance")
-        else:
-            self.redis = RedisConnector(
-                f"{redis_host}:{redis_port}"  # username="ingestor", password="ingestor"
-            )
-        username = config.get("redis", {}).get("username", "ingestor")
-        password = config.get("redis", {}).get("password")
-        self.redis.authenticate(password=password, username=username)
-        self.redis.set_retry_enabled(True)
+        self.redis_datasource = RedisDatasource(config=self.config["redis"])
+        self.redis: RedisConnector = self.redis_datasource.connector  # type: ignore
 
         self.shutdown_event = threading.Event()
         self.available_deployments = []
@@ -46,7 +38,6 @@ class IngestorBase(ABC):
         self.consumer_name = f"ingestor_{os.getpid()}"
         self.start_deployment_listener()
         self.start_receiver()
-        logger.success("Data ingestor started.")
 
     def start_deployment_listener(self):
         """
@@ -121,12 +112,21 @@ class IngestorBase(ABC):
         while not self.shutdown_event.is_set():
             to_process = []
             for deployment in self.available_deployments:
-                pending_messages = self.redis._redis_conn.xautoclaim(
-                    self.get_stream_key(deployment["id"]).endpoint,
-                    "ingestor",
-                    self.consumer_name,
-                    min_idle_time=1000,
-                )
+                try:
+                    pending_messages = self.redis._redis_conn.xautoclaim(
+                        self.get_stream_key(deployment["id"]).endpoint,
+                        "ingestor",
+                        self.consumer_name,
+                        min_idle_time=10000,
+                    )
+                except ResponseError as exc:
+                    if "NOGROUP No such key" in str(exc):
+                        self.update_consumer_groups()
+                        continue
+                    logger.error(
+                        f"Error reclaiming pending messages for deployment {deployment['id']}: {exc}"
+                    )
+                    continue
                 if pending_messages[1]:
                     to_process.append(
                         [
@@ -148,19 +148,25 @@ class IngestorBase(ABC):
             if not self.available_deployments:
                 self.shutdown_event.wait(1)
                 continue
-            streams = {
-                self.get_stream_key(deployment["id"]).endpoint: ">"
-                for deployment in self.available_deployments
-            }
-            data = self.redis._redis_conn.xreadgroup(
-                groupname="ingestor", consumername=self.consumer_name, streams=streams, block=1000
-            )
+            try:
+                streams = {
+                    self.get_stream_key(deployment["id"]).endpoint: ">"
+                    for deployment in self.available_deployments
+                }
+                data = self.redis._redis_conn.xreadgroup(
+                    groupname="ingestor",
+                    consumername=self.consumer_name,
+                    streams=streams,
+                    block=1000,
+                )
 
-            if not data:
-                logger.debug("No messages to ingest.")
-                continue
+                if not data:
+                    logger.debug("No messages to ingest.")
+                    continue
 
-            self._handle_stream_messages(data)
+                self._handle_stream_messages(data)
+            except Exception as exc:
+                logger.error(f"Error in ingestor loop: {exc}")
 
     def _handle_stream_messages(self, data):
         for stream, msgs in data:
@@ -169,18 +175,18 @@ class IngestorBase(ABC):
                 out = {}
                 for key, val in msg.items():
                     out[key.decode()] = MsgpackSerialization.loads(val)
-                deployment_id = stream.decode().split("/")[-2]
-                self.handle_message(out, deployment_id)
+                self.handle_message(out, stream.decode())
                 self.redis._redis_conn.xack(stream, "ingestor", message[0])
+                self.redis._redis_conn.xdel(stream, message[0])
 
     @abstractmethod
-    def handle_message(self, msg_dict: dict, deployment_id: str):
+    def handle_message(self, msg_dict: dict, stream_key: str):
         """
         Handle a single message from the Redis queue.
 
         Args:
             msg_dict (dict): The message dictionary.
-            deployment_id (str): The deployment ID.
+            stream_key (str): The stream key.
 
         """
 
@@ -197,9 +203,24 @@ class IngestorBase(ABC):
 
         """
         out = self.datasource.db["sessions"].find_one(
-            {"name": "_default_", "deployment_id": deployment_id}
+            {"name": "_default_", "deployment_id": ObjectId(deployment_id)}
         )
         return out
+
+    def broadcast_deployment_update(self, deployment_id: str | ObjectId):
+        """
+        Broadcast a deployment update to the Redis queue.
+
+        Args:
+            deployment_id (str | ObjectId): The deployment id
+
+        """
+        if isinstance(deployment_id, ObjectId):
+            deployment_id = str(deployment_id)
+        deployments = self.datasource.get_full_deployment(filter={"_id": deployment_id})
+        deployment_info = next(iter(deployments), None)
+        if deployment_info:
+            self.redis_datasource.update_deployment_info(deployment_info)
 
     def shutdown(self):
         self.shutdown_event.set()

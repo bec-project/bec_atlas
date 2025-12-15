@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from typing import TYPE_CHECKING
 
 from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -10,10 +11,13 @@ from bec_atlas.datasources.mongodb.mongodb import MongoDBDatasource
 from bec_atlas.model.model import ScanStatusPartial, ScanUserData, User, UserInfo
 from bec_atlas.router.base_router import BaseRouter
 
+if TYPE_CHECKING:  # pragma: no cover
+    from bec_atlas.datasources.datasource_manager import DatasourceManager
+
 
 class ScanRouter(BaseRouter):
-    def __init__(self, prefix="/api/v1", datasources=None):
-        super().__init__(prefix, datasources)
+    def __init__(self, datasources: DatasourceManager, prefix="/api/v1"):
+        super().__init__(datasources, prefix)
         self.db: MongoDBDatasource = self.datasources.mongodb
         self.router = APIRouter(prefix=prefix)
         self.router.add_api_route(
@@ -81,7 +85,7 @@ class ScanRouter(BaseRouter):
 
         if not ObjectId.is_valid(session_id):
             raise HTTPException(status_code=400, detail="Invalid session ID")
-        filters = {"session_id": session_id}
+        filters = {"session_id": ObjectId(session_id)}
 
         if filter:
             filter = self._update_filter(filter)
@@ -156,7 +160,7 @@ class ScanRouter(BaseRouter):
     @convert_to_user
     async def count_scans(
         self, filter: str | None = None, current_user: User = Depends(get_current_user)
-    ) -> int:
+    ) -> dict:
         """
         Count the number of scans.
 
@@ -165,7 +169,7 @@ class ScanRouter(BaseRouter):
             current_user (User): The current user
 
         Returns:
-            int: The number of scans
+            dict: The number of scans
         """
         pipeline = []
         if filter:
@@ -177,8 +181,7 @@ class ScanRouter(BaseRouter):
         if out:
             return out[0]
         # I don't think this will ever be reached
-        else:  # pragma: no cover
-            return {"count": 0}
+        return {"count": 0}
 
     def _update_filter(self, filter: str) -> dict:
         """
@@ -217,8 +220,8 @@ class ScanRouter(BaseRouter):
             field in ScanStatusPartial.model_json_schema()["properties"].keys() for field in fields
         ):
             raise exc
-        fields = {field: 1 for field in fields}
-        return fields
+        out = {field: 1 for field in fields}
+        return out
 
     def _update_sort(self, sort: str) -> dict:
         """

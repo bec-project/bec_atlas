@@ -38,6 +38,7 @@ def import_mongodb_data(mongo_client: pymongo.MongoClient):
         "deployments",
         # "fs.chunks",
         # "fs.files",
+        "messaging_services",
         "scans",
         "sessions",
         "user_credentials",
@@ -106,11 +107,16 @@ def backend(redis_server):
             "async_instance": fake_async_redis,
         },
         "mongodb": {"host": "localhost", "port": 27027, "mongodb_client": mongo_client},
+        "scilog": {"username": "test_user", "password": "test_password"},
+        "signal": {"host": "http://localhost:8080", "number": "+1234567890"},
     }
 
     import_mongodb_data(mongo_client)
 
-    app = AtlasApp(config)
+    with mock.patch("bec_atlas.ingestor.scilog_logbook_manager.requests.post") as mock_post:
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.json.return_value = {"token": "test_token"}
+        app = AtlasApp(config)
 
     class PatchedBECAsyncRedisManager(BECAsyncRedisManager):
         def _redis_connect(self):
@@ -124,3 +130,57 @@ def backend(redis_server):
         with TestClient(app.app) as _client:
             app.user_router.use_ssl = False  # disable ssl to allow for httponly cookies
             yield _client, app
+
+
+@pytest.fixture
+def mock_sse_response():
+    """
+    Create a factory for SSE (Server-Sent Events) mock responses.
+
+    Returns a factory function that accepts an iterable of SSE lines and returns
+    a configured mock response suitable for streaming endpoints.
+
+    Usage:
+        def test_something(mock_sse_response):
+            response = mock_sse_response(iter(["data: {}", "data: {}"]))
+            with mock.patch("requests.get", return_value=response):
+                # test code
+    """
+
+    def _create_mock_response(lines_iterable):
+        """Create a mock response with the given SSE lines."""
+        mock_response = mock.Mock()
+        mock_response.raise_for_status = mock.Mock()
+        mock_response.encoding = "utf-8"
+        mock_response.iter_lines = mock.Mock(return_value=lines_iterable)
+        mock_response.__enter__ = mock.Mock(return_value=mock_response)
+        mock_response.__exit__ = mock.Mock(return_value=False)
+        return mock_response
+
+    return _create_mock_response
+
+
+@pytest.fixture
+def mock_http_response():
+    """
+    Create a factory for standard HTTP mock responses.
+
+    Returns a factory function that accepts a response body (dict/list) and returns
+    a configured mock response with a json() method.
+
+    Usage:
+        def test_something(mock_http_response):
+            response = mock_http_response({"key": "value"})
+            with mock.patch("requests.get", return_value=response):
+                # test code
+    """
+
+    def _create_mock_response(json_data, status_code=200):
+        """Create a mock response with the given JSON data."""
+        mock_response = mock.Mock()
+        mock_response.json.return_value = json_data
+        mock_response.status_code = status_code
+        mock_response.raise_for_status = mock.Mock()
+        return mock_response
+
+    return _create_mock_response

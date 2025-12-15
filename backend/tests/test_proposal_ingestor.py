@@ -192,7 +192,7 @@ def test_fetch_proposals(mock_requests_get, proposal_ingestor, sample_duo_propos
     assert proposal_1.title == "Test Proposal 1"
     assert proposal_1.realm_id == "cSAXS"
     assert proposal_1.owner_groups == ["admin"]
-    assert proposal_1.access_groups == ["unx-sls_x12sa_bs"]
+    assert proposal_1.access_groups == ["p20240001", "unx-sls_x12sa_bs"]
 
 
 @pytest.mark.timeout(60)

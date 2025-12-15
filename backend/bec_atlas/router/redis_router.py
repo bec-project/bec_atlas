@@ -51,8 +51,8 @@ class RedisRouter(BaseRouter):
     the API. For pub/sub and stream operations, a websocket connection can be used.
     """
 
-    def __init__(self, prefix="/api/v1", datasources: DatasourceManager = None):
-        super().__init__(prefix, datasources)
+    def __init__(self, datasources: DatasourceManager, prefix="/api/v1"):
+        super().__init__(datasources, prefix)
         self.redis = self.datasources.redis.async_connector
         self.db = self.datasources.mongodb
 
@@ -193,7 +193,10 @@ class RedisRouter(BaseRouter):
         # check if the user has access to the key
         bec_access = self.db.find_one(
             "bec_access_profiles",
-            {"deployment_id": deployment, "username": {"$in": [user.email, user.username]}},
+            {
+                "deployment_id": ObjectId(deployment),
+                "username": {"$in": [user.email, user.username]},
+            },
             BECAccessProfile,
             user=user,
         )

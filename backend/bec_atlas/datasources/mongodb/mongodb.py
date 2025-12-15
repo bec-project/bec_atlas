@@ -7,9 +7,12 @@ from typing import TYPE_CHECKING, Literal, Type, TypeVar
 import pymongo
 from bec_lib.logger import bec_logger
 from pydantic import BaseModel
+from pymongo import database
 
 from bec_atlas.authentication import get_password_hash
-from bec_atlas.model.model import User, UserCredentials
+from bec_atlas.datasources.mongodb.aggregation_pipelines import build_aggregation_pipeline
+from bec_atlas.model.model import Deployments, Session, User, UserCredentials
+from bec_atlas.router.base_router import CollectionQueryParamsWithInclude
 
 logger = bec_logger.logger
 
@@ -23,7 +26,7 @@ class MongoDBDatasource:
     def __init__(self, config: dict) -> None:
         self.config = config
         self.client = None
-        self.db = None
+        self.db: database.Database = None
 
     def connect(self, include_setup: bool = True):
         """
@@ -50,8 +53,32 @@ class MongoDBDatasource:
         logger.info(f"Connecting to MongoDB at {host}:{port}")
         self.db = self.client["bec_atlas"]
         if include_setup:
-            self.db["users"].create_index([("email", 1)], unique=True)
-            self.load_functional_accounts()
+            self.setup()
+
+    def setup(self):
+        """
+        Setup the MongoDB database by creating the necessary collections and indices.
+        """
+        if self.db is None:
+            return
+        # Create indices for the users collection
+        self.db["users"].create_index([("email", 1)], unique=True)
+
+        # Create indices for the messaging_services collection to ensure that
+        # the combination of parent_id and service_name is unique
+        self.db["messaging_services"].create_index([("parent_id", 1), ("scope", 1)], unique=True)
+
+        # make owner_groups and access_groups indexed for faster queries
+        collections = set(self.db.list_collection_names())
+        collections_without_access_control = set(
+            ["fs.chunks", "fs.files", "deployment_credentials"]
+        )
+        collections_with_access_control = collections - collections_without_access_control
+        for collection in collections_with_access_control:
+            self.db[collection].create_index([("owner_groups", 1)])
+            self.db[collection].create_index([("access_groups", 1)])
+
+        self.load_functional_accounts()
 
     def load_functional_accounts(self):
         """
@@ -152,6 +179,8 @@ class MongoDBDatasource:
         out = self.db[collection].find_one(query_filter, projection=fields)
         if out is None:
             return None
+        if dtype is None:
+            return out
         return dtype(**out)
 
     def find(
@@ -161,8 +190,8 @@ class MongoDBDatasource:
         dtype: Type[T],
         limit: int = 0,
         offset: int = 0,
-        fields: list[str] = None,
-        sort: list[str] = None,
+        fields: dict[str, int] | None = None,
+        sort: list[dict[str, int]] | None = None,
         user: User | None = None,
     ) -> list[T]:
         """
@@ -172,6 +201,7 @@ class MongoDBDatasource:
             collection (str): The collection name
             query_filter (dict): The filter to apply
             dtype (Type[T]): The data type to return
+            fields (dict[str, int] | None): The fields to include or exclude
             user (User): The user making the request
 
         Returns:
@@ -182,9 +212,11 @@ class MongoDBDatasource:
         out = self.db[collection].find(
             query_filter, limit=limit, skip=offset, projection=fields, sort=sort
         )
+        if dtype is None:
+            return list(out)
         return [dtype(**x) for x in out]
 
-    def post(self, collection: str, data: dict, dtype: Type[T], user: User | None = None) -> T:
+    def post(self, collection: str, data: dict, dtype: Type[T]) -> T:
         """
         Post a single document to the collection.
 
@@ -192,13 +224,10 @@ class MongoDBDatasource:
             collection (str): The collection name
             data (dict): The data to insert
             dtype (Type[T]): The data type to return
-            user (User): The user making the request
 
         Returns:
             T: The data type with the document data
         """
-        if user is not None:
-            data = self.add_user_filter(user, data, operation="w")
         out = self.db[collection].insert_one(data)
         if dtype is None:
             return data
@@ -273,6 +302,10 @@ class MongoDBDatasource:
         """
         if user is not None:
             # Add the user filter to the lookup pipeline
+            groups = set(user.groups if user.groups else [])
+            groups.add("auth_user")
+            if user.username and user.username != "admin":
+                groups.add(user.username)
 
             for pipe in pipeline:
                 if "$lookup" not in pipe:
@@ -281,7 +314,7 @@ class MongoDBDatasource:
                     continue
                 lookup = pipe["$lookup"]
                 lookup_pipeline = lookup["pipeline"]
-                access_filter = {"$match": self._read_only_user_filter(user)}
+                access_filter = {"$match": self._read_only_user_filter(list(groups))}
                 lookup_pipeline.insert(0, access_filter)
             # pipeline = self.add_user_filter(user, pipeline)
 
@@ -304,45 +337,83 @@ class MongoDBDatasource:
         Returns:
             dict: The updated query filter
         """
+        groups = set(user.groups if user.groups else [])
+        groups.add("auth_user")
+        if user.username and user.username != "admin":
+            groups.add(user.username)
         if operation == "r":
-            user_filter = self._read_only_user_filter(user)
+            user_filter = self._read_only_user_filter(list(groups))
         else:
-            user_filter = self._write_user_filter(user)
+            user_filter = self._write_user_filter(list(groups))
         if user_filter:
             query_filter = {"$and": [query_filter, user_filter]}
         return query_filter
 
-    def _read_only_user_filter(self, user: User) -> dict:
+    def get_full_deployment(self, filter: dict) -> list[Deployments]:
+        """
+        Get the full deployment info for a deployment.
+
+        Args:
+            filter (dict): The filter to apply. Note that the filter should
+                use string ids, e.g. {"_id": "60c72b2f9b1d4c3d8c8e4b8"} and
+                must be JSON serializable. The function will convert
+                string ids to ObjectIds as needed.
+
+        Returns:
+            dict: The full deployment info
+        """
+        include = {
+            "active_session": {"include": {"messaging_services": {}}},
+            "messaging_services": {},
+        }
+        query = CollectionQueryParamsWithInclude(filter=json.dumps(filter), include=include)
+        pipeline = build_aggregation_pipeline(Deployments, query)
+        return self.aggregate("deployments", pipeline=pipeline, dtype=Deployments)
+
+    def get_full_session(self, filter: dict) -> list[Session]:
+        """
+        Get the full session info for a session.
+
+        Args:
+            filter (dict): The filter to apply. Note that the filter should
+                use string ids, e.g. {"_id": "60c72b2f9b1d4c3d8c8e4b8"} and
+                must be JSON serializable. The function will convert
+                string ids to ObjectIds as needed.
+        Returns:
+            dict: The full session info
+        """
+
+        include = {"messaging_services": {}, "experiment": {}}
+        query = CollectionQueryParamsWithInclude(filter=json.dumps(filter), include=include)
+        pipeline = build_aggregation_pipeline(Session, query)
+        return self.aggregate("sessions", pipeline=pipeline, dtype=Session)
+
+    def _read_only_user_filter(self, groups: list[str]) -> dict:
         """
         Add the user filter to the query filter.
 
         Args:
-            user (User): The user making the request
+            groups (list[str]): The groups of the user making the request
 
         Returns:
             dict: The updated query filter
         """
-        if "admin" not in user.groups:
-            return {
-                "$or": [
-                    {"owner_groups": {"$in": user.groups}},
-                    {"access_groups": {"$in": user.groups}},
-                ]
-            }
+        if "admin" not in groups:
+            return {"$or": [{"owner_groups": {"$in": groups}}, {"access_groups": {"$in": groups}}]}
         return {}
 
-    def _write_user_filter(self, user: User) -> dict:
+    def _write_user_filter(self, groups: list[str]) -> dict:
         """
         Add the user filter to the query filter.
 
         Args:
-            user (User): The user making the request
+            groups (list[str]): The groups of the user making the request
 
         Returns:
             dict: The updated query filter
         """
-        if "admin" not in user.groups:
-            return {"$or": [{"owner_groups": {"$in": user.groups}}]}
+        if "admin" not in groups:
+            return {"$or": [{"owner_groups": {"$in": groups}}]}
         return {}
 
     def shutdown(self):

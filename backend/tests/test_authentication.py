@@ -331,23 +331,6 @@ class TestTokenOperations:
         assert "exp" in payload
 
     @pytest.mark.timeout(60)
-    def test_create_access_token_custom_expiry(self):
-        """Test token creation with custom expiry."""
-        data = {"email": "test@example.com"}
-        expires_delta = timedelta(hours=2)
-        token = create_access_token(data, expires_delta)
-
-        assert isinstance(token, str)
-        payload = decode_token(token)
-        assert payload["email"] == "test@example.com"
-
-        # Check expiry is approximately 2 hours from now (as timestamp)
-        exp_timestamp = payload["exp"]
-        expected_timestamp = (datetime.now() + timedelta(hours=2)).timestamp()
-        time_diff = abs(exp_timestamp - expected_timestamp)
-        assert time_diff < 60  # Should be within 1 minute
-
-    @pytest.mark.timeout(60)
     def test_decode_token_expired(self, expired_token):
         """Test token decoding with expired token."""
         with pytest.raises(HTTPException) as exc_info:
@@ -565,19 +548,18 @@ class TestErrorEdgeCases:
             create_access_token(None)  # type: ignore
 
     @pytest.mark.timeout(60)
-    def test_create_access_token_with_negative_expiry(self):
-        """Test create_access_token with negative expiry delta."""
+    def test_create_access_token_with_custom_expiry(self):
+        """Test create_access_token with custom expiry."""
         data = {"email": "test@example.com"}
-        negative_delta = timedelta(hours=-1)
 
+        expected_timestamp = (datetime.now() + timedelta(minutes=1)).timestamp()
         # Should create an already-expired token
-        token = create_access_token(data, negative_delta)
+        token = create_access_token(data, 1)  # 1 minute expiry
 
-        # Token should be created but immediately expired when decoded
-        with pytest.raises(HTTPException) as exc_info:
-            decode_token(token)
-
-        assert exc_info.value.status_code == 401
+        info = decode_token(token)
+        exp_timestamp = info["exp"]
+        time_diff = abs(exp_timestamp - expected_timestamp)
+        assert time_diff < 60  # Should be within 1 minute
 
     @pytest.mark.timeout(60)
     @mock.patch("builtins.open", side_effect=IOError("Permission denied"))

@@ -21,8 +21,8 @@ if TYPE_CHECKING:  # pragma: no cover
 
 
 class DeploymentAccessRouter(BaseRouter):
-    def __init__(self, prefix="/api/v1", datasources: DatasourceManager | None = None):
-        super().__init__(prefix, datasources)
+    def __init__(self, datasources: DatasourceManager, prefix="/api/v1"):
+        super().__init__(datasources, prefix)
         if not self.datasources:
             raise RuntimeError("Datasources not loaded")
         self.db: MongoDBDatasource = self.datasources.mongodb
@@ -134,17 +134,17 @@ class DeploymentAccessRouter(BaseRouter):
             db.delete_one("bec_access_profiles", {"username": profile, "deployment_id": updated.id})
         for profile in new_profiles:
             if profile in updated.su_write_access:
-                access = self._get_redis_access_profile("su_write", profile, str(updated.id))
+                access = self._get_redis_access_profile("su_write", profile, updated.id)
             elif profile in updated.su_read_access:
-                access = self._get_redis_access_profile("su_read", profile, str(updated.id))
+                access = self._get_redis_access_profile("su_read", profile, updated.id)
             elif profile in updated.user_write_access:
-                access = self._get_redis_access_profile("user_write", profile, str(updated.id))
+                access = self._get_redis_access_profile("user_write", profile, updated.id)
             else:
-                access = self._get_redis_access_profile("user_read", profile, str(updated.id))
+                access = self._get_redis_access_profile("user_read", profile, updated.id)
 
             existing_profile = db.find_one(
                 "bec_access_profiles",
-                {"username": profile, "deployment_id": str(updated.id)},
+                {"username": profile, "deployment_id": updated.id},
                 BECAccessProfile,
             )
             if existing_profile:
@@ -169,7 +169,7 @@ class DeploymentAccessRouter(BaseRouter):
         db: MongoDBDatasource = self.datasources.mongodb
         profiles = db.find(
             collection="bec_access_profiles",
-            query_filter={"deployment_id": deployment_id},
+            query_filter={"deployment_id": ObjectId(deployment_id)},
             dtype=BECAccessProfile,
         )
         profiles = [profile.model_dump(exclude_none=True) for profile in profiles]
@@ -199,14 +199,16 @@ class DeploymentAccessRouter(BaseRouter):
         user = db.find_one("users", {"email": user}, User)
         return user is not None
 
-    def _get_redis_access_profile(self, access_profile: str, username: str, deployment_id: str):
+    def _get_redis_access_profile(
+        self, access_profile: str, username: str, deployment_id: ObjectId
+    ) -> BECAccessProfile:
         """
         Get the redis access profile.
 
         Args:
             access_profile (str): The access profile
             username (str): The username
-            deployment_id (str): The deployment id
+            deployment_id (ObjectId): The deployment id
 
         """
         if access_profile == "su_write":

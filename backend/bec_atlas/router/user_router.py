@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import logging
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
 from fastapi import APIRouter, Depends, Query, Response
 from fastapi.exceptions import HTTPException
@@ -20,6 +22,9 @@ from bec_atlas.utils.ldap_auth import LDAPUserService
 
 logger = logging.getLogger(__name__)
 
+if TYPE_CHECKING:  # pragma: no cover
+    from bec_atlas.datasources.datasource_manager import DatasourceManager
+
 
 class UserLoginRequest(BaseModel):
     username: str
@@ -27,8 +32,8 @@ class UserLoginRequest(BaseModel):
 
 
 class UserRouter(BaseRouter):
-    def __init__(self, prefix="/api/v1", datasources=None, use_ssl=True):
-        super().__init__(prefix, datasources)
+    def __init__(self, datasources: DatasourceManager, prefix="/api/v1", use_ssl=True):
+        super().__init__(datasources, prefix)
         self.use_ssl = use_ssl
         self.db: MongoDBDatasource = self.datasources.mongodb
         self.ldap = LDAPUserService(
@@ -41,7 +46,6 @@ class UserRouter(BaseRouter):
             "/user/login/form", self.form_login, methods=["POST"], dependencies=[]
         )
         self.router.add_api_route("/user/logout", self.user_logout, methods=["POST"])
-        self.router.add_api_route("/user/test_login", self.test_login, methods=["POST"])
         self.router.add_api_route("/user/test_login", self.test_login, methods=["POST"])
 
     @convert_to_user

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Literal, TypeVar
+from typing import Any, Literal, Type, TypeAlias, TypeVar
 
 from bec_lib import messages
 from bec_lib.atlas_models import make_all_fields_optional
@@ -8,6 +8,26 @@ from bson import ObjectId
 from pydantic import BaseModel, ConfigDict, Field, field_serializer, field_validator
 
 T = TypeVar("T")
+
+
+def make_fields_optional_with_relations(model: Type[T], model_name: str) -> Type[T]:
+    """
+    Create a partial model with all fields optional while preserving __relations__.
+
+    Args:
+        model: The source model class
+        model_name: Name for the new partial model
+
+    Returns:
+        A new model class with all fields optional and __relations__ copied
+    """
+    partial_model = make_all_fields_optional(model, model_name)
+
+    # Copy __relations__ if it exists on the source model
+    if hasattr(model, "__relations__"):
+        partial_model.__relations__ = model.__relations__
+
+    return partial_model
 
 
 XNAME_MAPPING = {
@@ -61,10 +81,57 @@ def name_to_xname(name: str) -> str | None:
     return None
 
 
+class Relation(BaseModel):
+    reference_collection: str = Field(
+        description="The name of the MongoDB collection that this relation references."
+    )
+    reference_model: Type[BaseModel] = Field(
+        description="The model class that this relation references."
+    )
+    local_field: str = Field(
+        description=(
+            "The field in the local model that holds the reference value. "
+            "For outbound relationships, this is typically the foreign key. "
+            "For inbound relationships, this is typically the primary key (often 'id'). "
+            "Note that this is not the name of the resolved field. The resolved field name is "
+            "determined by the key in the __relations__ dict of the model."
+        )
+    )
+    foreign_field: str = Field(
+        description=(
+            "The field in the foreign model that holds the reference value. "
+            "For outbound relationships, this is typically the primary key (often 'id'). "
+            "For inbound relationships, this is typically the foreign key, e.g. 'parent_id'."
+        )
+    )
+    relationship: Literal["1-1", "1-N"] = Field(
+        description=(
+            "The type of relationship. '1-1' indicates a one-to-one relationship, "
+            "'1-N' indicates a one-to-many relationship."
+        )
+    )
+    direction: Literal["outbound", "inbound"] = Field(
+        description=(
+            "Direction of the relationship from the perspective of the local model. "
+            "Outbound means the local model holds a reference to the foreign model, "
+            "inbound means the foreign model holds a reference to the local model."
+        )
+    )
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+
+Relations: TypeAlias = dict[str, Relation]
+
+
 class MongoBaseModel(BaseModel):
     id: str | ObjectId | None = Field(default=None, alias="_id")
 
-    model_config = ConfigDict(populate_by_name=True, arbitrary_types_allowed=True)
+    model_config = ConfigDict(
+        populate_by_name=True, arbitrary_types_allowed=True, json_encoders={ObjectId: str}
+    )
+
+    __relations__: Relations = {}
 
     @field_serializer("id")
     def serialize_id(self, id: str | ObjectId):
@@ -100,19 +167,35 @@ class ScanUserData(BaseModel):
     preview: str | None = None
 
 
+ScanUserDataPartial = make_fields_optional_with_relations(ScanUserData, "ScanUserDataPartial")
+
+
 class ScanStatus(MongoBaseModel, AccessProfile, messages.ScanStatusMessage):
+    session_id: str | ObjectId | None = None
     user_data: ScanUserData | None = None
     file_path: str | None = None
     start_time: float | None = None
     end_time: float | None = None
 
+    @field_validator("session_id", mode="before")
+    def normalize_session_id(cls, v: str) -> ObjectId | None:
+        if isinstance(v, str):
+            return ObjectId(v)
+        return v
 
-ScanStatusPartial = make_all_fields_optional(ScanStatus, "ScanStatusPartial")
+
+ScanStatusPartial = make_fields_optional_with_relations(ScanStatus, "ScanStatusPartial")
 
 
 class UserCredentials(MongoBaseModel, AccessProfile):
     user_id: str | ObjectId
     password: str
+
+    @field_validator("user_id", mode="before")
+    def normalize_user_id(cls, v: str) -> ObjectId:
+        if isinstance(v, str):
+            return ObjectId(v)
+        return v
 
 
 class User(MongoBaseModel, AccessProfile):
@@ -123,30 +206,12 @@ class User(MongoBaseModel, AccessProfile):
     username: str | None = None
 
 
+UserPartial = make_fields_optional_with_relations(User, "UserPartial")
+
+
 class UserInfo(BaseModel):
     email: str
     token: str
-
-
-class MessageServiceConfig(MongoBaseModel, AccessProfile):
-    service_name: Literal["signal", "teams", "scilog"]
-    scopes: list[str] = []
-    enabled: bool = True
-
-
-class Deployments(MongoBaseModel, AccessProfile):
-    realm_id: str
-    name: str
-    active_session_id: str | ObjectId | None = None
-    config_templates: list[str | ObjectId] = []
-    messaging_services: list[MessageServiceConfig] = []
-
-
-class DeploymentsPartial(MongoBaseModel, AccessProfilePartial):
-    realm_id: str | None = None
-    name: str | None = None
-    active_session_id: str | ObjectId | None = None
-    config_templates: list[str | ObjectId] | None = None
 
 
 class DeploymentCredential(MongoBaseModel):
@@ -174,6 +239,11 @@ class DeploymentAccess(MongoBaseModel, AccessProfile):
     remote_write_access: list[str] = []
 
 
+DeploymentAccessPartial = make_fields_optional_with_relations(
+    DeploymentAccess, "DeploymentAccessPartial"
+)
+
+
 class BECAccessProfile(MongoBaseModel, AccessProfile):
     """
     The BECAccessProfile model is used to store the Redis ACL config
@@ -187,7 +257,7 @@ class BECAccessProfile(MongoBaseModel, AccessProfile):
 
     """
 
-    deployment_id: str
+    deployment_id: str | ObjectId
     username: str
     passwords: dict[str, str] = {}
     categories: list[str] = []
@@ -196,13 +266,16 @@ class BECAccessProfile(MongoBaseModel, AccessProfile):
     commands: list[str] = []
     profile: str = ""
 
+    @field_validator("deployment_id", mode="before")
+    def normalize_deployment_id(cls, v: str) -> ObjectId:
+        if isinstance(v, str):
+            return ObjectId(v)
+        return v
 
-class Realm(MongoBaseModel, AccessProfile):
-    realm_id: str
-    deployments: list[Deployments | DeploymentsPartial] = []
-    name: str
-    xname: str | None = None
-    managers: list[str] = []
+
+BECAccessProfilePartial = make_fields_optional_with_relations(
+    BECAccessProfile, "BECAccessProfilePartial"
+)
 
 
 class Experiment(MongoBaseModel, AccessProfile):
@@ -238,6 +311,9 @@ class Experiment(MongoBaseModel, AccessProfile):
         return ALIAS_TO_CANONICAL.get(key, v)
 
 
+ExperimentPartial = make_fields_optional_with_relations(Experiment, "ExperimentPartial")
+
+
 class StateCondition(AccessProfile):
     realm_id: str
     name: str
@@ -259,45 +335,54 @@ class State(AccessProfile):
     model_config = ConfigDict(populate_by_name=True, arbitrary_types_allowed=True)
 
 
-class Session(MongoBaseModel, AccessProfile):
-    """
-    A session represents a logical unit of work within a deployment. Most commonly,
-    there is only a single session per Experiment.
-    """
+class MessagingService(MongoBaseModel, AccessProfile, messages.MessagingService):
+    parent_id: str | ObjectId
 
-    deployment_id: str
-    name: str
-    experiment_id: str | None = None
-    device_config_collections: list[DeviceConfigCollection] = []
-    messaging_services: list[MessageServiceConfig] = []
+    @field_validator("parent_id", mode="before")
+    def normalize_parent_id(cls, v: str) -> ObjectId:
+        if isinstance(v, str):
+            return ObjectId(v)
+        return v
 
 
-SessionPartial = make_all_fields_optional(Session, "SessionPartial")
+MessagingServicePartial = make_fields_optional_with_relations(
+    MessagingService, "MessagingServicePartial"
+)
 
 
-class Dataset(MongoBaseModel, AccessProfile):
-    realm_id: str
-    name: str
-    description: str
-    user_data: DatasetUserData | None = None
-    scans: list[ScanStatus] = []
-
-    model_config = ConfigDict(populate_by_name=True, arbitrary_types_allowed=True)
+class SignalServiceInfo(MessagingServicePartial, messages.SignalServiceInfo): ...
 
 
-class DatasetUserData(AccessProfile):
-    """
-    DatasetUserData is an extension to the Dataset model and is access controlled through
-    the dataset's user permissions. It cannot be queried independently of the dataset.
+SignalServiceInfoPartial = make_fields_optional_with_relations(
+    SignalServiceInfo, "SignalServiceInfoPartial"
+)
 
-    It is designed to encapsulate all user-specific data related to a dataset, such as
-    user ratings and comments.
-    """
 
-    dataset_id: str
-    name: str
+class SciLogServiceInfo(MessagingServicePartial, messages.SciLogServiceInfo): ...
 
-    model_config = ConfigDict(populate_by_name=True, arbitrary_types_allowed=True)
+
+SciLogServiceInfoPartial = make_fields_optional_with_relations(
+    SciLogServiceInfo, "SciLogServiceInfoPartial"
+)
+
+
+class TeamsServiceInfo(MessagingServicePartial, messages.TeamsServiceInfo): ...
+
+
+TeamsServiceInfoPartial = make_fields_optional_with_relations(
+    TeamsServiceInfo, "TeamsServiceInfoPartial"
+)
+
+
+AvailableMessagingServiceInfo: TypeAlias = SignalServiceInfo | SciLogServiceInfo | TeamsServiceInfo
+AvailableMessagingServiceInfoPartial = (
+    SignalServiceInfoPartial | SciLogServiceInfoPartial | TeamsServiceInfoPartial
+)
+
+
+class MergedMessagingServiceInfo(
+    SignalServiceInfoPartial, SciLogServiceInfoPartial, TeamsServiceInfoPartial
+): ...
 
 
 class DeviceConfig(MongoBaseModel, AccessProfile):
@@ -322,8 +407,86 @@ class DeviceHash(MongoBaseModel, AccessProfile):
 
 
 class DeviceConfigCollection(MongoBaseModel, AccessProfile):
-    session_id: str
+    session_id: str | ObjectId
     configs: list[str] = []
+
+    @field_validator("session_id", mode="before")
+    @classmethod
+    def normalize_session_id(cls, v: str) -> ObjectId:
+        if isinstance(v, str):
+            return ObjectId(v)
+        return v
+
+
+class Session(MongoBaseModel, AccessProfile, messages.SessionInfoMessage):
+    """
+    A session represents a logical unit of work within a deployment. Most commonly,
+    there is only a single session per Experiment.
+    """
+
+    deployment_id: str | ObjectId
+    name: str
+    experiment_id: str | None = None
+    experiment: Experiment | None = None
+    device_config_collections: list[DeviceConfigCollection] = []
+    messaging_services: list[AvailableMessagingServiceInfo] = []
+
+    @field_validator("deployment_id", mode="before")
+    @classmethod
+    def normalize_deployment_id(cls, v: str) -> ObjectId:
+        if isinstance(v, str):
+            return ObjectId(v)
+        return v
+
+    __relations__: Relations = {
+        "experiment": Relation(
+            reference_collection="experiments",
+            reference_model=ExperimentPartial,
+            local_field="experiment_id",
+            foreign_field="_id",
+            relationship="1-1",
+            direction="outbound",
+        ),
+        "messaging_services": Relation(
+            reference_collection="messaging_services",
+            reference_model=MessagingServicePartial,
+            local_field="_id",
+            foreign_field="parent_id",
+            relationship="1-N",
+            direction="inbound",
+        ),
+    }
+
+
+SessionPartial = make_fields_optional_with_relations(Session, "SessionPartial")
+
+
+class DatasetUserData(AccessProfile):
+    """
+    DatasetUserData is an extension to the Dataset model and is access controlled through
+    the dataset's user permissions. It cannot be queried independently of the dataset.
+
+    It is designed to encapsulate all user-specific data related to a dataset, such as
+    user ratings and comments.
+    """
+
+    dataset_id: str
+    name: str
+
+    model_config = ConfigDict(populate_by_name=True, arbitrary_types_allowed=True)
+
+
+class Dataset(MongoBaseModel, AccessProfile):
+    realm_id: str
+    name: str
+    description: str
+    user_data: DatasetUserData | None = None
+    scans: list[ScanStatus] = []
+
+    model_config = ConfigDict(populate_by_name=True, arbitrary_types_allowed=True)
+
+
+DatasetPartial = make_fields_optional_with_relations(Dataset, "DatasetPartial")
 
 
 class SignalData(AccessProfile, MongoBaseModel):
@@ -345,6 +508,60 @@ class SignalData(AccessProfile, MongoBaseModel):
     std_dev: float | None = None
     min: float | None = None
     max: float | None = None
+
+
+class Deployments(MongoBaseModel, AccessProfile):
+    realm_id: str
+    name: str
+    active_session_id: str | ObjectId | None = None
+    active_session: Session | None = None
+    config_templates: list[str | ObjectId] = []
+    messaging_config: messages.MessagingConfig | None = None
+    messaging_services: list[AvailableMessagingServiceInfo] = []
+
+    __relations__: Relations = {
+        "active_session": Relation(
+            reference_collection="sessions",
+            reference_model=SessionPartial,
+            local_field="active_session_id",
+            foreign_field="_id",
+            relationship="1-1",
+            direction="outbound",
+        ),
+        "messaging_services": Relation(
+            reference_collection="messaging_services",
+            reference_model=MessagingServicePartial,
+            local_field="_id",
+            foreign_field="parent_id",
+            relationship="1-N",
+            direction="inbound",
+        ),
+    }
+
+
+DeploymentsPartial = make_fields_optional_with_relations(Deployments, "DeploymentsPartial")
+
+
+class Realm(MongoBaseModel, AccessProfile):
+    realm_id: str
+    deployments: list[Deployments | DeploymentsPartial] = []  # type: ignore
+    name: str
+    xname: str | None = None
+    managers: list[str] = []
+
+    __relations__: Relations = {
+        "deployments": Relation(
+            reference_collection="deployments",
+            reference_model=DeploymentsPartial,
+            local_field="realm_id",
+            foreign_field="realm_id",
+            relationship="1-N",
+            direction="inbound",
+        )
+    }
+
+
+RealmPartial = make_fields_optional_with_relations(Realm, "RealmPartial")
 
 
 class DeviceData(AccessProfile, MongoBaseModel):
