@@ -333,3 +333,113 @@ def test_scan_ingestor_consumer_groups(scan_ingestor, backend):
         mock_xgroup_create.assert_called()
         # The exact number of calls depends on deployments in test data
         assert mock_xgroup_create.call_count > 0
+
+
+@pytest.mark.timeout(60)
+def test_set_scilog_logbook_for_session_matching_logbook(scan_ingestor, backend):
+    """Test that SciLog messaging service is added when matching logbook exists."""
+    client, app = backend
+    from bec_lib import messages
+
+    mongo: MongoDBDatasource = app.datasources.mongodb
+    deployment = mongo.find_one("deployments", {}, dtype=Deployments)
+    deployment_id = str(deployment.id)
+
+    # Create experiment with pgroup
+    experiment_id = "exp_scilog_123"
+    experiment_data = {
+        "_id": experiment_id,
+        "pgroup": "test_pgroup_001",
+        "access_groups": ["test_pgroup_001"],
+        "owner_groups": ["admin"],
+    }
+    mongo.db["experiments"].insert_one(experiment_data)
+
+    # Create session for this experiment
+    session = Session(
+        name=experiment_id,
+        experiment_id=experiment_id,
+        deployment_id=deployment_id,
+        owner_groups=["admin"],
+        access_groups=["test_pgroup_001"],
+    )
+    session_id = mongo.db["sessions"].insert_one(session.model_dump())
+    session.id = session_id.inserted_id
+
+    # Mock Redis response with available logbooks (ownerGroup must match experiment_id)
+    logbooks_msg = messages.AvailableResourceMessage(
+        resource=[
+            {"id": "lb1", "name": "Logbook 1", "ownerGroup": experiment_id},
+            {"id": "lb2", "name": "Logbook 2", "ownerGroup": "other_group"},
+        ]
+    )
+    with mock.patch.object(scan_ingestor.redis, "get", return_value=logbooks_msg):
+        scan_ingestor._set_scilog_logbook_for_session(session, deployment.realm_id, experiment_data)
+
+    # Verify messaging service was added
+    updated_session = mongo.find_one("sessions", {"_id": session_id.inserted_id}, dtype=Session)
+    assert len(updated_session.messaging_services) == 1
+    assert updated_session.messaging_services[0].service_name == "scilog"
+    assert updated_session.messaging_services[0].scopes == ["lb1"]
+
+
+@pytest.mark.timeout(60)
+def test_set_scilog_logbook_for_session_no_matching_logbook(scan_ingestor, backend):
+    """Test that no messaging service is added when no matching logbook exists."""
+    client, app = backend
+    from bec_lib import messages
+
+    mongo: MongoDBDatasource = app.datasources.mongodb
+    deployment = mongo.find_one("deployments", {}, dtype=Deployments)
+    deployment_id = str(deployment.id)
+
+    # Create session
+    session = Session(
+        name="test_session",
+        experiment_id="exp_no_match",
+        deployment_id=deployment_id,
+        owner_groups=["admin"],
+        access_groups=["test_group"],
+    )
+    session_id = mongo.db["sessions"].insert_one(session.model_dump())
+    session.id = session_id.inserted_id
+
+    # Mock Redis response with non-matching logbooks
+    logbooks_msg = messages.AvailableResourceMessage(
+        resource=[{"id": "lb1", "name": "Logbook 1", "ownerGroup": "different_group"}]
+    )
+    with mock.patch.object(scan_ingestor.redis, "get", return_value=logbooks_msg):
+        scan_ingestor._set_scilog_logbook_for_session(session, deployment.realm_id, {})
+
+    # Verify no messaging service was added
+    updated_session = mongo.find_one("sessions", {"_id": session_id.inserted_id}, dtype=Session)
+    assert len(updated_session.messaging_services) == 0
+
+
+@pytest.mark.timeout(60)
+def test_set_scilog_logbook_for_session_no_logbooks_available(scan_ingestor, backend):
+    """Test graceful handling when no logbooks are available."""
+    client, app = backend
+
+    mongo: MongoDBDatasource = app.datasources.mongodb
+    deployment = mongo.find_one("deployments", {}, dtype=Deployments)
+    deployment_id = str(deployment.id)
+
+    # Create session
+    session = Session(
+        name="test_session",
+        experiment_id="exp_no_logbooks",
+        deployment_id=deployment_id,
+        owner_groups=["admin"],
+        access_groups=["test_group"],
+    )
+    session_id = mongo.db["sessions"].insert_one(session.model_dump())
+    session.id = session_id.inserted_id
+
+    # Mock Redis response with None (no logbooks)
+    with mock.patch.object(scan_ingestor.redis, "get", return_value=None):
+        scan_ingestor._set_scilog_logbook_for_session(session, deployment.realm_id, {})
+
+    # Verify no messaging service was added
+    updated_session = mongo.find_one("sessions", {"_id": session_id.inserted_id}, dtype=Session)
+    assert len(updated_session.messaging_services) == 0

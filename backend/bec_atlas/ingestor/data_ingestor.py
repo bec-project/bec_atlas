@@ -224,7 +224,7 @@ class DataIngestor(IngestorBase):
         if not target_logbook:
             return
         logger.info(
-            f"Adding SciLog messaging service to session {session._id} for logbook {target_logbook['name']}"
+            f"Adding SciLog messaging service to session {session.id} for logbook {target_logbook['name']}"
         )
         messaging_service = MessageServiceConfig(
             owner_groups=session.owner_groups,
@@ -235,7 +235,7 @@ class DataIngestor(IngestorBase):
         )
         session.messaging_services.append(messaging_service)
         self.datasource.db["sessions"].update_one(
-            {"_id": session._id},
+            {"_id": session.id},
             {
                 "$set": {
                     "messaging_services": [ms.model_dump() for ms in session.messaging_services]
