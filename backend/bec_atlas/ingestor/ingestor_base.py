@@ -11,6 +11,7 @@ from bec_lib.redis_connector import RedisConnector
 from bec_lib.serialization import MsgpackSerialization
 from redis.exceptions import ResponseError
 
+from bec_atlas.datasources.endpoints import RedisAtlasEndpoints
 from bec_atlas.datasources.mongodb.mongodb import MongoDBDatasource
 
 logger = bec_logger.logger
