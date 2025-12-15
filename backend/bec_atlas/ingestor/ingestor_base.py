@@ -4,8 +4,8 @@ import os
 import threading
 from abc import ABC, abstractmethod
 from functools import lru_cache
-from string import Template
 
+from bec_lib.endpoints import EndpointInfo
 from bec_lib.logger import bec_logger
 from bec_lib.redis_connector import RedisConnector
 from bec_lib.serialization import MsgpackSerialization
@@ -18,7 +18,6 @@ logger = bec_logger.logger
 
 
 class IngestorBase(ABC):
-    STREAM_KEY_TEMPLATE = Template("internal/deployment/${deployment_id}/ingest")
 
     def __init__(self, config: dict):
         self.config = config
@@ -94,7 +93,7 @@ class IngestorBase(ABC):
         for deployment in self.available_deployments:
             try:
                 self.redis._redis_conn.xgroup_create(
-                    name=self.STREAM_KEY_TEMPLATE.substitute(deployment_id=deployment["id"]),
+                    name=self.get_stream_key(deployment["id"]).endpoint,
                     groupname="ingestor",
                     mkstream=True,
                 )
@@ -102,6 +101,17 @@ class IngestorBase(ABC):
                 if "BUSYGROUP Consumer Group name already exists" in str(exc):
                     continue
                 raise exc
+
+    @abstractmethod
+    def get_stream_key(self, deployment_id: str) -> EndpointInfo:
+        """
+        Get the stream key for the deployment.
+
+        Args:
+            deployment_id (str): The deployment id
+        Returns:
+            EndpointInfo: The endpoint info for the stream key
+        """
 
     def reclaim_pending_messages(self):
         """
@@ -112,7 +122,7 @@ class IngestorBase(ABC):
             to_process = []
             for deployment in self.available_deployments:
                 pending_messages = self.redis._redis_conn.xautoclaim(
-                    self.STREAM_KEY_TEMPLATE.substitute(deployment_id=deployment["id"]),
+                    self.get_stream_key(deployment["id"]).endpoint,
                     "ingestor",
                     self.consumer_name,
                     min_idle_time=1000,
@@ -120,9 +130,7 @@ class IngestorBase(ABC):
                 if pending_messages[1]:
                     to_process.append(
                         [
-                            self.STREAM_KEY_TEMPLATE.substitute(
-                                deployment_id=deployment["id"]
-                            ).encode(),
+                            self.get_stream_key(deployment["id"]).endpoint.encode(),
                             pending_messages[1],
                         ]
                     )
@@ -141,7 +149,7 @@ class IngestorBase(ABC):
                 self.shutdown_event.wait(1)
                 continue
             streams = {
-                self.STREAM_KEY_TEMPLATE.substitute(deployment_id=deployment["id"]): ">"
+                self.get_stream_key(deployment["id"]).endpoint: ">"
                 for deployment in self.available_deployments
             }
             data = self.redis._redis_conn.xreadgroup(
