@@ -173,10 +173,14 @@ class DataIngestor(IngestorBase):
                 owner_groups=experiment.get("access_groups", []) + ["admin"],
                 access_groups=experiment.get("access_groups", []) + [msg.value],
             )
-            self.datasource.db["sessions"].insert_one(session.model_dump())
+            session_id = self.datasource.db["sessions"].insert_one(session.model_dump())
+            session = self.datasource.find_one("sessions", {"_id": session_id.inserted_id}, Session)
 
         else:
             session = Session(**session)
+        if session is None:
+            logger.error("Failed to create or retrieve session.")
+            return
 
         if experiment is not None and not session.messaging_services:
             try:
@@ -187,11 +191,11 @@ class DataIngestor(IngestorBase):
                 logger.error(f"Failed to set SciLog logbook for session: {e}")
 
         logger.info(
-            f"Setting active_session_id for deployment {deployment_id} to {session._id} (experiment {experiment['_id']})"
+            f"Setting active_session_id for deployment {deployment_id} to {session.id} (experiment {experiment['_id']})"
         )
 
         self.datasource.db["deployments"].update_one(
-            {"_id": ObjectId(deployment_id)}, {"$set": {"active_session_id": str(session._id)}}
+            {"_id": ObjectId(deployment_id)}, {"$set": {"active_session_id": str(session.id)}}
         )
 
     def _set_scilog_logbook_for_session(self, session: Session, realm_id: str, pgroup: dict):
