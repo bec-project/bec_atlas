@@ -120,13 +120,31 @@ class RedisAtlasEndpoints:
         return f"internal/deployment/{deployment_id}/ingest"
 
     @staticmethod
-    def available_logbooks(realm_id: str):
+    def available_logbooks():
         """
-        Endpoint for the available logbooks for a realm.
+        Endpoint for the available logbooks.
 
-        Args:
-            realm_id (str): The realm id
         Returns:
             str: The endpoint for the available logbooks
         """
-        return f"internal/{realm_id}/info/logbooks"
+        return "internal/info/logbooks"
+
+    @staticmethod
+    def signal_link_requests():
+        """
+        Endpoint for the signal link requests.
+
+        Returns:
+            str: The endpoint for the signal link requests
+        """
+        return "internal/signal_link_requests"
+
+    @staticmethod
+    def signal_group_updates():
+        """
+        Endpoint for the signal group updates.
+
+        Returns:
+            str: The endpoint for the signal group updates
+        """
+        return "internal/signal_group_updates"

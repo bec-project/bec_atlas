@@ -1,14 +1,21 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from fastapi import APIRouter, Depends
 
 from bec_atlas.authentication import convert_to_user, get_current_user
 from bec_atlas.datasources.mongodb.mongodb import MongoDBDatasource
-from bec_atlas.model.model import DeploymentAccess, Realm, User
+from bec_atlas.model.model import DeploymentAccess, Experiment, Realm, User
 from bec_atlas.router.base_router import BaseRouter
+
+if TYPE_CHECKING:  # pragma: no cover
+    from bec_atlas.datasources.datasource_manager import DatasourceManager
 
 
 class RealmRouter(BaseRouter):
-    def __init__(self, prefix="/api/v1", datasources=None):
-        super().__init__(prefix, datasources)
+    def __init__(self, datasources: DatasourceManager, prefix="/api/v1"):
+        super().__init__(datasources, prefix)
         self.db: MongoDBDatasource = self.datasources.mongodb
         self.router = APIRouter(prefix=prefix)
         self.router.add_api_route(
@@ -33,6 +40,14 @@ class RealmRouter(BaseRouter):
             methods=["GET"],
             description="Get all realms with deployment access",
             response_model=list[Realm],
+            response_model_exclude_none=True,
+        )
+        self.router.add_api_route(
+            "/realms/experiments",
+            self.experiments_for_realm,
+            methods=["GET"],
+            description="Get all experiments for a realm",
+            response_model=list[Experiment],
             response_model_exclude_none=True,
         )
 
@@ -110,3 +125,18 @@ class RealmRouter(BaseRouter):
             Realm: The realm with the id
         """
         return self.db.find_one("realms", {"_id": realm_id}, Realm, user=current_user)
+
+    @convert_to_user
+    async def experiments_for_realm(
+        self, realm_id: str, current_user: User = Depends(get_current_user)
+    ):
+        """
+        Get all experiments for a realm.
+
+        Args:
+            realm_id (str): The realm id
+            current_user (UserInfo): The current user
+        Returns:
+            list[Experiment]: List of experiments for the realm
+        """
+        return self.db.find("experiments", {"realm_id": realm_id}, Experiment, user=current_user)

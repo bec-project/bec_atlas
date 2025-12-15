@@ -7,6 +7,20 @@
     "realm_id": "demo_beamline_1",
     "name": "Demo Deployment 1",
     "active_session_id": null,
-    "config_templates": []
+    "config_templates": [],
+    "messaging_config": {
+      "signal": {
+        "enabled": true,
+        "default": null
+      },
+      "scilog": {
+        "enabled": true,
+        "default": null
+      },
+      "teams": {
+        "enabled": false,
+        "default": null
+      }
+    }
   }
 ]

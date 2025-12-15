@@ -2,6 +2,7 @@
 """
 BEC Atlas Get Key - A utility to retrieve deployment environment files
 """
+
 import getpass
 import socket
 from typing import Optional

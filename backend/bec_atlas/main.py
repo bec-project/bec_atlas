@@ -8,6 +8,7 @@ from bec_atlas.router.deployment_access_router import DeploymentAccessRouter
 from bec_atlas.router.deployment_credentials import DeploymentCredentialsRouter
 from bec_atlas.router.deployments_router import DeploymentsRouter
 from bec_atlas.router.health_router import HealthRouter
+from bec_atlas.router.messaging_service_router import MessagingServiceRouter
 from bec_atlas.router.realm_router import RealmRouter
 from bec_atlas.router.redis_router import RedisRouter, RedisWebsocket
 from bec_atlas.router.scan_router import ScanRouter
@@ -91,6 +92,12 @@ class AtlasApp:
             prefix=self.prefix, datasources=self.datasources
         )
         self.app.include_router(self.deployment_access_router.router, tags=["Deployment Access"])
+
+        # Messaging Service
+        self.messaging_service_router = MessagingServiceRouter(
+            prefix=self.prefix, datasources=self.datasources
+        )
+        self.app.include_router(self.messaging_service_router.router, tags=["Messaging Service"])
 
         # BEC Access
         self.bec_access_router = BECAccessRouter(

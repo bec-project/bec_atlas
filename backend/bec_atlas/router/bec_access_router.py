@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from bec_atlas.authentication import convert_to_user, get_current_user
@@ -17,12 +18,9 @@ if TYPE_CHECKING:  # pragma: no cover
 
 class BECAccessRouter(BaseRouter):
     def __init__(
-        self,
-        prefix="/api/v1",
-        datasources: DatasourceManager | None = None,
-        app: AtlasApp | None = None,
+        self, datasources: DatasourceManager, prefix="/api/v1", app: AtlasApp | None = None
     ):
-        super().__init__(prefix, datasources)
+        super().__init__(datasources, prefix)
         self.app = app
 
         if not self.datasources:
@@ -95,7 +93,7 @@ class BECAccessRouter(BaseRouter):
 
         out = self.db.find_one(
             "bec_access_profiles",
-            {"deployment_id": deployment_id, "username": username},
+            {"deployment_id": ObjectId(deployment_id), "username": username},
             BECAccessProfile,
             user=current_user,
         )

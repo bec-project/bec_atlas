@@ -3,6 +3,7 @@ from unittest import mock
 import pytest
 from bec_lib import messages
 from bec_lib.serialization import MsgpackSerialization
+from bson import ObjectId
 
 from bec_atlas.model.model import BECAccessProfile, DeploymentAccess, User
 from bec_atlas.router.redis_router import RemoteAccess
@@ -156,7 +157,7 @@ def test_get_access(backend, user, deployment_access, expected_access):
         # Full access profile - should allow all operations
         (
             BECAccessProfile(
-                deployment_id="test_id",
+                deployment_id=ObjectId("68beba57a1ba24b03cb3b8b3"),
                 username="admin",
                 owner_groups=["admin"],
                 keys=["*"],
@@ -170,7 +171,7 @@ def test_get_access(backend, user, deployment_access, expected_access):
         # Read-only access to keys
         (
             BECAccessProfile(
-                deployment_id="test_id",
+                deployment_id=ObjectId("68beba57a1ba24b03cb3b8b3"),
                 username="reader",
                 owner_groups=["readers"],
                 keys=["%R~data/*"],
@@ -184,7 +185,7 @@ def test_get_access(backend, user, deployment_access, expected_access):
         # Write operation with read-only access should fail
         (
             BECAccessProfile(
-                deployment_id="test_id",
+                deployment_id=ObjectId("68beba57a1ba24b03cb3b8b3"),
                 username="reader",
                 owner_groups=["readers"],
                 keys=["%R~data/*"],
@@ -198,7 +199,7 @@ def test_get_access(backend, user, deployment_access, expected_access):
         # Send operation to allowed channel
         (
             BECAccessProfile(
-                deployment_id="test_id",
+                deployment_id=ObjectId("68beba57a1ba24b03cb3b8b3"),
                 username="writer",
                 owner_groups=["writers"],
                 keys=["*"],
@@ -212,7 +213,7 @@ def test_get_access(backend, user, deployment_access, expected_access):
         # Testing set_and_publish with mixed permissions
         (
             BECAccessProfile(
-                deployment_id="test_id",
+                deployment_id=ObjectId("68beba57a1ba24b03cb3b8b3"),
                 username="user",
                 owner_groups=["users"],
                 keys=["%RW~status/*"],
@@ -226,7 +227,7 @@ def test_get_access(backend, user, deployment_access, expected_access):
         # Testing set_and_publish with insufficient key permissions
         (
             BECAccessProfile(
-                deployment_id="test_id",
+                deployment_id=ObjectId("68beba57a1ba24b03cb3b8b3"),
                 username="user",
                 owner_groups=["users"],
                 keys=["%R~status/*"],
@@ -240,7 +241,7 @@ def test_get_access(backend, user, deployment_access, expected_access):
         # Testing invalid operation
         (
             BECAccessProfile(
-                deployment_id="test_id",
+                deployment_id=ObjectId("68beba57a1ba24b03cb3b8b3"),
                 username="admin",
                 owner_groups=["admin"],
                 keys=["*"],
@@ -254,7 +255,7 @@ def test_get_access(backend, user, deployment_access, expected_access):
         # Test send operation with insufficient channel permissions
         (
             BECAccessProfile(
-                deployment_id="test_id",
+                deployment_id=ObjectId("68beba57a1ba24b03cb3b8b3"),
                 username="user",
                 owner_groups=["users"],
                 keys=["*"],
@@ -268,7 +269,7 @@ def test_get_access(backend, user, deployment_access, expected_access):
         # Test set_and_publish with insufficient write permissions
         (
             BECAccessProfile(
-                deployment_id="test_id",
+                deployment_id=ObjectId("68beba57a1ba24b03cb3b8b3"),
                 username="user",
                 owner_groups=["users"],
                 keys=["%R~status/*"],
@@ -282,7 +283,7 @@ def test_get_access(backend, user, deployment_access, expected_access):
         # Test set_and_publish with insufficient channel permissions
         (
             BECAccessProfile(
-                deployment_id="test_id",
+                deployment_id=ObjectId("68beba57a1ba24b03cb3b8b3"),
                 username="user",
                 owner_groups=["users"],
                 keys=["%RW~status*"],
@@ -296,7 +297,7 @@ def test_get_access(backend, user, deployment_access, expected_access):
         # Test get operation with insufficient read permissions
         (
             BECAccessProfile(
-                deployment_id="test_id",
+                deployment_id=ObjectId("68beba57a1ba24b03cb3b8b3"),
                 username="user",
                 owner_groups=["users"],
                 keys=["%W~status/*"],

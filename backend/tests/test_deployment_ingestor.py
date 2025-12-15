@@ -145,17 +145,18 @@ def test_load_deployment_creation(deployment_ingestor, sample_deployment_data):
     assert deployment is not None
     assert deployment["realm_id"] == "test_realm"
     assert deployment["name"] == "test-host-001.psi.ch"
-    assert deployment["owner_groups"] == ["admin"]
-    assert deployment["access_groups"] == ["test_deployment_group"]
+    assert deployment["owner_groups"] == ["test_deployment_group", "admin"]
+    # Any authenticated user has access by default
+    assert deployment["access_groups"] == ["auth_user"]
 
 
 @pytest.mark.timeout(60)
-def test_load_deployment_access_groups_update(deployment_ingestor, sample_deployment_data):
-    """Test that deployment access groups are updated when changed."""
+def test_load_deployment_owner_groups_update(deployment_ingestor, sample_deployment_data):
+    """Test that deployment owner groups are updated when changed."""
     # Load initial data
     deployment_ingestor.load(sample_deployment_data)
 
-    # Modify access groups
+    # Modify owner groups
     modified_data = sample_deployment_data.copy()
     modified_data["test_realm"]["deployments"]["test-host-001.psi.ch"]["deployment_access"] = [
         "new_group"
@@ -165,7 +166,7 @@ def test_load_deployment_access_groups_update(deployment_ingestor, sample_deploy
     deployment_ingestor.load(modified_data)
 
     deployment = deployment_ingestor.db["deployments"].find_one({"name": "test-host-001.psi.ch"})
-    assert deployment["access_groups"] == ["new_group"]
+    assert deployment["owner_groups"] == ["new_group", "admin"]
 
 
 @pytest.mark.timeout(60)
@@ -189,14 +190,14 @@ def test_load_default_session_creation(deployment_ingestor, sample_deployment_da
 
     deployment = deployment_ingestor.db["deployments"].find_one({"name": "test-host-001.psi.ch"})
     session = deployment_ingestor.db["sessions"].find_one(
-        {"name": "_default_", "deployment_id": str(deployment["_id"])}
+        {"name": "_default_", "deployment_id": deployment["_id"]}
     )
 
     assert session is not None
     assert session["name"] == "_default_"
-    assert session["deployment_id"] == str(deployment["_id"])
-    assert session["owner_groups"] == ["test_deployment_group"]
-    assert session["access_groups"] == ["test_experiment_group"]
+    assert session["deployment_id"] == deployment["_id"]
+    assert session["owner_groups"] == ["test_experiment_group", "admin"]
+    assert session["access_groups"] == []
 
 
 @pytest.mark.timeout(60)
@@ -219,11 +220,11 @@ def test_load_default_session_access_groups_update(deployment_ingestor, sample_d
 
     deployment = deployment_ingestor.db["deployments"].find_one({"name": "test-host-001.psi.ch"})
     session = deployment_ingestor.db["sessions"].find_one(
-        {"name": "_default_", "deployment_id": str(deployment["_id"])}
+        {"name": "_default_", "deployment_id": deployment["_id"]}
     )
 
-    assert session["access_groups"] == ["new_exp_group"]
-    assert session["owner_groups"] == ["new_dep_group"]
+    assert session["access_groups"] == []
+    assert session["owner_groups"] == ["new_exp_group", "admin"]
 
 
 @pytest.mark.timeout(60)
@@ -273,8 +274,8 @@ def test_load_deployment_access_creation(deployment_ingestor, sample_deployment_
 
     assert access is not None
     assert access["_id"] == deployment["_id"]
-    assert access["owner_groups"] == ["admin"]
-    assert access["access_groups"] == ["test_deployment_group"]
+    assert access["owner_groups"] == ["admin", "test_deployment_group"]
+    assert access["access_groups"] == []
     assert access["user_read_access"] == []
     assert access["user_write_access"] == []
     assert access["su_read_access"] == []
@@ -301,7 +302,8 @@ def test_load_deployment_access_document_groups_update(deployment_ingestor, samp
     deployment = deployment_ingestor.db["deployments"].find_one({"name": "test-host-001.psi.ch"})
     access = deployment_ingestor.db["deployment_access"].find_one({"_id": deployment["_id"]})
 
-    assert access["access_groups"] == ["updated_group"]
+    assert access["access_groups"] == []
+    assert access["owner_groups"] == ["admin", "updated_group"]
 
 
 @pytest.mark.timeout(60)
@@ -318,14 +320,16 @@ def test_load_minimal_data(deployment_ingestor):
     # Check deployment creation
     deployment = deployment_ingestor.db["deployments"].find_one({"name": "minimal-host.psi.ch"})
     assert deployment is not None
-    assert deployment["access_groups"] == []  # Default empty list
+    assert deployment["access_groups"] == [
+        "auth_user"
+    ]  # Any authenticated user has access by default
 
     # Check session creation with defaults
     session = deployment_ingestor.db["sessions"].find_one(
-        {"name": "_default_", "deployment_id": str(deployment["_id"])}
+        {"name": "_default_", "deployment_id": deployment["_id"]}
     )
     assert session is not None
-    assert session["owner_groups"] == []  # Default empty list
+    assert session["owner_groups"] == ["admin"]  # Default owner group
     assert session["access_groups"] == []  # Default empty list
 
 
@@ -449,10 +453,10 @@ def test_load_realistic_yaml_structure(deployment_ingestor):
 
     # Verify sessions
     prod_session = deployment_ingestor.db["sessions"].find_one(
-        {"name": "_default_", "deployment_id": str(prod_deployment["_id"])}
+        {"name": "_default_", "deployment_id": prod_deployment["_id"]}
     )
     test_session = deployment_ingestor.db["sessions"].find_one(
-        {"name": "_default_", "deployment_id": str(test_deployment["_id"])}
+        {"name": "_default_", "deployment_id": test_deployment["_id"]}
     )
 
     assert prod_session is not None

@@ -938,7 +938,7 @@
     "timestamp": 1737730079.4184341,
     "owner_groups": ["admin"],
     "access_groups": ["admin"],
-    "session_id": "6792392e3e28ff5364050c85"
+    "session_id": { "$oid": "6792392e3e28ff5364050c85" }
   },
   {
     "_id": "096a9fbd-36fc-4e55-a9a0-7a581408d40d",
@@ -1879,7 +1879,7 @@
     "timestamp": 1737748407.423161,
     "owner_groups": ["admin"],
     "access_groups": ["admin"],
-    "session_id": "6792392e3e28ff5364050c85"
+    "session_id": { "$oid": "6792392e3e28ff5364050c85" }
   },
   {
     "_id": "cb9d11d0-10ab-4ea5-b9b9-8add6a784087",
@@ -2820,7 +2820,7 @@
     "timestamp": 1737748453.817934,
     "owner_groups": ["admin"],
     "access_groups": ["admin"],
-    "session_id": "6792392e3e28ff5364050c85"
+    "session_id": { "$oid": "6792392e3e28ff5364050c85" }
   },
   {
     "_id": "2f372a7b-e562-4df5-9ad6-bbf5ef5692a4",
@@ -3761,6 +3761,6 @@
     "timestamp": 1737748482.9922938,
     "owner_groups": ["admin"],
     "access_groups": ["admin"],
-    "session_id": "6792392e3e28ff5364050c80"
+    "session_id": { "$oid": "6792392e3e28ff5364050c80" }
   }
 ]

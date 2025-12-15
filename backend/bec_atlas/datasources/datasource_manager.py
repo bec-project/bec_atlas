@@ -4,6 +4,7 @@ from bec_lib.logger import bec_logger
 
 from bec_atlas.datasources.mongodb.mongodb import MongoDBDatasource
 from bec_atlas.datasources.redis_datasource import RedisDatasource
+from bec_atlas.ingestor.scilog_logbook_manager import SciLogLogbookManager
 
 logger = bec_logger.logger
 
@@ -11,21 +12,15 @@ logger = bec_logger.logger
 class DatasourceManager:
     def __init__(self, config: dict):
         self.config = config
-        self._redis: RedisDatasource | None = None
-        self._mongodb: MongoDBDatasource | None = None
-        self.load_datasources()
+        self._redis: RedisDatasource = RedisDatasource(config["redis"])
+        self._mongodb: MongoDBDatasource = MongoDBDatasource(config["mongodb"])
+        self._scilog_logbook_manager: SciLogLogbookManager = SciLogLogbookManager(
+            config=config["scilog"]
+        )
 
     def connect(self):
         self.redis.connect()
         self.mongodb.connect()
-
-    def load_datasources(self):
-        redis_config = self.config.get("redis")
-        if redis_config:
-            self._redis = RedisDatasource(redis_config)
-        mongodb_config = self.config.get("mongodb")
-        if mongodb_config:
-            self._mongodb = MongoDBDatasource(mongodb_config)
 
     @property
     def redis(self) -> RedisDatasource:
@@ -39,8 +34,12 @@ class DatasourceManager:
             raise RuntimeError("MongoDB datasource not loaded")
         return self._mongodb
 
+    @property
+    def scilog(self) -> SciLogLogbookManager:
+        if not self._scilog_logbook_manager:
+            raise RuntimeError("SciLog Logbook Manager not loaded")
+        return self._scilog_logbook_manager
+
     def shutdown(self):
-        if self._redis:
-            self._redis.shutdown()
-        if self._mongodb:
-            self._mongodb.shutdown()
+        self._redis.shutdown()
+        self._mongodb.shutdown()

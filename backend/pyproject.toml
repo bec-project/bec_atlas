@@ -25,6 +25,7 @@ dependencies = [
     "ldap3",
     "typer",
     "requests",
+    "scilog~=2.1",
 ]
 
 
@@ -32,7 +33,7 @@ dependencies = [
 dev = [
     "coverage~=7.0",
     "fakeredis",
-    "mongomock~=4.3",
+    "mongomock @ git+https://github.com/wakonig/mongomock.git",
     "isort~=5.13, >=5.13.2",
     "pytest-asyncio",
     "pytest-random-order~=1.1",
@@ -45,7 +46,8 @@ dev = [
 [project.scripts]
 bec-atlas-fastapi = "bec_atlas.main:main"
 bec-atlas = "bec_atlas.utils.launch:main"
-bec-atlas-ingestor = "bec_atlas.ingestor:main"
+bec-atlas-ingestor = "bec_atlas.ingestor.data_ingestor:main"
+bec-atlas-messaging-ingestor = "bec_atlas.ingestor.message_service_ingestor:main"
 bec-atlas-update = "bec_atlas.utils.bec_atlas_update:app"
 bec-atlas-get-key = "bec_atlas.utils.bec_atlas_get_key:app"
 
@@ -60,6 +62,9 @@ exclude = ["docs/**", "tests/**"]
 [tool.hatch.build.targets.sdist]
 include = ["*"]
 exclude = ["docs/**", "tests/**"]
+
+[tool.hatch.metadata]
+allow-direct-references = true
 
 [tool.black]
 line-length = 100

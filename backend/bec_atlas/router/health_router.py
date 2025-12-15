@@ -1,7 +1,14 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from fastapi import APIRouter, Response
 from pydantic import BaseModel
 
 from bec_atlas.router.base_router import BaseRouter
+
+if TYPE_CHECKING:  # pragma: no cover
+    from bec_atlas.datasources.datasource_manager import DatasourceManager
 
 
 class HealthStatus(BaseModel):
@@ -10,8 +17,8 @@ class HealthStatus(BaseModel):
 
 
 class HealthRouter(BaseRouter):
-    def __init__(self, prefix="/api/v1", datasources=None):
-        super().__init__(prefix, datasources)
+    def __init__(self, datasources: DatasourceManager, prefix="/api/v1"):
+        super().__init__(datasources, prefix)
         self.router = APIRouter(prefix=prefix)
         self.router.add_api_route("/health", self.health_check, methods=["GET"])
 

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import secrets
 import socket
 from typing import TYPE_CHECKING
@@ -12,12 +14,13 @@ from bec_atlas.model.model import DeploymentCredential, Deployments, User
 from bec_atlas.router.base_router import BaseRouter
 
 if TYPE_CHECKING:  # pragma: no cover
+    from bec_atlas.datasources.datasource_manager import DatasourceManager
     from bec_atlas.datasources.redis_datasource import RedisDatasource
 
 
 class DeploymentCredentialsRouter(BaseRouter):
-    def __init__(self, prefix="/api/v1", datasources=None):
-        super().__init__(prefix, datasources)
+    def __init__(self, datasources: DatasourceManager, prefix="/api/v1"):
+        super().__init__(datasources, prefix)
         if not self.datasources:
             raise RuntimeError("Datasources not loaded")
         self.db: MongoDBDatasource = self.datasources.mongodb
@@ -144,11 +147,17 @@ ATLAS_KEY={credential.credential}
             if out is None:
                 raise HTTPException(status_code=404, detail="Deployment not found")
 
+            deployment = self.db.find_one(
+                "deployments", {"_id": ObjectId(deployment_id)}, Deployments
+            )
+            if not deployment:
+                raise HTTPException(status_code=404, detail="Deployment not found")
+
             # update the redis deployment key
             if not self.datasources:
                 raise RuntimeError("Datasources not loaded")
             redis: RedisDatasource = self.datasources.redis
-            redis.add_deployment_acl(out)
+            redis.add_deployment_acl(out, realm_id=deployment.realm_id)
 
             return out
         raise HTTPException(

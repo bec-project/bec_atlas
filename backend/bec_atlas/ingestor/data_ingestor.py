@@ -7,27 +7,32 @@ from bec_lib.endpoints import EndpointInfo, MessageEndpoints
 from bec_lib.logger import bec_logger
 from bson import ObjectId
 
-from bec_atlas.datasources.endpoints import RedisAtlasEndpoints
 from bec_atlas.ingestor.ingestor_base import IngestorBase
-from bec_atlas.model.model import MessageServiceConfig, ScanStatus, Session
+from bec_atlas.ingestor.scilog_logbook_manager import SciLogLogbookManager
+from bec_atlas.model.model import ScanStatus, Session
 
 logger = bec_logger.logger
 
 
 class DataIngestor(IngestorBase):
+    def __init__(self, config: dict):
+        super().__init__(config)
+        self.scilog_manager = SciLogLogbookManager(config=config.get("scilog", {}))
 
     def get_stream_key(self, deployment_id: str) -> EndpointInfo:
         return MessageEndpoints.atlas_deployment_ingest(deployment_name=deployment_id)
 
-    def handle_message(self, msg_dict: dict, deployment_id: str):
+    def handle_message(self, msg_dict: dict, stream_key: str):
         """
         Handle a message from the Redis queue.
 
         Args:
             msg_dict (dict): The message dictionary.
-            deployment_id (str): The deployment id
+            stream_key (str): The stream key.
 
         """
+
+        deployment_id = stream_key.split("/")[-2]
         for key, val in msg_dict.items():
             match key:
                 case "scan_status":
@@ -78,11 +83,12 @@ class DataIngestor(IngestorBase):
 
         # scans are indexed by the scan_id, hence we can use find_one and search by the ObjectId
         data = self.datasource.db["scans"].find_one({"_id": msg.scan_id})
+        access_groups = session.access_groups + session.owner_groups
         if data is None:
             msg_conv = ScanStatus(
-                owner_groups=["admin"], access_groups=session.access_groups, **msg.model_dump()
+                owner_groups=["admin"], access_groups=access_groups, **msg.model_dump()
             )
-            msg_conv.session_id = str(session.id)
+            msg_conv.session_id = session.id
 
             out = msg_conv.model_dump(exclude_none=True)
             out["_id"] = msg.scan_id
@@ -150,7 +156,7 @@ class DataIngestor(IngestorBase):
             if default_session:
                 self.datasource.db["deployments"].update_one(
                     {"_id": ObjectId(deployment_id)},
-                    {"$set": {"active_session_id": str(default_session["_id"])}},
+                    {"$set": {"active_session_id": default_session["_id"]}},
                 )
             else:
                 self.datasource.db["deployments"].update_one(
@@ -160,84 +166,100 @@ class DataIngestor(IngestorBase):
             return
 
         # Find the latest session for the experiment and deployment
-        session = self.datasource.db["sessions"].find_one(
-            {"experiment_id": experiment["_id"], "deployment_id": str(deployment["_id"])}
+        session = self.datasource.get_full_session(
+            {"experiment_id": experiment["_id"], "deployment_id": deployment_id}
         )
 
-        if session is None:
+        if not session:
             logger.info(f"No session found for experiment {experiment['_id']}, creating a new one.")
             session = Session(
                 name=msg.value,
                 experiment_id=str(experiment["_id"]),
-                deployment_id=str(deployment["_id"]),
-                owner_groups=experiment.get("access_groups", []) + ["admin"],
-                access_groups=experiment.get("access_groups", []) + [msg.value],
+                deployment_id=deployment["_id"],
+                owner_groups=deployment.get("owner_groups", []),
+                access_groups=[msg.value],
             )
-            self.datasource.db["sessions"].insert_one(session.model_dump())
+            session_id = self.datasource.db["sessions"].insert_one(
+                session.model_dump(exclude_none=False)
+            )
+            session = self.datasource.find_one("sessions", {"_id": session_id.inserted_id}, Session)
 
         else:
-            session = Session(**session)
+            session = session[0]  # Take the latest session
+        if session is None:
+            logger.error("Failed to create or retrieve session.")
+            return
 
         if experiment is not None and not session.messaging_services:
             try:
-                self._set_scilog_logbook_for_session(
-                    session, deployment["realm_id"], pgroup=experiment
-                )
+                self._set_scilog_logbook_for_session(session)
             except Exception as e:
                 logger.error(f"Failed to set SciLog logbook for session: {e}")
 
         logger.info(
-            f"Setting active_session_id for deployment {deployment_id} to {session._id} (experiment {experiment['_id']})"
+            f"Setting active_session_id for deployment {deployment_id} to {session.id} (experiment {experiment['_id']})"
         )
 
         self.datasource.db["deployments"].update_one(
-            {"_id": ObjectId(deployment_id)}, {"$set": {"active_session_id": str(session._id)}}
+            {"_id": ObjectId(deployment_id)}, {"$set": {"active_session_id": session.id}}
         )
 
-    def _set_scilog_logbook_for_session(self, session: Session, realm_id: str, pgroup: dict):
+        if deployment is not None:
+            deployments = self.datasource.get_full_deployment({"_id": deployment_id})
+            if deployments:
+                self.redis_datasource.update_deployment_info(deployment=deployments[0])
+
+    def _set_scilog_logbook_for_session(self, session: Session):
         """
-        Fetch the available SciLog logbooks for the deployment from Redis. If a logbook
-        matches the session name, add the SciLog messaging service to the session.
+        Fetch the available SciLog logbooks from Redis. If a logbook's ownerGroup
+        matches the session's experiment_id, create a SciLog messaging service for the session
+        if one doesn't exist yet.
 
         Args:
             session (Session): The session object.
-            realm_id (str): The realm id.
 
         """
         if self.datasource is None or self.datasource.db is None:
             logger.error("Datasource not initialized.")
             return
 
-        out: messages.AvailableResourceMessage | None = self.redis.get(
-            RedisAtlasEndpoints.available_logbooks(realm_id=realm_id)
-        )
+        if session.experiment_id is None:
+            return
+
+        out = self.scilog_manager.fetch_logbooks_for_pgroup(session.experiment_id)
         if not out:
             return
-        logbooks = out.resource
-        target_logbook = next(
-            (lb for lb in logbooks if lb["ownerGroup"] == session.experiment_id), None
-        )
+        target_logbook = out[0]  # Take the first logbook found
+
         if not target_logbook:
             return
+
         logger.info(
-            f"Adding SciLog messaging service to session {session._id} for logbook {target_logbook['name']}"
+            f"Setting SciLog messaging service for session {session.id} with logbook {target_logbook['name']}"
         )
-        messaging_service = MessageServiceConfig(
-            owner_groups=session.owner_groups,
-            access_groups=session.access_groups,
-            service_name="scilog",
-            scopes=[target_logbook["id"]],
-            enabled=True,
+
+        # Create or update the messaging service document using upsert
+        messaging_service_data = {
+            "parent_id": session.id,
+            "service_type": "scilog",
+            "scope": "default",
+            "enabled": True,
+            "logbook_id": target_logbook["id"],
+            "owner_groups": session.owner_groups,
+            "access_groups": session.access_groups,
+        }
+
+        # We check if we already have a scilog messaging service with scope "default" for the session, if so, we skip the update.
+        # If we don't have one, we create it.
+        existing_service = self.datasource.db["messaging_services"].find_one(
+            {"parent_id": session.id, "service_type": "scilog", "scope": "default"}
         )
-        session.messaging_services.append(messaging_service)
-        self.datasource.db["sessions"].update_one(
-            {"_id": session._id},
-            {
-                "$set": {
-                    "messaging_services": [ms.model_dump() for ms in session.messaging_services]
-                }
-            },
-        )
+        if existing_service:
+            logger.info(
+                f"SciLog messaging service already exists for session {session.id}, skipping creation."
+            )
+            return
+        self.datasource.db["messaging_services"].insert_one(messaging_service_data)
 
 
 def main():  # pragma: no cover
@@ -256,5 +278,5 @@ def main():  # pragma: no cover
     ingestor.shutdown()
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     main()
