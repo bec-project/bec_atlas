@@ -53,7 +53,7 @@ class IngestorBase(ABC):
         Start the listener for the available deployments.
 
         """
-        out = self.redis.get("deployments")
+        out = self.redis.get(RedisAtlasEndpoints.deployments())
         if out:
             self.available_deployments = out.data
             self.update_consumer_groups()
