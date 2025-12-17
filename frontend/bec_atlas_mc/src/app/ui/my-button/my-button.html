@@ -1,1 +1,8 @@
-<p>my-button works!</p>
+<button
+  mat-raised-button
+  color="primary"
+  [disabled]="disabled"
+  (click)="onClick()"
+>
+  {{ label }}
+</button>
