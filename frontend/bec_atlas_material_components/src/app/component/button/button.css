@@ -1,0 +1,106 @@
+:host {
+	--app-button-bg: var(
+		--mdc-filled-button-container-color,
+		var(--mat-sys-color-primary, #6750a4)
+	);
+	--app-button-bg-hover: color-mix(in srgb, var(--app-button-bg) 90%, white);
+	--app-button-bg-toggled: var(
+		--mat-sys-color-primary-container,
+		#eaddff
+	);
+	--app-button-text-color: var(
+		--mdc-filled-button-label-text-color,
+		var(--mat-sys-color-on-primary, #ffffff)
+	);
+	--app-button-text-color-toggled: var(
+		--mat-sys-color-on-primary-container,
+		#21005d
+	);
+	--app-button-outline-color: color-mix(
+		in srgb,
+		var(--app-button-bg) 35%,
+		transparent
+	);
+	--app-button-bg-disabled: var(
+		--mdc-filled-button-disabled-container-color,
+		rgba(0, 0, 0, 0.12)
+	);
+	--app-button-text-color-disabled: var(
+		--mdc-filled-button-disabled-label-text-color,
+		rgba(0, 0, 0, 0.38)
+	);
+	--app-button-radius: 19px;
+	--app-button-padding-x: 0.85rem;
+	--app-button-padding-y: 0.4rem;
+	--app-button-icon-size: 1.1rem;
+	--app-button-toggle-ring: color-mix(
+		in srgb,
+		var(--mat-sys-color-primary, #6750a4) 55%,
+		white
+	);
+	display: inline-flex;
+}
+
+.app-button__control {
+	align-items: center;
+	background-color: var(--app-button-bg);
+	border: 1px solid var(--app-button-outline-color);
+	border-radius: var(--app-button-radius);
+	color: var(--app-button-text-color);
+	display: inline-flex;
+	font-weight: 500;
+	gap: 0.35rem;
+	letter-spacing: 0.01em;
+	min-height: 2.25rem;
+	min-width: 0;
+	padding: var(--app-button-padding-y) var(--app-button-padding-x);
+	position: relative;
+	text-transform: none;
+	transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.app-button__control:not(:disabled):hover {
+	background-color: var(--app-button-bg-hover);
+}
+
+.app-button__control:focus-visible {
+	outline: 2px solid color-mix(in srgb, var(--app-button-bg) 55%, white);
+	outline-offset: 2px;
+}
+
+.app-button__control:disabled {
+	background-color: var(--app-button-bg-disabled);
+	border-color: transparent;
+	color: var(--app-button-text-color-disabled);
+	cursor: not-allowed;
+}
+
+.app-button__control--toggled {
+	background-color: var(--app-button-bg-toggled);
+	color: var(--app-button-text-color-toggled);
+	border-color: transparent;
+	box-shadow: 0 0 0 2px var(--app-button-toggle-ring);
+}
+
+.app-button__control--icon-only {
+	justify-content: center;
+	min-width: 2.25rem;
+	padding-inline: 0.65rem;
+}
+
+.app-button__control mat-icon {
+	font-size: var(--app-button-icon-size);
+	height: var(--app-button-icon-size);
+	width: var(--app-button-icon-size);
+}
+
+.app-button__label {
+	font-weight: 500;
+	white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.app-button__control {
+		transition: none;
+	}
+}

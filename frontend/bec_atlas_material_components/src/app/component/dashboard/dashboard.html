@@ -1,16 +1,55 @@
-<mat-card>
-  <mat-card-content >
-   
-    @for (btn of buttons; track btn) {
-            <app-button [icon]= btn.icon [label]= btn.label
-                (toggled())="onButtonClick(btn.label)"
-            />
-    }
+<section class="dashboard-shell">
+  <mat-card class="dashboard-card">
+    <mat-card-content>
+      <section class="button-grid">
+        @for (btn of buttons; track btn.label) {
+          <app-button
+            [icon]="btn.icon"
+            [label]="btn.label"
+            [showIcon]="showIcon()"
+            [showLabel]="showLabel()"
+            [disabled]="buttonDisabled()"
+            [togglable]="buttonTogglable()"
+            [defaultToggled]="defaultToggled()"
+            (clicked)="onButtonClick(btn.label)"
+            (toggledChange)="onButtonToggled(btn.label, $event)"
+          />
+        }
+      </section>
 
-<div class="output-label">
-  <span>@if(outputLabel()) { {{ outputLabel() }} }</span>
-</div>
-  </mat-card-content>
-</mat-card>
+      <section class="control-panel">
+        <h3>Button API Controls</h3>
+        <div class="control-panel__row">
+          <button mat-stroked-button type="button" (click)="toggleShowIcon()">
+            {{ showIcon() ? 'Hide icon' : 'Show icon' }}
+          </button>
+          <button mat-stroked-button type="button" (click)="toggleShowLabel()">
+            {{ showLabel() ? 'Hide label' : 'Show label' }}
+          </button>
+          <button mat-stroked-button type="button" (click)="toggleDisabled()">
+            {{ buttonDisabled() ? 'Enable buttons' : 'Disable buttons' }}
+          </button>
+          <button mat-stroked-button type="button" (click)="toggleTogglable()">
+            {{ buttonTogglable() ? 'Make non-togglable' : 'Make togglable' }}
+          </button>
+          <button
+            mat-stroked-button
+            type="button"
+            (click)="toggleDefaultToggled()"
+            [disabled]="!buttonTogglable()"
+          >
+            {{ defaultToggled() ? 'Reset default toggle' : 'Default toggled' }}
+          </button>
+        </div>
+      </section>
+
+      <div class="output-label" role="status" aria-live="polite">
+        @if (outputLabel()) {
+          <span>{{ outputLabel() }}</span>
+        }
+      </div>
+    </mat-card-content>
+  </mat-card>
+</section>
 
 

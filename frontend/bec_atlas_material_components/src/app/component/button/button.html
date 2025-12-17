@@ -1,8 +1,18 @@
 <button
     mat-button
     type="button"
-    (click)="onClick()"
+    class="app-button__control"
+    [class.app-button__control--toggled]="isToggled()"
+    [class.app-button__control--icon-only]="shouldRenderIcon() && !shouldRenderLabel()"
+    [disabled]="isDisabled()"
+    [attr.aria-pressed]="togglable() ? isToggled() : null"
+    [attr.aria-disabled]="isDisabled()"
+    (click)="handleClick()"
 >
-    <mat-icon>{{ icon() }}</mat-icon>
-    @if (label()) {<span>{{ label() }}</span>}
+    @if (shouldRenderIcon()) {
+        <mat-icon aria-hidden="true">{{ icon() }}</mat-icon>
+    }
+    @if (shouldRenderLabel()) {
+        <span class="app-button__label">{{ label() }}</span>
+    }
 </button>
