@@ -1,7 +1,9 @@
-<section class="dashboard-shell">
-  <mat-card class="dashboard-card">
-    <mat-card-content>
-      <section class="button-grid">
+<section
+  class="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-8 bg-[var(--mat-sys-color-surface-container-low,#ececf2)]"
+>
+  <mat-card class="w-full max-w-[60rem]">
+    <mat-card-content class="space-y-6">
+      <section class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         @for (btn of buttons; track btn.label) {
           <app-button
             [icon]="btn.icon"
@@ -17,9 +19,9 @@
         }
       </section>
 
-      <section class="control-panel">
-        <h3>Button API Controls</h3>
-        <div class="control-panel__row">
+      <section class="border-t border-black/10 pt-5">
+        <h3 class="mb-3 text-base font-semibold">Button API Controls</h3>
+        <div class="flex flex-wrap gap-3">
           <button mat-stroked-button type="button" (click)="toggleShowIcon()">
             {{ showIcon() ? 'Hide icon' : 'Show icon' }}
           </button>
@@ -43,7 +45,7 @@
         </div>
       </section>
 
-      <div class="output-label" role="status" aria-live="polite">
+      <div class="mt-6 font-medium" role="status" aria-live="polite">
         @if (outputLabel()) {
           <span>{{ outputLabel() }}</span>
         }
