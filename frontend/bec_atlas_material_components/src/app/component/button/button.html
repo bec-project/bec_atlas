@@ -1,0 +1,8 @@
+<button
+    mat-button
+    type="button"
+    (click)="onClick()"
+>
+    <mat-icon>{{ icon() }}</mat-icon>
+    @if (label()) {<span>{{ label() }}</span>}
+</button>

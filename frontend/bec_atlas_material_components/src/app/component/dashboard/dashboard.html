@@ -1,0 +1,16 @@
+<mat-card>
+  <mat-card-content >
+   
+    @for (btn of buttons; track btn) {
+            <app-button [icon]= btn.icon [label]= btn.label
+                (toggled())="onButtonClick(btn.label)"
+            />
+    }
+
+<div class="output-label">
+  <span>@if(outputLabel()) { {{ outputLabel() }} }</span>
+</div>
+  </mat-card-content>
+</mat-card>
+
+
