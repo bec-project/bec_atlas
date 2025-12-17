@@ -1,0 +1,19 @@
+<mat-card class="card">
+  <h2 class="heading">Home</h2>
+
+  <p id="home-count" class="status" role="status" aria-live="polite">
+    Clicked: <strong>{{ count() }}</strong>
+  </p>
+
+  <app-my-button
+    [label]="buttonLabel()"
+    [disabled]="isDisabled()"
+    (clicked)="increment()"
+  ></app-my-button>
+
+  <app-my-button
+    label="Reset"
+    [disabled]="count() === 0"
+    (clicked)="reset()"
+  ></app-my-button>
+</mat-card>

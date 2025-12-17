@@ -1,17 +1,34 @@
-    <mat-card style="padding: 16px; display: grid; gap: 12px;">
-      <h2 style="margin: 0;">Signals + Button exercise</h2>
+<a class="skip-link" href="#main">Skip to content</a>
 
-      <div>Clicked: <strong>{{ count() }}</strong></div>
+<mat-toolbar class="toolbar">
+  <span class="app-title">{{ title() }}</span>
 
-      <app-my-button
-        [label]="buttonLabel()"
-        [disabled]="isDisabled()"
-        (clicked)="increment()"
-      ></app-my-button>
+  <nav class="nav" aria-label="Primary">
+    <a
+      mat-button
+      routerLink="/"
+      routerLinkActive
+      #homeLink="routerLinkActive"
+      [routerLinkActiveOptions]="{ exact: true }"
+      [class.active-link]="homeLink.isActive"
+      [attr.aria-current]="homeLink.isActive ? 'page' : null"
+    >
+      Home
+    </a>
 
-      <app-my-button
-        label="Reset"
-        [disabled]="count() === 0"
-        (clicked)="reset()"
-      ></app-my-button>
-    </mat-card>
+    <a
+      mat-button
+      routerLink="/about"
+      routerLinkActive
+      #aboutLink="routerLinkActive"
+      [class.active-link]="aboutLink.isActive"
+      [attr.aria-current]="aboutLink.isActive ? 'page' : null"
+    >
+      About
+    </a>
+  </nav>
+</mat-toolbar>
+
+<main id="main" class="main" tabindex="-1">
+  <router-outlet></router-outlet>
+</main>

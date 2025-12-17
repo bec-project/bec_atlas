@@ -1,0 +1,42 @@
+.skip-link {
+  position: absolute;
+  left: 0.5rem;
+  top: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  background: #111827;
+  color: #ffffff;
+  text-decoration: none;
+  transform: translateY(-200%);
+  transition: transform 120ms ease-in-out;
+}
+
+.skip-link:focus-visible {
+  transform: translateY(0);
+}
+
+.toolbar {
+  display: flex;
+  gap: 1rem;
+}
+
+.app-title {
+  font-weight: 600;
+}
+
+.nav {
+  display: flex;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.active-link {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.main {
+  padding: 1rem;
+  max-width: 64rem;
+  margin-inline: auto;
+}
