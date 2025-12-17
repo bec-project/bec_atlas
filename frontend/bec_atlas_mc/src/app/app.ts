@@ -1,5 +1,5 @@
 import { Component, computed, effect, signal } from '@angular/core';
-import { MyButton } from './ui/my-button/my-button';
+import { MyButton } from './components/my-button/my-button';
 import { MatCardModule } from '@angular/material/card';
 
 @Component({

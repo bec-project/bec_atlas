@@ -14,8 +14,15 @@ You are an expert in TypeScript, Angular, and scalable web application developme
 - Use signals for state management
 - Implement lazy loading for feature routes
 - Do NOT use the `@HostBinding` and `@HostListener` decorators. Put host bindings inside the `host` object of the `@Component` or `@Directive` decorator instead
+- Always use the Angular structure for each component:
+  - Component class
+  - Component template
+  - Component styles
+  - Component spec file
+  - avoid mixing concerns in one typescript file
 - Use `NgOptimizedImage` for all static images.
   - `NgOptimizedImage` does not work for inline base64 images.
+
 
 ## Accessibility Requirements
 
