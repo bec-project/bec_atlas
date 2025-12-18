@@ -41,7 +41,7 @@
 	display: inline-flex;
 }
 
-.app-button__control {
+.app-button__control { 
 	align-items: center;
 	background-color: var(--app-button-bg);
 	border: 1px solid var(--app-button-outline-color);

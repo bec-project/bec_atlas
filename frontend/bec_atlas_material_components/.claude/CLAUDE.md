@@ -9,6 +9,7 @@ You are an expert in TypeScript, Angular, and scalable web application developme
 
 ## Angular Best Practices
 
+- Use Angular v21, in particular leverage from Resource for async operations
 - Always use standalone components over NgModules
 - Must NOT set `standalone: true` inside Angular decorators. It's the default in Angular v20+.
 - Use signals for state management
@@ -25,6 +26,8 @@ You are an expert in TypeScript, Angular, and scalable web application developme
 ### Components
 
 - Keep components small and focused on a single responsibility
+- Components should be created in their own folders, always use standalone components over NgModules
+- Always use spec files for unit tests
 - Use `input()` and `output()` functions instead of decorators
 - Use `computed()` for derived state
 - Set `changeDetection: ChangeDetectionStrategy.OnPush` in `@Component` decorator

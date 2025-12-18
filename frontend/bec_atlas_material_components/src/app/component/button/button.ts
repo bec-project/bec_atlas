@@ -19,6 +19,7 @@ import { AppIcon } from './button-icon.types';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Button {
+  // Inputs
   readonly icon = input<AppIcon>('home');
   readonly label = input<string | null>(null);
   readonly showIcon = input<boolean>(true);
@@ -27,8 +28,10 @@ export class Button {
   readonly togglable = input<boolean>(false);
   readonly defaultToggled = input<boolean>(false);
 
-  private readonly toggledState = signal(false);
+  // Internal signals and computed signals
+  private  toggledState = signal(false);
 
+  // Readonly computed signals
   readonly isDisabled = computed(() => this.disabled());
   readonly isToggled = computed(() => this.togglable() && this.toggledState());
   readonly shouldRenderIcon = computed(
