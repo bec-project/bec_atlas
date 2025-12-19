@@ -22,6 +22,7 @@ on:
         options:
           - dev
           - qa
+          - prod
 
 # default: least privileged permissions across all jobs
 permissions:
