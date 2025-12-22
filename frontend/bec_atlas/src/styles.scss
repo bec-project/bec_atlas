@@ -1,61 +1,42 @@
 /* You can add global styles to this file, and also import other style files */
-@use "@angular/material" as mat;
-@use "_theme-colors.scss" as theme;
+@use "styles/theme/bec-atlas-theme";
 
 @import "gridstack/dist/gridstack.min.css";
 @import "gridstack/dist/gridstack-extra.min.css";
 @import "css-star-rating/scss/star-rating";
 
-// for debugging the layout
-// * * * * * {
-//   outline: 3px solid red;
-// }
-
+// Base styles
 html,
 body {
   height: 100%;
-}
-body {
   margin: 0;
-  font-family: Roboto, "Helvetica Neue", sans-serif;
+  padding: 0;
 }
 
-html {
-  color-scheme: light dark;
+body {
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
 
-  // Light theme
-  @media (prefers-color-scheme: light) {
-    @include mat.theme(
-      (
-        color: theme.$primary-palette,
-        typography: (
-          plain-family: Poppins,
-          bold-weight: 600,
-          medium-weight: 400,
-          regular-weight: 300,
-        ),
-        density: 0,
-      ),
-      $overrides: (primary-container: orange),
-      // Light-specific override)
-    );
-  }
+// Smooth theme transitions
+* {
+  transition: background-color 0.3s ease, color 0.3s ease,
+    border-color 0.3s ease;
+}
 
-  // Dark theme
-  @media (prefers-color-scheme: dark) {
-    @include mat.theme(
-      (
-        color: theme.$primary-palette,
-        typography: (
-          plain-family: Poppins,
-          bold-weight: 600,
-          medium-weight: 400,
-          regular-weight: 300,
-        ),
-        density: 0,
-      ),
-      $overrides: (primary-container: darkorange),
-      // Dark-specific override)
-    );
-  }
+// Remove transition for backdrop-filter to avoid flickering
+*[style*="backdrop-filter"] {
+  transition: background-color 0.3s ease, color 0.3s ease,
+    border-color 0.3s ease !important;
+}
+
+// Enhanced theme transition
+.theme-transitioning * {
+  transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
