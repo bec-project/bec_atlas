@@ -75,11 +75,21 @@ class DeploymentsRouter(BaseRouter):
         self.available_deployments = self.db.find("deployments", {}, Deployments)
         credentials = self.db.find("deployment_credentials", {}, DeploymentCredential)
 
+        data = {
+            deployment.id: {"realm_id": deployment.realm_id}
+            for deployment in self.available_deployments
+        }
+
+        # add the credentials to the data
+        for cred in credentials:
+            if cred.id in data:
+                data[cred.id]["deployment_credential"] = cred
+
         redis: RedisDatasource = self.datasources.redis
         msg = json.dumps([msg.model_dump() for msg in self.available_deployments])
         redis.connector.set_and_publish("deployments", msg)
-        for deployment in credentials:
-            redis.add_deployment_acl(deployment)
+        for info in data.values():
+            redis.add_deployment_acl(info["deployment_credential"], info["realm_id"])
 
         try:
             redis.connector._redis_conn.acl_save()

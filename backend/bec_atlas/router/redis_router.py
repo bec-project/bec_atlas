@@ -18,6 +18,7 @@ from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 
 from bec_atlas.authentication import convert_to_user, get_current_user, get_current_user_sync
+from bec_atlas.datasources.endpoints import RedisAtlasEndpoints
 from bec_atlas.model.model import BECAccessProfile, DeploymentAccess, User
 from bec_atlas.router.base_router import BaseRouter
 
@@ -35,95 +36,6 @@ class RemoteAccess(enum.Enum):
     WRITE = "write"
     READ_WRITE = "read_write"
     NONE = "none"
-
-
-class RedisAtlasEndpoints:
-    """
-    This class contains the endpoints for the Redis API. It is used to
-    manage the subscriptions and the state information for the websocket
-    """
-
-    @staticmethod
-    def websocket_state(deployment: str, host_id: str):
-        """
-        Endpoint for the websocket state information, containing the users and their subscriptions
-        per backend host.
-
-        Args:
-            deployment (str): The deployment name
-            host_id (str): The host id of the backend
-
-        Returns:
-            str: The endpoint for the websocket state information
-        """
-        return f"internal/deployment/{deployment}/{host_id}/state"
-
-    @staticmethod
-    def redis_data(deployment: str, endpoint: str):
-        """
-        Endpoint for the redis data for a deployment and endpoint.
-
-        Args:
-            deployment (str): The deployment name
-            endpoint (str): The endpoint name
-
-        Returns:
-            str: The endpoint for the redis data
-        """
-        return f"internal/deployment/{deployment}/data/{endpoint}"
-
-    @staticmethod
-    def socketio_endpoint_room(deployment: str, endpoint: str):
-        """
-        Endpoint for the socketio room for an endpoint.
-
-        Args:
-            endpoint (str): The endpoint name
-
-        Returns:
-            str: The endpoint for the socketio room
-        """
-        return f"socketio/rooms/{deployment}/{endpoint}"
-
-    @staticmethod
-    def redis_request(deployment: str):
-        """
-        Endpoint for the redis request for a deployment and endpoint.
-
-        Args:
-            deployment (str): The deployment name
-
-        Returns:
-            str: The endpoint for the redis request
-        """
-        return f"internal/deployment/{deployment}/request"
-
-    @staticmethod
-    def redis_request_response(deployment: str, request_id: str):
-        """
-        Endpoint for the redis request response for a deployment and endpoint.
-
-        Args:
-            deployment (str): The deployment name
-            request_id (str): The request id
-
-        Returns:
-            str: The endpoint for the redis request response
-        """
-        return f"internal/deployment/{deployment}/request_response/{request_id}"
-
-    @staticmethod
-    def redis_bec_acl_user(deployment_id: str):
-        """
-        Endpoint for the redis BEC ACL user for a deployment.
-
-        Args:
-            deployment_id (str): The deployment id
-
-        Returns:
-            str: The endpoint for the redis BEC ACL user
-        """
-        return f"internal/deployment/{deployment_id}/bec_access"
 
 
 class MsgResponse(Response):

@@ -1,166 +1,23 @@
 from __future__ import annotations
 
-import os
 import threading
-from functools import lru_cache
 
 from bec_lib import messages
+from bec_lib.endpoints import EndpointInfo, MessageEndpoints
 from bec_lib.logger import bec_logger
-from bec_lib.redis_connector import RedisConnector
-from bec_lib.serialization import MsgpackSerialization
 from bson import ObjectId
-from redis.exceptions import ResponseError
 
-from bec_atlas.datasources.mongodb.mongodb import MongoDBDatasource
-from bec_atlas.model.model import ScanStatus, Session
+from bec_atlas.datasources.endpoints import RedisAtlasEndpoints
+from bec_atlas.ingestor.ingestor_base import IngestorBase
+from bec_atlas.model.model import MessageServiceConfig, ScanStatus, Session
 
 logger = bec_logger.logger
 
 
-class DataIngestor:
+class DataIngestor(IngestorBase):
 
-    def __init__(self, config: dict) -> None:
-        self.config = config
-        self.datasource = MongoDBDatasource(config=self.config["mongodb"])
-        self.datasource.connect(include_setup=False)
-
-        redis_host = config.get("redis", {}).get("host", "localhost")
-        redis_port = config.get("redis", {}).get("port", 6380)
-
-        if config.get("redis", {}).get("sync_instance"):
-            self.redis = config.get("redis", {}).get("sync_instance")
-        else:
-            self.redis = RedisConnector(
-                f"{redis_host}:{redis_port}"  # username="ingestor", password="ingestor"
-            )
-        username = config.get("redis", {}).get("username", "ingestor")
-        password = config.get("redis", {}).get("password")
-        self.redis.authenticate(password=password, username=username)
-        self.redis.set_retry_enabled(True)
-
-        self.shutdown_event = threading.Event()
-        self.available_deployments = []
-        self.deployment_listener_thread = None
-        self.receiver_thread = None
-        self.reclaim_pending_messages_thread = None
-        self.consumer_name = f"ingestor_{os.getpid()}"
-        self.start_deployment_listener()
-        self.start_receiver()
-        logger.success("Data ingestor started.")
-
-    def start_deployment_listener(self):
-        """
-        Start the listener for the available deployments.
-
-        """
-        out = self.redis.get("deployments")
-        if out:
-            self.available_deployments = out.data
-            self.update_consumer_groups()
-        self.deployment_listener_thread = threading.Thread(
-            target=self.update_available_deployments, name="deployment_listener"
-        )
-        self.deployment_listener_thread.start()
-
-    def start_receiver(self):
-        """
-        Start the receiver for the Redis queue.
-
-        """
-        self.receiver_thread = threading.Thread(target=self.ingestor_loop, name="receiver")
-        self.receiver_thread.start()
-        self.reclaim_pending_messages_thread = threading.Thread(
-            target=self.reclaim_pending_messages, name="reclaim_pending_messages"
-        )
-        self.reclaim_pending_messages_thread.start()
-
-    def update_available_deployments(self):
-        """
-        Update the available deployments from the Redis queue.
-        """
-
-        def _update_deployments(data, parent):
-            parent.available_deployments = data
-            parent.update_consumer_groups()
-
-        self.redis.register("deployments", cb=_update_deployments, parent=self)
-
-    def update_consumer_groups(self):
-        """
-        Update the consumer groups for the available deployments.
-
-        """
-        for deployment in self.available_deployments:
-            try:
-                self.redis._redis_conn.xgroup_create(
-                    name=f"internal/deployment/{deployment['id']}/ingest",
-                    groupname="ingestor",
-                    mkstream=True,
-                )
-            except ResponseError as exc:
-                if "BUSYGROUP Consumer Group name already exists" in str(exc):
-                    continue
-                raise exc
-
-    def reclaim_pending_messages(self):
-        """
-        Reclaim any pending messages from the Redis queue.
-
-        """
-        while not self.shutdown_event.is_set():
-            to_process = []
-            for deployment in self.available_deployments:
-                pending_messages = self.redis._redis_conn.xautoclaim(
-                    f"internal/deployment/{deployment['id']}/ingest",
-                    "ingestor",
-                    self.consumer_name,
-                    min_idle_time=1000,
-                )
-                if pending_messages[1]:
-                    to_process.append(
-                        [
-                            f"internal/deployment/{deployment['id']}/ingest".encode(),
-                            pending_messages[1],
-                        ]
-                    )
-
-            if to_process:
-                self._handle_stream_messages(to_process)
-            self.shutdown_event.wait(10)
-
-    def ingestor_loop(self):
-        """
-        The main loop for the ingestor.
-
-        """
-        while not self.shutdown_event.is_set():
-            if not self.available_deployments:
-                self.shutdown_event.wait(1)
-                continue
-            streams = {
-                f"internal/deployment/{deployment['id']}/ingest": ">"
-                for deployment in self.available_deployments
-            }
-            data = self.redis._redis_conn.xreadgroup(
-                groupname="ingestor", consumername=self.consumer_name, streams=streams, block=1000
-            )
-
-            if not data:
-                logger.debug("No messages to ingest.")
-                continue
-
-            self._handle_stream_messages(data)
-
-    def _handle_stream_messages(self, data):
-        for stream, msgs in data:
-            for message in msgs:
-                msg = message[1]
-                out = {}
-                for key, val in msg.items():
-                    out[key.decode()] = MsgpackSerialization.loads(val)
-                deployment_id = stream.decode().split("/")[-2]
-                self.handle_message(out, deployment_id)
-                self.redis._redis_conn.xack(stream, "ingestor", message[0])
+    def get_stream_key(self, deployment_id: str) -> EndpointInfo:
+        return MessageEndpoints.atlas_deployment_ingest(deployment_name=deployment_id)
 
     def handle_message(self, msg_dict: dict, deployment_id: str):
         """
@@ -191,23 +48,6 @@ class DataIngestor:
                 case _:
                     logger.warning(f"Unknown message type: {key}")
 
-    @lru_cache()
-    def get_default_session(self, deployment_id: str):
-        """
-        Get the session id for a deployment.
-
-        Args:
-            deployment_id (str): The deployment id
-
-        Returns:
-            str: The session id
-
-        """
-        out = self.datasource.db["sessions"].find_one(
-            {"name": "_default_", "deployment_id": deployment_id}
-        )
-        return out
-
     def update_scan_status(self, msg: messages.ScanStatusMessage, deployment_id: str):
         """
         Update the status of a scan in the database. If the scan does not exist, create it.
@@ -217,6 +57,10 @@ class DataIngestor:
             deployment_id (str): The deployment id
 
         """
+        if self.datasource is None or self.datasource.db is None:
+            logger.error("Datasource not initialized.")
+            return
+
         session_id = msg.session_id
         if not session_id:
             session_id = "_default_"
@@ -251,13 +95,17 @@ class DataIngestor:
 
     def update_scan_history(self, msg: messages.ScanHistoryMessage, deployment_id: str):
         """
-        Update the history of a scan in the database. If the scan does not exist, skip it.
+        Update a scan with a ScanHistoryMessage in the database. If the scan does not exist, skip it.
 
         Args:
             msg (messages.ScanHistoryMessage): The message containing the scan history.
             deployment_id (str): The deployment id
 
         """
+        if self.datasource is None or self.datasource.db is None:
+            logger.error("Datasource not initialized.")
+            return
+
         data = self.datasource.db["scans"].find_one({"_id": msg.scan_id})
         if data is None:
             logger.error(f"Scan {msg.scan_id} not found.")
@@ -282,6 +130,9 @@ class DataIngestor:
             deployment_id (str): The deployment id
 
         """
+        if self.datasource is None or self.datasource.db is None:
+            logger.error("Datasource not initialized.")
+            return
         data = self.datasource.db["deployments"].find_one({"_id": ObjectId(deployment_id)})
         if data is None:
             logger.error(f"Deployment {deployment_id} not found.")
@@ -312,42 +163,88 @@ class DataIngestor:
         session = self.datasource.db["sessions"].find_one(
             {"experiment_id": experiment["_id"], "deployment_id": str(deployment["_id"])}
         )
+
         if session is None:
             logger.info(f"No session found for experiment {experiment['_id']}, creating a new one.")
-            new_session = Session(
+            session = Session(
                 name=msg.value,
                 experiment_id=str(experiment["_id"]),
                 deployment_id=str(deployment["_id"]),
                 owner_groups=experiment.get("access_groups", []) + ["admin"],
                 access_groups=experiment.get("access_groups", []) + [msg.value],
             )
-            session_id = str(
-                self.datasource.db["sessions"].insert_one(new_session.model_dump()).inserted_id
-            )
+            session_id = self.datasource.db["sessions"].insert_one(session.model_dump())
+            session = self.datasource.find_one("sessions", {"_id": session_id.inserted_id}, Session)
+
         else:
-            session_id = str(session["_id"])
+            session = Session(**session)
+        if session is None:
+            logger.error("Failed to create or retrieve session.")
+            return
+
+        if experiment is not None and not session.messaging_services:
+            try:
+                self._set_scilog_logbook_for_session(
+                    session, deployment["realm_id"], pgroup=experiment
+                )
+            except Exception as e:
+                logger.error(f"Failed to set SciLog logbook for session: {e}")
+
         logger.info(
-            f"Setting active_session_id for deployment {deployment_id} to {session_id} (experiment {experiment['_id']})"
+            f"Setting active_session_id for deployment {deployment_id} to {session.id} (experiment {experiment['_id']})"
         )
 
         self.datasource.db["deployments"].update_one(
-            {"_id": ObjectId(deployment_id)}, {"$set": {"active_session_id": session_id}}
+            {"_id": ObjectId(deployment_id)}, {"$set": {"active_session_id": str(session.id)}}
         )
 
-    def shutdown(self):
-        self.shutdown_event.set()
-        if self.deployment_listener_thread:
-            self.deployment_listener_thread.join()
-        if self.receiver_thread:
-            self.receiver_thread.join()
-        if self.reclaim_pending_messages_thread:
-            self.reclaim_pending_messages_thread.join()
-        self.redis.shutdown()
-        self.datasource.shutdown()
+    def _set_scilog_logbook_for_session(self, session: Session, realm_id: str, pgroup: dict):
+        """
+        Fetch the available SciLog logbooks for the deployment from Redis. If a logbook
+        matches the session name, add the SciLog messaging service to the session.
+
+        Args:
+            session (Session): The session object.
+            realm_id (str): The realm id.
+
+        """
+        if self.datasource is None or self.datasource.db is None:
+            logger.error("Datasource not initialized.")
+            return
+
+        out: messages.AvailableResourceMessage | None = self.redis.get(
+            RedisAtlasEndpoints.available_logbooks(realm_id=realm_id)
+        )
+        if not out:
+            return
+        logbooks = out.resource
+        target_logbook = next(
+            (lb for lb in logbooks if lb["ownerGroup"] == session.experiment_id), None
+        )
+        if not target_logbook:
+            return
+        logger.info(
+            f"Adding SciLog messaging service to session {session.id} for logbook {target_logbook['name']}"
+        )
+        messaging_service = MessageServiceConfig(
+            owner_groups=session.owner_groups,
+            access_groups=session.access_groups,
+            service_name="scilog",
+            scopes=[target_logbook["id"]],
+            enabled=True,
+        )
+        session.messaging_services.append(messaging_service)
+        self.datasource.db["sessions"].update_one(
+            {"_id": session.id},
+            {
+                "$set": {
+                    "messaging_services": [ms.model_dump() for ms in session.messaging_services]
+                }
+            },
+        )
 
 
 def main():  # pragma: no cover
-    from bec_atlas.main import CONFIG
     from bec_atlas.utils.env_loader import load_env
 
     bec_logger.level = bec_logger.LOGLEVEL.INFO

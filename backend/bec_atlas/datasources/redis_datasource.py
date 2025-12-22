@@ -67,7 +67,7 @@ class RedisDatasource:
             "default", enabled=True, categories=["-@all"], commands=["+auth", "+acl|whoami"]
         )
 
-    def add_deployment_acl(self, deployment_credential: DeploymentCredential):
+    def add_deployment_acl(self, deployment_credential: DeploymentCredential, realm_id: str):
         """
         Add ACLs for the deployment.
 
@@ -88,6 +88,7 @@ class RedisDatasource:
                 f"internal/deployment/{dep_id}/*/data/*",
                 f"internal/deployment/{dep_id}/bec_access",
                 f"internal/deployment/{dep_id}/deployment_info",
+                f"%R~internal/realm/{realm_id}/info/*",
             ],
             channels=[
                 f"internal/deployment/{dep_id}/*/state",

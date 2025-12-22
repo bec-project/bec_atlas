@@ -128,11 +128,18 @@ class UserInfo(BaseModel):
     token: str
 
 
+class MessageServiceConfig(MongoBaseModel, AccessProfile):
+    service_name: Literal["signal", "teams", "scilog"]
+    scopes: list[str] = []
+    enabled: bool = True
+
+
 class Deployments(MongoBaseModel, AccessProfile):
     realm_id: str
     name: str
     active_session_id: str | ObjectId | None = None
     config_templates: list[str | ObjectId] = []
+    messaging_services: list[MessageServiceConfig] = []
 
 
 class DeploymentsPartial(MongoBaseModel, AccessProfilePartial):
@@ -262,6 +269,7 @@ class Session(MongoBaseModel, AccessProfile):
     name: str
     experiment_id: str | None = None
     device_config_collections: list[DeviceConfigCollection] = []
+    messaging_services: list[MessageServiceConfig] = []
 
 
 SessionPartial = make_all_fields_optional(Session, "SessionPartial")
