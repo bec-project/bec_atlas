@@ -71,26 +71,63 @@ def get_secret_key():
         return token_file.read().strip()
 
 
-def verify_password(plain_password, hashed_password):
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """
+    Verify a plain password against a hashed password.
+    Args:
+        plain_password (str): The plain password to verify.
+        hashed_password (str): The hashed password to verify against.
+    Returns:
+        bool: True if the password matches, False otherwise.
+    """
     return password_hash.verify(plain_password, hashed_password)
 
 
-def get_password_hash(password):
+def get_password_hash(password: str) -> str:
+    """
+    Hash a password for storing.
+    Args:
+        password (str): The plain password to hash.
+
+    Returns:
+        str: The hashed password.
+    """
     return password_hash.hash(password)
 
 
-def create_access_token(data: dict, expires_delta: timedelta | None = None):
+def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
+    """
+    Create a JWT token.
+
+    Args:
+        data (dict): The data to encode in the token.
+        expires_delta (timedelta | None): The expiration time for the token. If None, defaults to ACCESS_TOKEN_EXPIRE_MINUTES.
+
+    Returns:
+        str: The encoded JWT token.
+    """
     to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.now() + expires_delta
-    else:
-        expire = datetime.now() + timedelta(minutes=15)
+
+    if expires_delta is None:
+        expires_delta = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    expire = datetime.now() + expires_delta
+
     to_encode.update({"exp": expire.timestamp()})
     encoded_jwt = jwt.encode(to_encode, get_secret_key(), algorithm=ALGORITHM)
     return encoded_jwt
 
 
-def decode_token(token: str):
+def decode_token(token: str) -> dict:
+    """
+    Decode a JWT token.
+    Args:
+        token (str): The JWT token to decode.
+    Returns:
+        dict: The decoded token payload.
+
+    Raises:
+        HTTPException: If the token is invalid or cannot be decoded.
+    """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -109,6 +146,14 @@ async def get_current_user(
     """
     Unified authentication method that supports both token and cookie-based authentication.
     Tries to extract token from Authorization header first, then falls back to cookies.
+
+    Args:
+        request (Request): The incoming request object.
+        token (Optional[str]): The token from the Authorization header, if present.
+    Returns:
+        UserInfo: The authenticated user information.
+    Raises:
+        HTTPException: If no valid token is found or if the token is invalid.
     """
     auth_token = None
 
@@ -131,6 +176,15 @@ async def get_current_user(
 
 
 def get_current_user_sync(token: str) -> UserInfo:
+    """
+    Synchronous part of get_current_user to decode token and return UserInfo.
+    Args:
+        token (str): The JWT token.
+    Returns:
+        UserInfo: The authenticated user information.
+    Raises:
+        HTTPException: If the token is invalid.
+    """
     credentials_exception = HTTPException(
         status_code=401,
         detail="Could not validate credentials",
