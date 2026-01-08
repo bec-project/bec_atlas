@@ -180,6 +180,32 @@ S-TOMCAT:
         - unx-sls_x02da_bs
       experiment_access:
         - unx-sls_x02da_bs
+I-TOMCAT:
+  xname: x02sa
+  managers:
+    - unx-sls_x02sa_bs
+  deployments:
+    x02sa-bec-001.psi.ch:
+      name: production
+      description: Primary deployment for I-TOMCAT
+      deployment_access:
+        - unx-sls_x02sa_bs
+      experiment_access:
+        - unx-sls_x02sa_bs
+
+XIL:
+  xname: x09lb
+  managers:
+    - unx-sls_x09lb_bs
+  deployments:
+    x09lb-bec-001.psi.ch:
+      name: production
+      description: Primary deployment for XIL
+      deployment_access:
+        - unx-sls_x09lb_bs
+      experiment_access:
+        - unx-sls_x09lb_bs
+
 X-Treme:
   xname: x07ma
   managers:
