@@ -1,7 +1,7 @@
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, Query, Response
 from fastapi.exceptions import HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel
@@ -58,9 +58,21 @@ class UserRouter(BaseRouter):
         out = await self.user_login(user_login, response)
         return {"access_token": out, "token_type": "bearer"}
 
-    async def user_login(self, user_login: UserLoginRequest, response: Response):
+    async def user_login(
+        self,
+        user_login: UserLoginRequest,
+        response: Response,
+        expires_delta: Annotated[
+            int | None,
+            Query(
+                description="Token expiration time in minutes. Must be between 1 and 1440.",
+                ge=1,
+                le=1440,
+            ),
+        ] = None,
+    ):
         logger.info(f"Attempting login for user: {user_login.username}")
-        token = self._user_login(user_login, response)
+        token = self._user_login(user_login, response, expires_delta)
         logger.info(f"Login successful for user: {user_login.username}")
         return token
 
@@ -68,11 +80,16 @@ class UserRouter(BaseRouter):
         response.delete_cookie("access_token")
         return {"message": "Logged out"}
 
-    def _user_login(self, user_login: UserLoginRequest, response: Response | None) -> str:
+    def _user_login(
+        self,
+        user_login: UserLoginRequest,
+        response: Response | None,
+        expires_delta: int | None = None,
+    ) -> str:
         user = self._get_user(user_login)
         if user is None:
             raise HTTPException(status_code=401, detail="User not found or password is incorrect")
-        token = create_access_token(data={"email": user.email})
+        token = create_access_token(data={"email": user.email}, expires_delta=expires_delta)
         if response:
             response.set_cookie(key="access_token", value=token, httponly=True, secure=self.use_ssl)
         return token
