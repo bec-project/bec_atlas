@@ -1,0 +1,31 @@
+{
+  "branches": ["main"],
+  "plugins": [
+    [
+      "@semantic-release/commit-analyzer",
+      {
+        "preset": "conventionalcommits"
+      }
+    ],
+    "@semantic-release/release-notes-generator",
+    "@semantic-release/changelog",
+    [
+      "@semantic-release/exec",
+      {
+        "prepareCmd": "echo Releasing ${nextRelease.version} && npm version ${nextRelease.version} --no-git-tag-version --prefix frontend/bec_atlas && sed -i -E '/^[[]project[]]$/,/^[[]/{s/^version = \".*\"/version = \"'${nextRelease.version}'\"/}' backend/pyproject.toml"
+      }
+    ],
+    [
+      "@semantic-release/git",
+      {
+        "assets": [
+          "CHANGELOG.md",
+          "frontend/bec_atlas/package.json",
+          "frontend/bec_atlas/package-lock.json",
+          "backend/pyproject.toml"
+        ]
+      }
+    ],
+    "@semantic-release/github"
+  ]
+}
