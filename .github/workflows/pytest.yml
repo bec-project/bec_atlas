@@ -1,25 +1,24 @@
 name: Run Pytest with Coverage
-on: 
+on:
   workflow_call:
     inputs:
       pr_number:
-        description: 'Pull request number'
+        description: "Pull request number"
         required: false
         type: number
       BEC_CORE_BRANCH:
-        description: 'Branch of BEC Core to install'
+        description: "Branch of BEC Core to install"
         required: false
-        default: 'main'
+        default: "main"
         type: string
       BEC_ATLAS_BRANCH:
-        description: 'Branch of BEC Atlas to install'
+        description: "Branch of BEC Atlas to install"
         required: false
-        default: 'main'
+        default: "main"
         type: string
     secrets:
       CODECOV_TOKEN:
         required: true
-
 
 permissions:
   pull-requests: write
@@ -48,9 +47,9 @@ jobs:
 
       - name: Run Pytest with Coverage
         id: coverage
-        run: | 
+        run: |
           cd ./__ci__/bec_atlas/
-          coverage run --source=./backend --omit=*/backend/tests/* -m pytest -v --junitxml=report.xml --random-order --full-trace ./backend/tests
+          coverage run -m pytest -v --junitxml=report.xml --random-order --full-trace ./backend/tests
           coverage report 
           coverage xml
 

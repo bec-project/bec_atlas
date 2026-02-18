@@ -121,6 +121,8 @@ asyncio_default_fixture_loop_scope = "function"
 
 [tool.coverage.run]
 concurrency = ["greenlet", "thread"]
+source = ["bec_atlas"]
+omit = ["*/backend/tests/*", "*/backend/bec_atlas/utils/migrations/pipelines/*"]
 
 [tool.coverage.report]
 skip_empty = true # exclude empty *files*, e.g. __init__.py, from the report
