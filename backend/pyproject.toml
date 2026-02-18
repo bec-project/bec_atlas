@@ -50,6 +50,7 @@ bec-atlas-ingestor = "bec_atlas.ingestor.data_ingestor:main"
 bec-atlas-messaging-ingestor = "bec_atlas.ingestor.message_service_ingestor:main"
 bec-atlas-update = "bec_atlas.utils.bec_atlas_update:app"
 bec-atlas-get-key = "bec_atlas.utils.bec_atlas_get_key:app"
+bec-atlas-db-migration = "bec_atlas.utils.migrations.migration_runner:launch"
 
 [project.urls]
 "Bug Tracker" = "https://gitlab.psi.ch/bec/bec_atlas/issues"
