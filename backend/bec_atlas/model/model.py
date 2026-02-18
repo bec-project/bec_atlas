@@ -150,6 +150,18 @@ class AccessProfilePartial(AccessProfile):
     access_groups: list[str] | None = None
 
 
+class MongoDBMigrateModel(MongoBaseModel):
+    """
+    MongoDBMigrateModel is a base model for MongoDB migrations. It includes fields for tracking the migration history of a document.
+    """
+
+    migration_index: int
+    name: str
+    applied_at: str
+    success: bool
+    comment: str | None = None
+
+
 class ScanUserData(BaseModel):
     """
     ScanUserData is an extension to the Scan model and is access controlled through
