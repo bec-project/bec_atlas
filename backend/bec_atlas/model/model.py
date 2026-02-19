@@ -140,6 +140,11 @@ class MongoBaseModel(BaseModel):
         return id
 
 
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+
 class AccessProfile(BaseModel):
     owner_groups: list[str]
     access_groups: list[str] = []

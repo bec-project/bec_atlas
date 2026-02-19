@@ -16,7 +16,7 @@ from bec_atlas.authentication import (
 )
 from bec_atlas.datasources.mongodb.mongodb import MongoDBDatasource
 from bec_atlas.model import UserInfo
-from bec_atlas.model.model import User
+from bec_atlas.model.model import TokenResponse, User
 from bec_atlas.router.base_router import BaseRouter
 from bec_atlas.utils.ldap_auth import LDAPUserService
 
@@ -41,9 +41,19 @@ class UserRouter(BaseRouter):
         )
         self.router = APIRouter(prefix=prefix)
         self.router.add_api_route("/user/me", self.user_me, methods=["GET"])
-        self.router.add_api_route("/user/login", self.user_login, methods=["POST"], dependencies=[])
         self.router.add_api_route(
-            "/user/login/form", self.form_login, methods=["POST"], dependencies=[]
+            "/user/login",
+            self.user_login,
+            methods=["POST"],
+            dependencies=[],
+            response_model=TokenResponse,
+        )
+        self.router.add_api_route(
+            "/user/login/form",
+            self.form_login,
+            methods=["POST"],
+            dependencies=[],
+            response_model=TokenResponse,
         )
         self.router.add_api_route("/user/logout", self.user_logout, methods=["POST"])
         self.router.add_api_route("/user/test_login", self.test_login, methods=["POST"])
@@ -62,8 +72,7 @@ class UserRouter(BaseRouter):
         self, form_data: Annotated[OAuth2PasswordRequestForm, Depends()], response: Response
     ):
         user_login = UserLoginRequest(username=form_data.username, password=form_data.password)
-        out = await self.user_login(user_login, response)
-        return {"access_token": out, "token_type": "bearer"}
+        return await self.user_login(user_login, response)
 
     async def user_login(
         self,

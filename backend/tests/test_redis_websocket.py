@@ -18,7 +18,7 @@ def backend_client(backend):
         "/api/v1/user/login", json={"username": "admin@bec_atlas.ch", "password": "admin"}
     )
     assert response.status_code == 200
-    token = response.json()
+    token = response.json()["access_token"]
     assert isinstance(token, str)
     assert len(token) > 20
     return client, app

@@ -68,7 +68,7 @@ def test_deployment_credential_rejects_unauthorized_user(backend):
         "/api/v1/user/login", json={"username": "jane.doe@bec_atlas.ch", "password": "atlas"}
     )
     assert response.status_code == 200
-    token = response.json()
+    token = response.json()["access_token"]
     assert isinstance(token, str)
     assert len(token) > 20
 
@@ -93,7 +93,7 @@ def test_refresh_deployment_credentials_rejects_unauthorized_user(backend):
         "/api/v1/user/login", json={"username": "jane.doe@bec_atlas.ch", "password": "atlas"}
     )
     assert response.status_code == 200
-    token = response.json()
+    token = response.json()["access_token"]
     assert isinstance(token, str)
     assert len(token) > 20
 
@@ -187,7 +187,7 @@ def test_download_env_file_unauthorized_user(backend):
         "/api/v1/user/login", json={"username": "jane.doe@bec_atlas.ch", "password": "atlas"}
     )
     assert response.status_code == 200
-    token = response.json()
+    token = response.json()["access_token"]
     assert isinstance(token, str)
     assert len(token) > 20
 

@@ -8,20 +8,6 @@ def backend_client(backend):
 
 
 @pytest.mark.timeout(20)
-def test_login(backend_client):
-    """
-    Test that the login endpoint returns a token.
-    """
-    response = backend_client.post(
-        "/api/v1/user/login", json={"username": "admin@bec_atlas.ch", "password": "admin"}
-    )
-    assert response.status_code == 200
-    token = response.json()
-    assert isinstance(token, str)
-    assert len(token) > 20
-
-
-@pytest.mark.timeout(20)
 def test_login_wrong_password(backend_client):
     """
     Test that the login returns a 401 when the password is wrong.
