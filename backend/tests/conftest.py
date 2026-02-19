@@ -133,6 +133,19 @@ def backend(redis_server):
 
 
 @pytest.fixture
+def logged_in_client(backend):
+    client, _ = backend
+    response = client.post(
+        "/api/v1/user/login", json={"username": "admin@bec_atlas.ch", "password": "admin"}
+    )
+    assert response.status_code == 200
+    token = response.json()["access_token"]
+    assert isinstance(token, str)
+    assert len(token) > 20
+    return client
+
+
+@pytest.fixture
 def mock_sse_response():
     """
     Create a factory for SSE (Server-Sent Events) mock responses.

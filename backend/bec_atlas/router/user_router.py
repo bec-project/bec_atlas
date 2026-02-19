@@ -90,7 +90,7 @@ class UserRouter(BaseRouter):
         logger.info(f"Attempting login for user: {user_login.username}")
         token = self._user_login(user_login, response, expires_delta)
         logger.info(f"Login successful for user: {user_login.username}")
-        return token
+        return TokenResponse(access_token=token, token_type="bearer")
 
     async def user_logout(self, response: Response):
         response.delete_cookie("access_token")

@@ -3,19 +3,6 @@ import socket
 import pytest
 
 
-@pytest.fixture
-def logged_in_client(backend):
-    client, _ = backend
-    response = client.post(
-        "/api/v1/user/login", json={"username": "admin@bec_atlas.ch", "password": "admin"}
-    )
-    assert response.status_code == 200
-    token = response.json()
-    assert isinstance(token, str)
-    assert len(token) > 20
-    return client
-
-
 @pytest.mark.timeout(60)
 def test_get_deployment_credentials(logged_in_client):
     """

@@ -10,19 +10,6 @@ from bec_atlas.router.redis_router import RemoteAccess
 
 
 @pytest.fixture
-def logged_in_client(backend):
-    client, _ = backend
-    response = client.post(
-        "/api/v1/user/login", json={"username": "admin@bec_atlas.ch", "password": "admin"}
-    )
-    assert response.status_code == 200
-    token = response.json()
-    assert isinstance(token, str)
-    assert len(token) > 20
-    return client
-
-
-@pytest.fixture
 def deployment(logged_in_client):
     client = logged_in_client
     response = client.get("/api/v1/deployments/realm", params={"realm": "demo_beamline_1"})
