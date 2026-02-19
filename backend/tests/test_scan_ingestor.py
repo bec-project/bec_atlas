@@ -4,6 +4,7 @@ from unittest import mock
 import pytest
 from bec_lib import messages
 from bson import ObjectId
+from scilog.models import Logbook
 
 from bec_atlas.ingestor.data_ingestor import DataIngestor
 from bec_atlas.model.model import Deployments, Experiment, Session
@@ -367,8 +368,8 @@ def test_set_scilog_logbook_for_session_matching_logbook(scan_ingestor, backend)
 
     # Mock Redis response with available logbooks (updateACL must match experiment_id)
     logbooks = [
-        {"id": "lb1", "name": "Logbook 1", "updateACL": [experiment_id]},
-        {"id": "lb2", "name": "Logbook 2", "updateACL": ["other_group"]},
+        Logbook(id="lb1", name="Logbook 1", updateACL=[experiment_id]),
+        Logbook(id="lb2", name="Logbook 2", updateACL=["other_group"]),
     ]
 
     with mock.patch.object(
@@ -383,6 +384,7 @@ def test_set_scilog_logbook_for_session_matching_logbook(scan_ingestor, backend)
     assert messaging_service is not None
     assert messaging_service["service_type"] == "scilog"
     assert messaging_service["logbook_id"] == "lb1"
+    assert messaging_service["name"] == "Logbook 1"
     assert messaging_service["parent_id"] == session_id.inserted_id
 
 
