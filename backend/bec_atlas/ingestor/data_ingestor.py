@@ -235,7 +235,7 @@ class DataIngestor(IngestorBase):
             return
 
         logger.info(
-            f"Setting SciLog messaging service for session {session.id} with logbook {target_logbook['name']}"
+            f"Setting SciLog messaging service for session {session.id} with logbook {target_logbook.name}"
         )
 
         # Create or update the messaging service document
