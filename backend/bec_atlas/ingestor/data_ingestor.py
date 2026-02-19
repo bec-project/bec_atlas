@@ -238,13 +238,14 @@ class DataIngestor(IngestorBase):
             f"Setting SciLog messaging service for session {session.id} with logbook {target_logbook['name']}"
         )
 
-        # Create or update the messaging service document using upsert
+        # Create or update the messaging service document
         messaging_service_data = {
             "parent_id": session.id,
             "service_type": "scilog",
             "scope": "default",
             "enabled": True,
-            "logbook_id": target_logbook["id"],
+            "logbook_id": target_logbook.id,
+            "name": target_logbook.name,
             "owner_groups": session.owner_groups,
             "access_groups": session.access_groups,
         }
@@ -255,6 +256,11 @@ class DataIngestor(IngestorBase):
             {"parent_id": session.id, "service_type": "scilog", "scope": "default"}
         )
         if existing_service:
+            # Update the name of the logbook in case it has changed
+            if existing_service.get("name") != target_logbook.name:
+                self.datasource.db["messaging_services"].update_one(
+                    {"_id": existing_service["_id"]}, {"$set": {"name": target_logbook.name}}
+                )
             logger.info(
                 f"SciLog messaging service already exists for session {session.id}, skipping creation."
             )
