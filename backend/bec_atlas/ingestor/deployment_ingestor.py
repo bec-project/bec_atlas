@@ -85,12 +85,7 @@ class DeploymentIngestor:
                                 }
                             },
                         )
-                # Remove messaging_services
-                # print(f"Removing messaging services from deployment: {deployment.name}")
-                # self.db["deployments"].update_one(
-                #     {"_id": existing_deployment["_id"]}, {"$unset": {"messaging_services": ""}}
-                # )
-                # existing_deployment.pop("messaging_services", None)
+
                 deployment = Deployments(**existing_deployment)
 
                 # Create default session if it does not exist
@@ -182,7 +177,7 @@ class DeploymentIngestor:
                     )
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     import glob
 
     default_path = os.path.abspath(os.path.dirname(os.path.dirname((__file__))))
