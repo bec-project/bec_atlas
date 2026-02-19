@@ -5,19 +5,6 @@ import pytest
 from bec_atlas.model.model import DeploymentAccess
 
 
-@pytest.fixture
-def logged_in_client(backend):
-    client, _ = backend
-    response = client.post(
-        "/api/v1/user/login", json={"username": "admin@bec_atlas.ch", "password": "admin"}
-    )
-    assert response.status_code == 200
-    token = response.json()
-    assert isinstance(token, str)
-    assert len(token) > 20
-    return client
-
-
 def test_deployment_access_router_invalid_deployment_id(logged_in_client):
     """
     Test that the deployment access endpoint returns a 400 when the deployment id is invalid.

@@ -4,19 +4,6 @@ from bson import ObjectId
 from bec_atlas.model.model import Deployments, Experiment, Session
 
 
-@pytest.fixture
-def logged_in_client(backend):
-    client, _ = backend
-    response = client.post(
-        "/api/v1/user/login", json={"username": "admin@bec_atlas.ch", "password": "admin"}
-    )
-    assert response.status_code == 200
-    token = response.json()
-    assert isinstance(token, str)
-    assert len(token) > 20
-    return client
-
-
 @pytest.mark.timeout(60)
 @pytest.mark.parametrize("realm, num_deployments", [("test", 0), ("demo_beamline_1", 1)])
 def test_get_deployment_by_realm(logged_in_client, realm, num_deployments):
