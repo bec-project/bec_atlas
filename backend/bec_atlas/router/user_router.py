@@ -49,8 +49,11 @@ class UserRouter(BaseRouter):
         self.router.add_api_route("/user/test_login", self.test_login, methods=["POST"])
 
     @convert_to_user
-    async def user_me(self, user: User = Depends(get_current_user)):
-        return user
+    async def user_me(self, user: User = Depends(get_current_user)) -> User:
+        out = self.db.find_one(collection="users", query_filter={"email": user.email}, dtype=User)
+        if out is None:
+            raise HTTPException(status_code=404, detail="User not found")
+        return out
 
     async def test_login(self, user: UserInfo = Depends(get_current_user)):
         return user
