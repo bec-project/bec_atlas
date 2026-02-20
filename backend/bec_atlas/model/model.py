@@ -399,7 +399,12 @@ AvailableMessagingServiceInfoPartial = (
 
 class MergedMessagingServiceInfo(
     SignalServiceInfoPartial, SciLogServiceInfoPartial, TeamsServiceInfoPartial
-): ...
+):
+    @field_validator("parent_id", mode="before")
+    def normalize_parent_id(cls, v: str) -> ObjectId:
+        if isinstance(v, str):
+            return ObjectId(v)
+        return v
 
 
 class DeviceConfig(MongoBaseModel, AccessProfile):

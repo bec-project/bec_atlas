@@ -102,7 +102,7 @@ class MessagingServiceRouter(BaseRouter):
     @convert_to_user
     async def messaging_services_create(
         self,
-        messaging_service: AvailableMessagingServiceInfoPartial,
+        messaging_service: MergedMessagingServiceInfo,
         current_user: User = Depends(get_current_user),
     ) -> AvailableMessagingServiceInfo:
         """
@@ -134,7 +134,7 @@ class MessagingServiceRouter(BaseRouter):
         is_session = True
         parent = self.db.find_one(
             collection="sessions",
-            query_filter={"_id": ObjectId(messaging_service.parent_id)},
+            query_filter={"_id": messaging_service.parent_id},
             dtype=Session,
             user=current_user,
         )
@@ -143,7 +143,7 @@ class MessagingServiceRouter(BaseRouter):
             # Check if it is a deployment
             parent = self.db.find_one(
                 collection="deployments",
-                query_filter={"_id": ObjectId(messaging_service.parent_id)},
+                query_filter={"_id": messaging_service.parent_id},
                 dtype=Deployments,
                 user=current_user,
             )

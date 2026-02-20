@@ -1,6 +1,9 @@
 import json
 
 import pytest
+from bson import ObjectId
+
+from bec_atlas.model.model import MergedMessagingServiceInfo
 
 
 @pytest.mark.timeout(60)
@@ -16,11 +19,12 @@ def test_available_messaging_services(logged_in_client):
 
 
 @pytest.mark.timeout(60)
-def test_create_messaging_service(logged_in_client):
+def test_create_messaging_service(logged_in_client, backend):
     """
     Test creating a new messaging service for a session.
     """
     client = logged_in_client
+    _, app = backend
 
     # Get a session to use as parent
     sessions = client.get(
@@ -46,6 +50,17 @@ def test_create_messaging_service(logged_in_client):
     assert created_service["service_type"] == "signal"
     assert created_service["parent_id"] == session_id
     assert "_id" in created_service
+
+    # Verify that the created service is added to the database
+    db_result = app.datasources.mongodb.find_one(
+        collection="messaging_services",
+        query_filter={"_id": ObjectId(created_service["_id"])},
+        dtype=MergedMessagingServiceInfo,
+    )
+    assert db_result.id == ObjectId(created_service["_id"])
+    assert db_result.scope == "test_scope"
+    assert db_result.service_type == "signal"
+    assert db_result.parent_id == ObjectId(session_id)
 
 
 @pytest.mark.timeout(60)
