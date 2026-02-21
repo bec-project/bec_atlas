@@ -2,6 +2,7 @@ import argparse
 import os
 
 import libtmux
+from libtmux.exc import TmuxObjectDoesNotExist
 
 from bec_atlas.utils.service_handler import ServiceHandler
 
@@ -43,11 +44,17 @@ def main():
         service_handler.restart()
     elif args.command == "attach":
         server = libtmux.Server()
-        session = server.find_where({"session_name": "bec_atlas"})
+        session = server.sessions.get(matcher=lambda s: s.name == "bec_atlas")
         if session is None:
             print("No BEC Atlas session found")
             return
-        session.attach_session()
+        try:
+            session.attach()
+        except TmuxObjectDoesNotExist:
+            # When the session gets closed while we are attached to it,
+            # libtmux raises this error. This is especially common when using systemd.
+            # To avoid confusing the user, we just exit silently.
+            return
 
 
 if __name__ == "__main__":

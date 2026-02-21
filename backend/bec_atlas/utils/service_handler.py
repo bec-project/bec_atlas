@@ -30,12 +30,31 @@ class ServiceHandler:
         "fastapi-8000": {
             "path": Template("$base_path"),
             "command": "bec-atlas-fastapi --port 8000",
+            "start_order": 30,
         },
         "fastapi-8001": {
             "path": Template("$base_path"),
             "command": "bec-atlas-fastapi --port 8001",
+            "start_order": 40,
         },
-        "redis": {"path": Template("$base_path"), "command": "redis-server --port 6380"},
+        "redis": {
+            "path": Template("$base_path"),
+            "command": "redis-server --port 6380",
+            "start_order": 0,
+            "wait_after_start": 1.0,
+        },
+        "data ingestor": {
+            "path": Template("$base_path"),
+            "command": "bec-atlas-ingestor",
+            "start_order": 10,
+            "wait_after_start": 0.5,
+        },
+        "messaging ingestor": {
+            "path": Template("$base_path"),
+            "command": "bec-atlas-messaging-ingestor",
+            "start_order": 20,
+            "wait_after_start": 0.5,
+        },
     }
 
     def __init__(self, bec_path: str, config_path: str, no_tmux: bool = False):
@@ -75,7 +94,7 @@ class ServiceHandler:
         """
         if self.interface == "tmux":
             print("Starting BEC Atlas server using tmux...")
-            tmux_start(self.bec_path, self.config_path, self.SERVICES)
+            tmux_start(self.bec_path, self.SERVICES)
             print(
                 f"{bcolors.OKCYAN}{bcolors.BOLD}Use `bec-atlas attach` to attach to the BEC Atlas server. Once connected, use `ctrl+b d` to detach again.{bcolors.ENDC}"
             )
