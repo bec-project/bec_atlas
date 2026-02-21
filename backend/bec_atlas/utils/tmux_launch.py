@@ -2,6 +2,9 @@ import os
 import time
 
 import libtmux
+import psutil
+from libtmux import Session
+from libtmux.constants import PaneDirection
 from libtmux.exc import LibTmuxException
 
 
@@ -27,71 +30,130 @@ def activate_venv(pane, service_name, service_path):
     if os.getenv("CONDA_PREFIX"):
         pane.send_keys(f"conda activate {os.path.basename(os.environ['CONDA_PREFIX'])}")
         return
+    # check if we are in a pyenv environment
+    if os.getenv("PYENV_VERSION"):
+        venv_name = os.getenv("PYENV_VIRTUAL_ENV", "").split(os.sep)[-1]
+        if not venv_name:
+            return
+        pane.send_keys(f"pyenv activate {venv_name}")
+        return
 
 
-def tmux_start(bec_path: str, config_path: str, services: dict):
+def get_new_session(tmux_session_name, window_label):
+
+    tmux_server = libtmux.Server()
+
+    session = None
+    for _ in range(2):
+        try:
+            session = tmux_server.new_session(
+                tmux_session_name,
+                window_name=f"{window_label}. Use `ctrl+b d` to detach.",
+                kill_session=True,
+            )
+        except LibTmuxException:
+            # retry once... sometimes there is a hiccup in creating the session
+            time.sleep(1)
+            continue
+        else:
+            break
+    return session
+
+
+def tmux_start(
+    bec_path: str,
+    services: dict[str, "ServiceDesc"],
+    tmux_session_name="bec_atlas",
+    tmux_window_label="BEC Atlas Server",
+    default_wait_after_start: float = 0.0,
+):
     """
-    Launch the BEC server in a tmux session. All services are launched in separate panes.
+    Launch services in a tmux session. All services are launched in separate panes.
 
     Args:
         bec_path (str): Path to the BEC source code
-        config (str): Path to the config file
         services (dict): Dictionary of services to launch. Keys are the service names, values are path and command templates.
+        default_wait_after_start (float): Default time to wait (in seconds) after starting each service pane.
 
     """
+    sessions: dict[str, Session] = {}
+    ordered_services = list(enumerate(services.items()))
+    ordered_services.sort(key=lambda item: (item[1][1].get("start_order", item[0]), item[0]))
 
-    def get_new_session():
-        tmux_server = libtmux.Server()
-        session = tmux_server.new_session(
-            "bec_atlas",
-            window_name="BEC Atlas server. Use `ctrl+b d` to detach.",
-            kill_session=True,
-        )
-        return session
-
-    try:
-        session = get_new_session()
-    except LibTmuxException:
-        # retry once... sometimes there is a hiccup in creating the session
-        time.sleep(1)
-        session = get_new_session()
-
-    # create panes and run commands
-    panes = []
-    for ii, service_info in enumerate(services.items()):
-        service, service_config = service_info
-
-        if ii == 0:
-            pane = session.attached_window.attached_pane
+    for _, (service, service_config) in ordered_services:
+        if tmux_session_name not in sessions:
+            session = get_new_session(tmux_session_name, tmux_window_label)
+            pane = session.active_window.active_pane
+            sessions[tmux_session_name] = session
         else:
-            pane = session.attached_window.split_window(vertical=False)
-        panes.append(pane)
+            session = sessions[tmux_session_name]
+            pane = session.active_window.split(direction=PaneDirection.Right)
 
         activate_venv(
             pane,
             service_name=service,
             service_path=service_config["path"].substitute(base_path=bec_path),
         )
+        pane.cmd("select-pane", "-T", service)
 
-        if config_path:
-            pane.send_keys(f"{service_config['command']} --config {config_path}")
-        else:
-            pane.send_keys(f"{service_config['command']}")
-        session.attached_window.select_layout("tiled")
+        command = " ".join((service_config["command"], *service_config.get("args", [])))
+        pane.send_keys(command)
 
-    session.mouse_all_flag = True
-    session.set_option("mouse", "on")
+        wait_after_start = service_config.get("wait_after_start", default_wait_after_start)
+        if wait_after_start and wait_after_start > 0:
+            time.sleep(wait_after_start)
+
+    for session in sessions.values():
+        session.active_window.select_layout("tiled")
+        session.active_window.set_option("pane-border-status", "top")
+        session.active_window.set_option("pane-border-format", " #{pane_title} ")
+        session.mouse_all_flag = True
+        session.set_option("mouse", "on")
 
 
-def tmux_stop():
+def tmux_stop(timeout=5):
     """
     Stop the BEC server.
     """
     tmux_server = libtmux.Server()
     avail_sessions = tmux_server.sessions.filter(session_name="bec_atlas")
-    if len(avail_sessions) != 0:
-        # send ctrl+c to all panes
-        for window in avail_sessions[0].windows:
-            for pane in window.panes:
-                pane.send_keys("C-c")
-        avail_sessions[0].kill_session()
+
+    if not avail_sessions:
+        return
+
+    session = avail_sessions[0]
+
+    all_children = []
+    for bash_pid in map(int, [p.pane_pid for p in session.panes]):
+        try:
+            parent_proc = psutil.Process(bash_pid)
+            children = parent_proc.children(recursive=True)
+            all_children.extend(children)
+        except psutil.NoSuchProcess:
+            continue
+
+    # Send Ctrl+C to each pane
+    for pane in session.panes:
+        pane.send_keys("^C")  # sends SIGINT via tmux
+
+    # Wait for processes to exit
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        alive = [p for p in all_children if p.is_running()]
+        if not alive:
+            break
+        time.sleep(0.1)
+
+    # Kill remaining processes forcefully
+    for proc in alive:
+        try:
+            proc.kill()
+        except psutil.NoSuchProcess:
+            pass
+
+    # Kill tmux session
+    try:
+        session.kill_session()
+    except LibTmuxException:
+        # session may already exit itself if all panes are gone
+        pass
