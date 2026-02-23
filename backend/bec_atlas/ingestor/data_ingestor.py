@@ -8,6 +8,7 @@ from bec_lib.logger import bec_logger
 from bson import ObjectId
 
 from bec_atlas.ingestor.ingestor_base import IngestorBase
+from bec_atlas.ingestor.ms_teams_ingestor import MSTeamsIngestor
 from bec_atlas.ingestor.scilog_logbook_manager import SciLogLogbookManager
 from bec_atlas.model.model import ScanStatus, Session
 
@@ -18,6 +19,7 @@ class DataIngestor(IngestorBase):
     def __init__(self, config: dict):
         super().__init__(config)
         self.scilog_manager = SciLogLogbookManager(config=config.get("scilog", {}))
+        self.ms_teams_ingestor = MSTeamsIngestor(config.get("teams", {}))
 
     def get_stream_key(self, deployment_id: str) -> EndpointInfo:
         return MessageEndpoints.atlas_deployment_ingest(deployment_name=deployment_id)
@@ -50,6 +52,12 @@ class DataIngestor(IngestorBase):
                         logger.error("Invalid account message format.")
                         continue
                     self.update_account(val, deployment_id)
+                case "user_feedback":
+                    if not isinstance(val, messages.FeedbackMessage):
+                        logger.error("Invalid user_feedback message format.")
+                        continue
+                    self.handle_feedback(val)
+
                 case _:
                     logger.warning(f"Unknown message type: {key}")
 
@@ -266,6 +274,21 @@ class DataIngestor(IngestorBase):
             )
             return
         self.datasource.db["messaging_services"].insert_one(messaging_service_data)
+
+    def handle_feedback(self, feedback: messages.FeedbackMessage):
+        """
+        Handle a user feedback message by logging it, sending it to Teams and
+        inserting it into the database.
+
+        Args:
+            feedback (messages.FeedbackMessage): The feedback message.
+
+        """
+        logger.info(f"Received user feedback: {feedback}")
+        self.ms_teams_ingestor.send_feedback_to_chat(feedback)
+        self.datasource.db["feedback"].insert_one(
+            feedback.model_dump(exclude_none=True, by_alias=True)
+        )
 
 
 def main():  # pragma: no cover

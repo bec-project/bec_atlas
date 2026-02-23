@@ -109,6 +109,7 @@ def backend(redis_server):
         "mongodb": {"host": "localhost", "port": 27027, "mongodb_client": mongo_client},
         "scilog": {"username": "test_user", "password": "test_password"},
         "signal": {"host": "http://localhost:8080", "number": "+1234567890"},
+        "teams": {"feedback_webhook_url": "https://example.com/webhook"},
     }
 
     import_mongodb_data(mongo_client)
