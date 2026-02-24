@@ -52,6 +52,7 @@ def update_experiments(
     typer.echo("Updating experiments from DUO")
     experiments = ingestor.load_proposals_from_duo(full=full)
     ingestor.ingest_to_mongo(experiments)
+    typer.echo(f"Updated {len(experiments)} experiments from DUO")
 
 
 if __name__ == "__main__":
