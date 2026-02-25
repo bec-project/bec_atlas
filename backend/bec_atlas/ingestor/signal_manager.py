@@ -505,9 +505,9 @@ class SignalManager:
         """
         We start the cleanup thread only on the main instance, i.e. the one that hosts the Signal http server, to avoid multiple instances trying to clean up the same groups.
         """
-        # if self._is_main_instance():
-        self.cleanup_thread = threading.Thread(target=self.cleanup_groups, daemon=True)
-        self.cleanup_thread.start()
+        if self._is_main_instance():
+            self.cleanup_thread = threading.Thread(target=self.cleanup_groups, daemon=True)
+            self.cleanup_thread.start()
 
     def _is_main_instance(self) -> bool:
         """
@@ -557,7 +557,7 @@ class SignalManager:
             except Exception as exc:
                 print("Error during group cleanup:", exc)
 
-            self.shutdown_event.wait(600)  # Sleep for 10 minutes before checking again
+            self.shutdown_event.wait(3600)  # Sleep for 1 hour before checking again
 
     def shutdown(self):
         """
