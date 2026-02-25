@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/bec-project/bec_atlas/compare/v1.0.0...v1.0.1) (2026-02-25)
+
+
+### Bug Fixes
+
+* **signal:** cleanup only on prod after 1h ([9b0ab42](https://github.com/bec-project/bec_atlas/commit/9b0ab4285a63f58907a8757b143a14af232f23ee))
+
 # 1.0.0 (2026-02-25)
 
 
