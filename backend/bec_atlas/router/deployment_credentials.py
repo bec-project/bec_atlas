@@ -113,6 +113,7 @@ class DeploymentCredentialsRouter(BaseRouter):
 
         # Generate the .env file content
         env_content = f"""ATLAS_HOST={hostname}:{self.datasources.redis.config.get('port', 6380)}
+ATLAS_USE_TLS={self.datasources.redis.config.get('use_tls', False)}
 ATLAS_DEPLOYMENT={deployment.id}
 ATLAS_KEY={credential.credential}
 """
