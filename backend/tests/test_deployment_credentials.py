@@ -151,10 +151,11 @@ def test_download_env_file(logged_in_client):
     # Check the content format
     content = response.text
     lines = content.strip().split("\n")
-    assert len(lines) == 3
+    assert len(lines) == 4
     assert lines[0].startswith("ATLAS_HOST=")
-    assert lines[1] == f"ATLAS_DEPLOYMENT={deployment_id}"
-    assert lines[2].startswith("ATLAS_KEY=")
+    assert lines[1] == "ATLAS_USE_TLS=False"
+    assert lines[2] == f"ATLAS_DEPLOYMENT={deployment_id}"
+    assert lines[3].startswith("ATLAS_KEY=")
 
     # Verify the ATLAS_HOST format
     atlas_host_line = lines[0]
