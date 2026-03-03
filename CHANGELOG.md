@@ -1,3 +1,10 @@
+## [1.1.3](https://github.com/bec-project/bec_atlas/compare/v1.1.2...v1.1.3) (2026-03-03)
+
+
+### Bug Fixes
+
+* accept empty queries with user filters ([dc7580b](https://github.com/bec-project/bec_atlas/commit/dc7580b0e7eec1da22b7c64ea54f68160443a4de))
+
 ## [1.1.2](https://github.com/bec-project/bec_atlas/compare/v1.1.1...v1.1.2) (2026-03-03)
 
 
