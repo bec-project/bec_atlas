@@ -1,3 +1,10 @@
+## [1.1.2](https://github.com/bec-project/bec_atlas/compare/v1.1.1...v1.1.2) (2026-03-03)
+
+
+### Bug Fixes
+
+* include user in query filter ([c807193](https://github.com/bec-project/bec_atlas/commit/c807193f5b7e513b82fd806e490fd972475b09f4))
+
 ## [1.1.1](https://github.com/bec-project/bec_atlas/compare/v1.1.0...v1.1.1) (2026-03-03)
 
 
