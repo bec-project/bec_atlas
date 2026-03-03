@@ -1,3 +1,10 @@
+## [1.1.1](https://github.com/bec-project/bec_atlas/compare/v1.1.0...v1.1.1) (2026-03-03)
+
+
+### Bug Fixes
+
+* change Pearl to PEARL ([9181843](https://github.com/bec-project/bec_atlas/commit/91818433ff5dfa0c5a480fbf4cc74b94d97e4408))
+
 # [1.1.0](https://github.com/bec-project/bec_atlas/compare/v1.0.1...v1.1.0) (2026-03-03)
 
 
