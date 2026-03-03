@@ -186,7 +186,7 @@ class MongoDBDatasource:
     def find(
         self,
         collection: str,
-        query_filter: dict,
+        query_filter: dict | None,
         dtype: Type[T],
         limit: int = 0,
         offset: int = 0,
@@ -199,10 +199,10 @@ class MongoDBDatasource:
 
         Args:
             collection (str): The collection name
-            query_filter (dict): The filter to apply
+            query_filter (dict | None): The filter to apply
             dtype (Type[T]): The data type to return
             fields (dict[str, int] | None): The fields to include or exclude
-            user (User): The user making the request
+            user (User | None): The user making the request
 
         Returns:
             list[BaseModel]: The data type with the document data
@@ -324,29 +324,34 @@ class MongoDBDatasource:
         return [dtype(**x) for x in out]
 
     def add_user_filter(
-        self, user: User, query_filter: dict, operation: Literal["r", "w"] = "r"
-    ) -> dict:
+        self, user: User, query_filter: dict | None, operation: Literal["r", "w"] = "r"
+    ) -> dict | None:
         """
         Add the user filter to the query filter.
 
         Args:
             user (User): The user making the request
-            query_filter (dict): The query filter
+            query_filter (dict | None): The query filter
             operation (Literal["r", "w"]): The operation to perform
 
         Returns:
-            dict: The updated query filter
+            dict | None: The updated query filter
         """
         groups = set(user.groups if user.groups else [])
         groups.add("auth_user")
         if user.username and user.username != "admin":
+            # we want to add the username to the groups for easier querying,
+            # but only if it's not "admin" since admin has access to everything
             groups.add(user.username)
         if operation == "r":
             user_filter = self._read_only_user_filter(list(groups))
         else:
             user_filter = self._write_user_filter(list(groups))
         if user_filter:
-            query_filter = {"$and": [query_filter, user_filter]}
+            if query_filter is None:
+                query_filter = user_filter
+            else:
+                query_filter = {"$and": [query_filter, user_filter]}
         return query_filter
 
     def get_full_deployment(self, filter: dict) -> list[Deployments]:
