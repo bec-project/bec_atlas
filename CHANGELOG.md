@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/bec-project/bec_atlas/compare/v1.0.1...v1.1.0) (2026-03-03)
+
+
+### Features
+
+* add Pearl deployment configuration ([4bdd2f3](https://github.com/bec-project/bec_atlas/commit/4bdd2f32284da1bc2b939557c6ff2a35fb09b298))
+
 ## [1.0.1](https://github.com/bec-project/bec_atlas/compare/v1.0.0...v1.0.1) (2026-02-25)
 
 
