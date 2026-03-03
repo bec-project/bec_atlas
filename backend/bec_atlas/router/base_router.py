@@ -166,6 +166,7 @@ class BaseRouter:
                 offset=query.offset,
                 limit=query.limit,
                 sort=query.parsed_sort(),
+                user=user,
             )
         else:
             pipeline = build_aggregation_pipeline(dtype, query, user=user)
