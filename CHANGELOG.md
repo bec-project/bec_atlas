@@ -1,3 +1,10 @@
+## [1.1.4](https://github.com/bec-project/bec_atlas/compare/v1.1.3...v1.1.4) (2026-03-12)
+
+
+### Bug Fixes
+
+* **experiment lookup:** include experiment in full deployment lookup ([8e5910e](https://github.com/bec-project/bec_atlas/commit/8e5910e5ce852b7b7ab25b10e828f7435c37a477))
+
 ## [1.1.3](https://github.com/bec-project/bec_atlas/compare/v1.1.2...v1.1.3) (2026-03-03)
 
 
