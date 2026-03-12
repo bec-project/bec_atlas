@@ -535,3 +535,87 @@ def test_deployments_set_experiment_experiment_not_found(logged_in_client, backe
     )
     assert response.status_code == 404
     assert response.json() == {"detail": "Experiment not found"}
+
+
+@pytest.mark.timeout(60)
+def test_get_full_deployment_includes_experiment(logged_in_client, backend):
+    """
+    Test that get_full_deployment includes the experiment nested within the active_session.
+
+    This is a regression test for the bug where 'experiment' was missing from the
+    active_session include in get_full_deployment, causing it to always be None.
+    """
+    client, app = backend
+    db = app.datasources.mongodb
+
+    # Get the existing deployment
+    deployments = logged_in_client.get(
+        "/api/v1/deployments/realm", params={"realm": "demo_beamline_1"}
+    ).json()
+    deployment_id = deployments[0]["_id"]
+
+    # Create a test experiment
+    experiment_id = "p20240010"
+    test_experiment = Experiment(
+        id=experiment_id,  # type: ignore
+        realm_id="demo_beamline_1",
+        proposal="20240010",
+        title="Full Deployment Test Experiment",
+        firstname="Test",
+        lastname="User",
+        email="test.user@example.com",
+        account="tuser",
+        pi_firstname="PI",
+        pi_lastname="User",
+        pi_email="pi.user@example.com",
+        pi_account="piuser",
+        eaccount="e20240010",
+        pgroup="p20240010",
+        abstract="Regression test abstract",
+        owner_groups=["admin"],
+        access_groups=["p20240010"],
+    )
+    db.db["experiments"].insert_one(test_experiment.model_dump(by_alias=True))
+
+    # Create a session linked to the experiment
+    test_session = Session(
+        deployment_id=deployment_id,
+        experiment_id=experiment_id,
+        name="full_deployment_test_session",
+        owner_groups=["admin"],
+        access_groups=["p20240010"],
+    )
+    session_result = db.db["sessions"].insert_one(
+        test_session.model_dump(by_alias=True, exclude={"id"})
+    )
+    test_session_id = session_result.inserted_id
+
+    # Set the session as active on the deployment
+    db.db["deployments"].update_one(
+        {"_id": ObjectId(deployment_id)}, {"$set": {"active_session_id": test_session_id}}
+    )
+
+    try:
+        result = db.get_full_deployment({"_id": deployment_id})
+        assert len(result) == 1
+        deployment = result[0]
+
+        # Verify active_session is populated
+        assert deployment.active_session is not None
+        active_session = deployment.active_session
+
+        # Verify the experiment is nested within active_session
+        assert active_session.experiment is not None, (
+            "Experiment should be included in active_session (regression test for missing "
+            "'experiment' in get_full_deployment include)"
+        )
+        assert active_session.experiment.id == experiment_id
+        assert active_session.experiment.proposal == "20240010"
+        assert active_session.experiment.title == "Full Deployment Test Experiment"
+        assert active_session.experiment.realm_id == "demo_beamline_1"
+    finally:
+        db.db["experiments"].delete_one({"_id": experiment_id})
+        db.db["sessions"].delete_one({"_id": test_session_id})
+        db.db["deployments"].update_one(
+            {"_id": ObjectId(deployment_id)}, {"$set": {"active_session_id": None}}
+        )

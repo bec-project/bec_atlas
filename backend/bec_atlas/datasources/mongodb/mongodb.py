@@ -368,7 +368,7 @@ class MongoDBDatasource:
             dict: The full deployment info
         """
         include = {
-            "active_session": {"include": {"messaging_services": {}}},
+            "active_session": {"include": {"messaging_services": {}, "experiment": {}}},
             "messaging_services": {},
         }
         query = CollectionQueryParamsWithInclude(filter=json.dumps(filter), include=include)
