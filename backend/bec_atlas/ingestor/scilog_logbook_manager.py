@@ -171,6 +171,10 @@ class SciLogLogbookManager:
             return
         self.scilog.select_logbook(logbook)
         scilog_msg = self.scilog.new()
+
+        # Should be patched in the SciLog SDK but for now, we set it directly
+        scilog_msg._logbook = self.scilog.logbook
+
         files = []
         tmp_dir = None
         for msg_part in msg.message:
