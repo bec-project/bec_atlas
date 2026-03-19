@@ -1,3 +1,10 @@
+## [1.1.5](https://github.com/bec-project/bec_atlas/compare/v1.1.4...v1.1.5) (2026-03-19)
+
+
+### Bug Fixes
+
+* **scilog:** patch scilog logbook assignment ([6d4797d](https://github.com/bec-project/bec_atlas/commit/6d4797d32e8b3b1da627e048f7c9dfccccad1254))
+
 ## [1.1.4](https://github.com/bec-project/bec_atlas/compare/v1.1.3...v1.1.4) (2026-03-12)
 
 
