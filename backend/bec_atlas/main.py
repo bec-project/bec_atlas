@@ -26,7 +26,7 @@ origins = ["http://localhost:4200", "http://localhost"]
 class AtlasApp:
     API_VERSION = "v1"
 
-    def __init__(self, config=None):
+    def __init__(self, config: dict | None = None):
         self.prefix = f"/api/{self.API_VERSION}"
         self.config = config or CONFIG
         self.app = FastAPI(
@@ -68,7 +68,11 @@ class AtlasApp:
         self.app.include_router(self.health_router.router, tags=["Health"])
 
         # User
-        self.user_router = UserRouter(prefix=self.prefix, datasources=self.datasources)
+        self.user_router = UserRouter(
+            prefix=self.prefix,
+            datasources=self.datasources,
+            use_ssl=self.config.get("use_ssl", True),
+        )
         self.app.include_router(self.user_router.router, tags=["User"])
 
         # Realm
