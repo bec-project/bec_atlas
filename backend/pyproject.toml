@@ -16,7 +16,7 @@ dependencies = [
     "fastapi[standard]",
     "pyjwt",
     "pwdlib[argon2]",
-    "bec_lib",
+    "bec_lib~=3.112",
     "python-socketio[asyncio_client]",
     "libtmux",
     "websocket-client",
@@ -25,7 +25,7 @@ dependencies = [
     "ldap3",
     "typer",
     "requests",
-    "scilog~=2.1",
+    "scilog~=2.3",
 ]
 
 
