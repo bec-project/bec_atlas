@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import uvicorn
 from fastapi import FastAPI
+from fastapi.concurrency import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 
 from bec_atlas.datasources.datasource_manager import DatasourceManager
@@ -29,11 +32,21 @@ class AtlasApp:
     def __init__(self, config: dict | None = None):
         self.prefix = f"/api/{self.API_VERSION}"
         self.config = config or CONFIG
+
+        @asynccontextmanager
+        async def lifespan(app: FastAPI):
+            await self.on_startup()
+            try:
+                yield
+            finally:
+                await self.on_shutdown()
+
         self.app = FastAPI(
             docs_url=f"{self.prefix}/docs",
             openapi_url=f"{self.prefix}/openapi.json",
             redoc_url=f"{self.prefix}/redoc",
             title="BEC Atlas API",
+            lifespan=lifespan,
         )
         self.app.add_middleware(
             CORSMiddleware,
@@ -45,12 +58,7 @@ class AtlasApp:
         self.server = None
         self.datasources = DatasourceManager(config=self.config)
         self.datasources.connect()
-        self.register_event_handler()
         # self.add_routers()
-
-    def register_event_handler(self):
-        self.app.add_event_handler("shutdown", self.on_shutdown)
-        self.app.add_event_handler("startup", self.on_startup)
 
     async def on_startup(self):
         self.add_routers()
