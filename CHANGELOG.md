@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/bec-project/bec_atlas/compare/v1.1.6...v1.2.0) (2026-03-24)
+
+
+### Features
+
+* add use_ssl as valid config param ([0720725](https://github.com/bec-project/bec_atlas/commit/0720725b9f404d7e2893766d85dc5d228aac8454))
+
 ## [1.1.6](https://github.com/bec-project/bec_atlas/compare/v1.1.5...v1.1.6) (2026-03-19)
 
 
