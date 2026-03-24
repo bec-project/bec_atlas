@@ -1,3 +1,15 @@
+# [1.3.0](https://github.com/bec-project/bec_atlas/compare/v1.2.0...v1.3.0) (2026-03-24)
+
+
+### Bug Fixes
+
+* fix lifespan hook for fastapi ([3b14fe7](https://github.com/bec-project/bec_atlas/commit/3b14fe780f2e14a02d75187fa542455042ab2947))
+
+
+### Features
+
+* **scilog:** add support for file dimensions in ingest_data method ([b87ef63](https://github.com/bec-project/bec_atlas/commit/b87ef636c76cd06853437af6e775e8f1d47a7623))
+
 # [1.2.0](https://github.com/bec-project/bec_atlas/compare/v1.1.6...v1.2.0) (2026-03-24)
 
 
