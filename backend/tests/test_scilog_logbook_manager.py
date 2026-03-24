@@ -574,3 +574,46 @@ def test_ingest_data_file_cleanup_on_error(logbook_manager, mock_scilog, sample_
         # Despite the error, directory should exist (failed to clean up the file)
         # In this case we expect subdirectories to remain since file removal failed
         assert len(list(tmp_path.iterdir())) > 0
+
+
+@pytest.mark.timeout(60)
+@pytest.mark.parametrize(
+    "width,height",
+    [(800, 600), (None, 600), (800, None), (None, None), ("800px", "600px"), ("50%", "50%")],
+)
+def test_ingest_data_file_with_dimensions(
+    logbook_manager, mock_scilog, sample_logbook, tmp_path, width, height
+):
+    """Test ingesting a file with dimensions (width and height)."""
+    mock_scilog.get_logbooks.return_value = [sample_logbook]
+    mock_message = mock.Mock()
+    mock_scilog.new.return_value = mock_message
+
+    file_data = b"Test image content"
+    msg = messages.MessagingServiceMessage(
+        service_name="scilog",
+        message=[
+            messages.MessagingServiceFileContent(
+                filename="image.png",
+                data=file_data,
+                mime_type="image/png",
+                width=width,
+                height=height,
+            )
+        ],
+        scope="deployment_scope",
+    )
+
+    logbook_manager.ingest_data(msg, "logbook_123")
+
+    # Verify add_file was called with dimensions
+    assert mock_message.add_file.call_count == 1
+    args, kwargs = mock_message.add_file.call_args
+    if width is not None:
+        assert "width" in kwargs and kwargs["width"] == width
+    else:
+        assert "width" not in kwargs
+    if height is not None:
+        assert "height" in kwargs and kwargs["height"] == height
+    else:
+        assert "height" not in kwargs

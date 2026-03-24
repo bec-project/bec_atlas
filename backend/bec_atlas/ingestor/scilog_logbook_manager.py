@@ -190,7 +190,12 @@ class SciLogLogbookManager:
                 with open(file_path, "wb") as f:
                     f.write(msg_part.data)
                 files.append(file_path)
-                scilog_msg.add_file(file_path)
+                dimensions = {}
+                if msg_part.width is not None:
+                    dimensions["width"] = msg_part.width
+                if msg_part.height is not None:
+                    dimensions["height"] = msg_part.height
+                scilog_msg.add_file(file_path, **dimensions)
             elif isinstance(msg_part, messages.MessagingServiceTagsContent):
                 scilog_msg.add_tag(msg_part.tags)
 
