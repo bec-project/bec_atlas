@@ -2,6 +2,7 @@ import logging
 
 from ldap3 import BASE, NONE, ROUND_ROBIN, SUBTREE, Connection, Server, ServerPool
 from ldap3.core.exceptions import LDAPBindError
+from ldap3.utils.dn import escape_rdn
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +21,7 @@ class LDAPUserService:
         """
         Authenticate the user against the LDAP server and extract user details.
         """
+        principal = escape_rdn(principal)  # escape characters to prevent injection
         # Determine DN based on input type
         if "@" in principal:
             # Email login
@@ -49,7 +51,9 @@ class LDAPUserService:
                 # Extract user details
                 attrs = entry.entry_attributes_as_dict
                 user_data = {new: attrs.get(old, [None])[0] for old, new in ATTRIBUTE_MAP.items()}
-                user_data["roles"] = [g.split(",")[0][3:] for g in attrs.get("memberOf", [])]
+                user_data["roles"] = [
+                    g[3:].split(",", 1)[0] for g in attrs.get("memberOf", []) if g.startswith("CN=")
+                ]
                 return user_data
 
         except Exception as e:
