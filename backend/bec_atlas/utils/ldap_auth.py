@@ -50,7 +50,7 @@ class LDAPUserService:
 
                 # Extract user details
                 attrs = entry.entry_attributes_as_dict
-                user_data = {new: attrs.get(old, [None])[0] for old, new in ATTRIBUTE_MAP.items()}
+                user_data = {new: (attrs.get(old, [None]) or [None])[0] for old, new in ATTRIBUTE_MAP.items()}
                 user_data["roles"] = [
                     g[3:].split(",", 1)[0] for g in attrs.get("memberOf", []) if g.startswith("CN=")
                 ]
