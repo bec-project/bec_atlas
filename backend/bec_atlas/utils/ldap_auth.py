@@ -1,14 +1,19 @@
 import logging
 
-from ldap3 import ALL, SUBTREE, Connection, Server
-from ldap3.core.exceptions import LDAPBindError, LDAPSocketOpenError
+from ldap3 import BASE, NONE, ROUND_ROBIN, SUBTREE, Connection, Server, ServerPool
+from ldap3.core.exceptions import LDAPBindError
 
 logger = logging.getLogger(__name__)
 
 
+ATTRIBUTE_MAP = {"cn": "username", "mail": "email", "givenName": "first_name", "sn": "last_name"}
+ATTRIBUTES = [*ATTRIBUTE_MAP, "memberOf"]
+
+
 class LDAPUserService:
     def __init__(self, ldap_server, base_dn):
-        self.server = Server(ldap_server, get_info=ALL, connect_timeout=5)
+        server_factory = make_server if isinstance(ldap_server, str) else make_server_pool
+        self.server = server_factory(ldap_server)
         self.base_dn = base_dn
 
     def authenticate_and_get_info(self, principal, password):
@@ -21,11 +26,13 @@ class LDAPUserService:
             bind_dn = principal
             search_base = self.base_dn
             search_filter = f"(userPrincipalName={principal})"
+            search_scope = SUBTREE
         else:
             # Standard username login
             bind_dn = f"CN={principal},{self.base_dn}"
             search_base = bind_dn
             search_filter = "(objectClass=*)"
+            search_scope = BASE
 
         try:
             # Authenticate the user
@@ -35,30 +42,28 @@ class LDAPUserService:
 
                 # Search for user information
                 user_conn.search(
-                    search_base,
-                    search_filter,
-                    search_scope=SUBTREE,
-                    attributes=["cn", "mail", "givenName", "sn", "memberOf"],
+                    search_base, search_filter, search_scope=search_scope, attributes=ATTRIBUTES
                 )
                 entry = user_conn.entries[0]
 
                 # Extract user details
-                user_data = {
-                    "username": entry.cn.value,
-                    "email": entry.mail.value if "mail" in entry else None,
-                    "first_name": entry.givenName.value if "givenName" in entry else None,
-                    "last_name": entry.sn.value if "sn" in entry else None,
-                    "roles": (
-                        [group.split(",")[0][3:] for group in entry.memberOf]
-                        if "memberOf" in entry
-                        else []
-                    ),
-                }
+                attrs = entry.entry_attributes_as_dict
+                user_data = {new: attrs.get(old, [None])[0] for old, new in ATTRIBUTE_MAP.items()}
+                user_data["roles"] = [g.split(",")[0][3:] for g in attrs.get("memberOf", [])]
                 return user_data
 
         except Exception as e:
             logger.error(f"LDAP authentication failed: {e}")
             return None
+
+
+def make_server_pool(hosts):
+    servers = [make_server(host) for host in hosts]
+    return ServerPool(servers, ROUND_ROBIN, active=True, exhaust=True)
+
+
+def make_server(host):
+    return Server(f"ldaps://{host}", get_info=NONE, connect_timeout=5)
 
 
 if __name__ == "__main__":  # pragma: no cover
