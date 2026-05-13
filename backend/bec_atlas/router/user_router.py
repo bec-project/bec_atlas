@@ -37,7 +37,8 @@ class UserRouter(BaseRouter):
         self.use_ssl = use_ssl
         self.db: MongoDBDatasource = self.datasources.mongodb
         self.ldap = LDAPUserService(
-            ldap_server="ldaps://d.psi.ch", base_dn="OU=users,OU=psi,DC=d,DC=psi,DC=ch"
+            ldap_server=["dc00.d.psi.ch", "dc01.d.psi.ch", "dc02.d.psi.ch"],
+            base_dn="OU=users,OU=psi,DC=d,DC=psi,DC=ch",
         )
         self.router = APIRouter(prefix=prefix)
         self.router.add_api_route("/user/me", self.user_me, methods=["GET"])
