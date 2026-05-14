@@ -47,19 +47,21 @@ class LDAPUserService:
                     search_base, search_filter, search_scope=search_scope, attributes=ATTRIBUTES
                 )
 
-                n_entries = len(user_conn.entries)
-                if n_entries != 1:
-                    raise RuntimeError(f"Received ambiguous result ({n_entries} entries)")
+                entries = user_conn.entries
 
-                entry = user_conn.entries[0]
+            n_entries = len(entries)
+            if n_entries != 1:
+                raise RuntimeError(f"Received ambiguous result ({n_entries} entries)")
 
-                # Extract user details
-                attrs = entry.entry_attributes_as_dict
-                user_data = {new: (attrs.get(old, [None]) or [None])[0] for old, new in ATTRIBUTE_MAP.items()}
-                user_data["roles"] = [
-                    g[3:].split(",", 1)[0] for g in attrs.get("memberOf", []) if g.startswith("CN=")
-                ]
-                return user_data
+            entry = entries[0]
+
+            # Extract user details
+            attrs = entry.entry_attributes_as_dict
+            user_data = {new: (attrs.get(old, [None]) or [None])[0] for old, new in ATTRIBUTE_MAP.items()}
+            user_data["roles"] = [
+                g[3:].split(",", 1)[0] for g in attrs.get("memberOf", []) if g.startswith("CN=")
+            ]
+            return user_data
 
         except Exception as e:
             logger.error(f"LDAP authentication failed: {e}")
