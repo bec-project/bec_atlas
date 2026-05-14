@@ -46,6 +46,11 @@ class LDAPUserService:
                 user_conn.search(
                     search_base, search_filter, search_scope=search_scope, attributes=ATTRIBUTES
                 )
+
+                n_entries = len(user_conn.entries)
+                if n_entries != 1:
+                    raise RuntimeError(f"Received ambiguous result ({n_entries} entries)")
+
                 entry = user_conn.entries[0]
 
                 # Extract user details
