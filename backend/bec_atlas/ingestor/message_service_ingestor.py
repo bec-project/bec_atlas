@@ -147,17 +147,17 @@ class MessageServiceIngestor(IngestorBase):
             case "signal":
                 self.signal_manager.process(msg, deployment)
                 logger.info(
-                    f"Processed signal message with scope {msg.scope} for deployment {deployment.deployment_id}."
+                    f"[{deployment.name}] Processed signal message with scope {msg.scope} for deployment {deployment.deployment_id}."
                 )
             case "teams":
                 logger.info(
-                    f"Received message for Microsoft Teams with scope {msg.scope} for deployment {deployment.deployment_id}."
+                    f"[{deployment.name}] Received message for Microsoft Teams with scope {msg.scope} for deployment {deployment.deployment_id}."
                 )
                 pass  # not implemented yet
             case "scilog":
                 self.scilog_manager.process(msg, deployment)
                 logger.info(
-                    f"Processed SciLog message with scope {msg.scope} for deployment {deployment.deployment_id}."
+                    f"[{deployment.name}] Processed SciLog message with scope {msg.scope} for deployment {deployment.deployment_id}."
                 )
             case _:
                 logger.error(f"Unknown messaging service: {msg.service_name}")
