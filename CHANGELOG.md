@@ -1,3 +1,10 @@
+# [1.4.0](https://github.com/bec-project/bec_atlas/compare/v1.3.0...v1.4.0) (2026-05-26)
+
+
+### Features
+
+* **signal:** add support for sending to individuals ([7e17d4e](https://github.com/bec-project/bec_atlas/commit/7e17d4e6fdbbb5482a26ddced85c970be8859f13))
+
 # [1.3.0](https://github.com/bec-project/bec_atlas/compare/v1.2.0...v1.3.0) (2026-03-24)
 
 
