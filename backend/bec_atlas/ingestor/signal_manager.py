@@ -128,21 +128,62 @@ class SignalManager:
         if not isinstance(msg.scope, list):
             msg.scope = [msg.scope]
 
-        for scope in msg.scope:
-            group_id = self.get_group_id_for_deployment(deployment, scope)
-            if not group_id:
-                print(
-                    f"No Signal group found for deployment {deployment.deployment_id} and scope {scope}, cannot process message."
-                )
-                return
-            payload = {
-                "jsonrpc": "2.0",
-                "method": "send",
-                "params": {"message": self.get_text_from_message(msg), "groupId": group_id},
-            }
-            self.add_attachments_to_payload(msg, payload)
-            self.add_stickers_to_payload(msg, payload)
-            self.post(payload)
+        phone_numbers = [s for s in msg.scope if isinstance(s, str) and s.startswith("+")]
+        group_scopes = [s for s in msg.scope if isinstance(s, str) and not s.startswith("+")]
+        if phone_numbers:
+            self.send_message_to_individuals(msg, phone_numbers)
+
+        for scope in group_scopes:
+            self.send_message_to_group(msg, deployment, scope)
+
+    def send_message_to_individuals(
+        self, msg: messages.MessagingServiceMessage, phone_numbers: list[str]
+    ):
+        """
+        Send a message (including attachments and stickers) to individual phone numbers.
+
+        Args:
+            msg (messages.MessagingServiceMessage): The message containing the recipient phone numbers in the scope.
+            phone_numbers (list[str]): The list of phone numbers to send the message to.
+
+        """
+        payload = {
+            "jsonrpc": "2.0",
+            "method": "send",
+            "params": {"message": self.get_text_from_message(msg), "recipients": phone_numbers},
+        }
+        self.add_attachments_to_payload(msg, payload)
+        self.add_stickers_to_payload(msg, payload)
+        self.post(payload)
+
+    def send_message_to_group(
+        self,
+        msg: messages.MessagingServiceMessage,
+        deployment: messages.DeploymentInfoMessage,
+        scope: str,
+    ):
+        """
+        Send a message to a Signal group associated with the deployment.
+
+        Args:
+            msg (messages.MessagingServiceMessage): The message to send.
+            deployment (messages.DeploymentInfoMessage): The deployment info message containing the session and messaging service info to determine the group id.
+            scope (str): The message scope.
+        """
+        group_id = self.get_group_id_for_deployment(deployment, scope)
+        if not group_id:
+            print(
+                f"No Signal group found for deployment {deployment.deployment_id} and scope {scope}, cannot process message."
+            )
+            return
+        payload = {
+            "jsonrpc": "2.0",
+            "method": "send",
+            "params": {"message": self.get_text_from_message(msg), "groupId": group_id},
+        }
+        self.add_attachments_to_payload(msg, payload)
+        self.add_stickers_to_payload(msg, payload)
+        self.post(payload)
 
     def add_attachments_to_payload(self, msg: messages.MessagingServiceMessage, payload: dict):
         """
@@ -313,7 +354,7 @@ class SignalManager:
         pending_request = self.pending_signal_requests.get(source_number)
         if not pending_request:
             message = "Your signal group link has been received, but no pending signal link request was found. Please initiate the linking process first."
-            self.send_message_to_individuals(source_number, message)
+            self.send_simple_message_to_individuals(source_number, message)
             return False
         # We have a pending signal link request for this number, and the message contains a group link, so we proceed with the linking process.
         link = message.split()[0]
@@ -348,12 +389,12 @@ class SignalManager:
                 for banned_user in group.banned:
                     if banned_user.number == self.number:
                         message = "Your link request has been received, but BEC is currently banned from the group. Please add BEC back to the group."
-                        self.send_message_to_individuals(number, message)
+                        self.send_simple_message_to_individuals(number, message)
                         return
                 break
         if not group_id:
             message = "Your link request has been received, but no matching group was found on the Signal server. Please make sure to send a valid group link."
-            self.send_message_to_individuals(number, message)
+            self.send_simple_message_to_individuals(number, message)
             return
 
         patch_data = {"group_id": group_id, "group_link": link}
@@ -371,7 +412,9 @@ class SignalManager:
                 deployment_id = pending_request["deployment_id"]
             self.ingestor.broadcast_deployment_update(deployment_id)
 
-        self.send_message_to_individuals(number, "Your Signal group has been successfully linked.")
+        self.send_simple_message_to_individuals(
+            number, "Your Signal group has been successfully linked."
+        )
 
     def send_random_message(self, group_id: str, message_type: Literal["enter", "exit"]):
         """
@@ -442,9 +485,9 @@ class SignalManager:
             f"A request has been made to link the {link_scope} with a new group in Signal.\n\n"
             f"If you want to proceed with the linking, please reply to this message with a group link within the next 5 minutes."
         )
-        self.send_message_to_individuals(number, message)
+        self.send_simple_message_to_individuals(number, message)
 
-    def send_message_to_individuals(self, number: str | list[str], message: str):
+    def send_simple_message_to_individuals(self, number: str | list[str], message: str):
         """
         Send a message to an individual phone number or a list of phone numbers.
 

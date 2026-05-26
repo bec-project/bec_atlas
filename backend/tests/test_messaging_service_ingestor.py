@@ -79,9 +79,9 @@ def test_handle_message(ingestor):
     assert deployment_id in ingestor._deployment_info_cache
 
     # make sure that we've started a new subscription for the deployment info stream key
-    assert (
-        MessageEndpoints.atlas_deployment_info(deployment_name=deployment_id).endpoint
-        in ingestor.redis._stream_topics_subscription
+    assert ingestor.redis.any_stream_is_registered(
+        MessageEndpoints.atlas_deployment_info(deployment_name=deployment_id),
+        ingestor._handle_deployment_info_update,
     )
 
     assert ingestor.signal_manager.process.called_once_with(
