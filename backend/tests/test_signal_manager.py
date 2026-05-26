@@ -76,6 +76,51 @@ def test_process_posts_payload(signal_manager):
     assert payload["params"]["groupId"] == "test_group_id"
 
 
+def test_process_sends_direct_and_group_messages(signal_manager):
+    msg = messages.MessagingServiceMessage(
+        service_name="signal",
+        message=[messages.MessagingServiceTextContent(content="Hello, Signal!")],
+        scope=["+491234", "user1"],
+    )
+
+    deployment_info = messages.DeploymentInfoMessage(
+        deployment_id="test_deployment",
+        name="Test Deployment",
+        messaging_config=messages.MessagingConfig(
+            signal=messages.MessagingServiceScopeConfig(enabled=True, default=None),
+            scilog=messages.MessagingServiceScopeConfig(enabled=True, default=None),
+            teams=messages.MessagingServiceScopeConfig(enabled=False, default=None),
+        ),
+    )
+    with (
+        mock.patch.object(signal_manager, "send_message_to_individuals") as mock_send_direct,
+        mock.patch.object(signal_manager, "send_message_to_group") as mock_send_group,
+    ):
+        signal_manager.process(msg, deployment_info)
+
+    mock_send_direct.assert_called_once_with(msg, ["+491234"])
+    mock_send_group.assert_called_once_with(msg, deployment_info, "user1")
+
+
+def test_send_message_to_individuals_posts_recipients_payload(signal_manager):
+    msg = messages.MessagingServiceMessage(
+        service_name="signal",
+        message=[messages.MessagingServiceTextContent(content="Hello, Signal!")],
+        scope=["+491234"],
+    )
+
+    with mock.patch.object(signal_manager, "post") as mock_post:
+        signal_manager.send_message_to_individuals(msg, ["+491234", "+495678"])
+
+    mock_post.assert_called_once_with(
+        {
+            "jsonrpc": "2.0",
+            "method": "send",
+            "params": {"message": "Hello, Signal!", "recipients": ["+491234", "+495678"]},
+        }
+    )
+
+
 def test_handle_signal_link_request_stores_pending(signal_manager):
     msg_obj = MessageObject(
         value=messages.VariableMessage(
@@ -144,6 +189,30 @@ def test_check_pending_signal_link_request_ignores_non_link(signal_manager):
 
     assert result is False
     mock_complete.assert_not_called()
+
+
+def test_check_pending_signal_link_request_without_pending_sends_message(signal_manager):
+    event = {
+        "account": "+491234",
+        "envelope": {
+            "sourceNumber": "+491234",
+            "timestamp": 1,
+            "serverReceivedTimestamp": 1,
+            "serverDeliveredTimestamp": 1,
+            "dataMessage": {"timestamp": 1, "message": "https://signal.group/abcd some text"},
+        },
+    }
+
+    signal_event = SignalEventMessage(**event)
+
+    with mock.patch.object(signal_manager, "send_simple_message_to_individuals") as mock_send:
+        result = signal_manager.check_pending_signal_link_request(signal_event)
+
+    assert result is False
+    mock_send.assert_called_once_with(
+        "+491234",
+        "Your signal group link has been received, but no pending signal link request was found. Please initiate the linking process first.",
+    )
 
 
 def test_complete_signal_linking_calls_join_group(signal_manager):
