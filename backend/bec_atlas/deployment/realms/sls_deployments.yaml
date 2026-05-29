@@ -69,25 +69,37 @@ PEARL:
         - unx-sls_x03da_bs
       experiment_access:
         - unx-sls_x03da_bs
+# microXAS:
+#   xname: x05la
+#   managers:
+#     - unx-sls_x05la_bs
+#   deployments:
+#     x05la-bec-001.psi.ch:
+#       name: production
+#       description: Primary deployment for MicroXAS
+#       deployment_access:
+#         - unx-sls_x05la_bs
+#       experiment_access:
+#         - unx-sls_x05la_bs
+#     x05la-bec-002.psi.ch:
+#       name: test
+#       description: Test environment for MicroXAS
+#       deployment_access:
+#         - unx-sls_x05la_bs
+#       experiment_access:
+#         - unx-sls_x05la_bs
 microXAS:
-  xname: x05la
+  xname: x08sa
   managers:
-    - unx-sls_x05la_bs
+    - unx-sls_x08sa_bs
   deployments:
-    x05la-bec-001.psi.ch:
+    x08sa-bec-001.psi.ch:
       name: production
       description: Primary deployment for MicroXAS
       deployment_access:
-        - unx-sls_x05la_bs
+        - unx-sls_x08sa_bs
       experiment_access:
-        - unx-sls_x05la_bs
-    x05la-bec-002.psi.ch:
-      name: test
-      description: Test environment for MicroXAS
-      deployment_access:
-        - unx-sls_x05la_bs
-      experiment_access:
-        - unx-sls_x05la_bs
+        - unx-sls_x08sa_bs
 Phoenix:
   xname: x07mb
   managers:
