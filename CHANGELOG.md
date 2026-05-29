@@ -1,3 +1,10 @@
+## [1.4.1](https://github.com/bec-project/bec_atlas/compare/v1.4.0...v1.4.1) (2026-05-29)
+
+
+### Bug Fixes
+
+* update microXAS deployment details and xname mapping ([a4c2860](https://github.com/bec-project/bec_atlas/commit/a4c28605a7f0b3049c28bf8924043992c3a6bc71))
+
 # [1.4.0](https://github.com/bec-project/bec_atlas/compare/v1.3.0...v1.4.0) (2026-05-26)
 
 
