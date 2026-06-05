@@ -1,3 +1,10 @@
+## [1.4.2](https://github.com/bec-project/bec_atlas/compare/v1.4.1...v1.4.2) (2026-06-05)
+
+
+### Bug Fixes
+
+* update HTTP timeout settings in ProposalIngestor ([3bcd4a7](https://github.com/bec-project/bec_atlas/commit/3bcd4a77b48c4df1ebd47a197eb94688c6165fb8))
+
 ## [1.4.1](https://github.com/bec-project/bec_atlas/compare/v1.4.0...v1.4.1) (2026-05-29)
 
 
