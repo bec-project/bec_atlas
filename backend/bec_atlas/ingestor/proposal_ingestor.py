@@ -7,6 +7,7 @@ from bec_atlas.model import Experiment, is_valid_beamline_name, name_to_xname
 
 
 class ProposalIngestor:
+    HTTP_TIMEOUT = 30
 
     def __init__(
         self,
@@ -105,7 +106,9 @@ class ProposalIngestor:
             for year in years:
                 url = f"{self.duo_base_url}/CalendarInfos/proposals/{facility}"
                 params = {"year": year} if year is not None else None
-                response = requests.get(url, params=params, headers=self.duo_header, timeout=5)
+                response = requests.get(
+                    url, params=params, headers=self.duo_header, timeout=self.HTTP_TIMEOUT
+                )
                 response.raise_for_status()
                 data = response.json()
                 for item in data:
@@ -129,7 +132,9 @@ class ProposalIngestor:
         year = min(years) if years else datetime.datetime.now().year
         url = f"{self.duo_base_url}/PGroupAttributes/listProposalAssignments"
         params = {"withoutproposal": "true", "createdsince": f"{year}-01-01"}
-        response = requests.get(url, headers=self.duo_header, params=params, timeout=10)
+        response = requests.get(
+            url, headers=self.duo_header, params=params, timeout=self.HTTP_TIMEOUT
+        )
         response.raise_for_status()
         pgroups_wo_proposal = [item["g"] for item in response.json()]
 
@@ -170,7 +175,7 @@ class ProposalIngestor:
         Fetch proposal details for a specific PGroup.
         """
         url = f"{self.duo_base_url}/CalendarInfos/pgroup/{pgroup}"
-        response = requests.get(url, headers=self.duo_header, timeout=10)
+        response = requests.get(url, headers=self.duo_header, timeout=self.HTTP_TIMEOUT)
         response.raise_for_status()
         data = response.json()
         return data["group"]
@@ -189,6 +194,6 @@ if __name__ == "__main__":  # pragma: no cover
     if not duo_token:
         raise RuntimeError("DUO token not found in .duo.env file")
     proposal_ingestor = ProposalIngestor(duo_token=duo_token)
-    experiments = proposal_ingestor.load_proposals_from_duo(full=True)
+    experiments = proposal_ingestor.load_proposals_from_duo(full=False)
     last_pgroup = proposal_ingestor.ingest_to_mongo(experiments)
     print(f"Last inserted pgroup: {last_pgroup}")
