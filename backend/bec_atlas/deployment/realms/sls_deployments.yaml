@@ -58,17 +58,17 @@ Debye:
       experiment_access:
         - unx-sls_x01da_bs
 PEARL:
-  xname: x03da
+  xname: x09la
   managers:
-    - unx-sls_x03da_bs
+    - unx-sls_x09la_bs
   deployments:
-    x03da-bec-001.psi.ch:
+    x09la-bec-001.psi.ch:
       name: production
       description: Primary deployment for Pearl
       deployment_access:
-        - unx-sls_x03da_bs
+        - unx-sls_x09la_bs
       experiment_access:
-        - unx-sls_x03da_bs
+        - unx-sls_x09la_bs
 # microXAS:
 #   xname: x05la
 #   managers:
