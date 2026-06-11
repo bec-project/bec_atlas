@@ -1,3 +1,10 @@
+## [1.4.3](https://github.com/bec-project/bec_atlas/compare/v1.4.2...v1.4.3) (2026-06-11)
+
+
+### Bug Fixes
+
+* migrate pearl to x09la ([e3cf343](https://github.com/bec-project/bec_atlas/commit/e3cf343979a195465eb048d9314f7df0183de10d))
+
 ## [1.4.2](https://github.com/bec-project/bec_atlas/compare/v1.4.1...v1.4.2) (2026-06-05)
 
 
