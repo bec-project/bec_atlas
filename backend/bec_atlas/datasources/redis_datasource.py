@@ -74,7 +74,7 @@ class RedisDatasource:
         """
 
         # Create the ingestor user. This user is used by the data ingestor to write data to the database.
-        self.connector._redis_conn.acl_setuser(
+        self.connector._managed_connection._redis_conn.acl_setuser(
             "ingestor",
             enabled=True,
             passwords=f'+{self.config.get("password")}',
@@ -83,7 +83,7 @@ class RedisDatasource:
             channels=["*"],
         )
 
-        self.connector._redis_conn.acl_setuser(
+        self.connector._managed_connection._redis_conn.acl_setuser(
             "user",
             enabled=True,
             passwords="+user",
@@ -91,7 +91,7 @@ class RedisDatasource:
             keys=["*"],
             channels=["*"],
         )
-        self.connector._redis_conn.acl_setuser(
+        self.connector._managed_connection._redis_conn.acl_setuser(
             "default", enabled=True, categories=["-@all"], commands=["+auth", "+acl|whoami"]
         )
 
@@ -105,7 +105,7 @@ class RedisDatasource:
         print(f"Adding ACLs for deployment {deployment_credential.id}")
         dep_id = deployment_credential.id
         dep_key = deployment_credential.credential
-        self.connector._redis_conn.acl_setuser(
+        self.connector._managed_connection._redis_conn.acl_setuser(
             f"ingestor_{dep_id}",
             enabled=True,
             passwords=f"+{dep_key}",
