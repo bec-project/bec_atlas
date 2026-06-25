@@ -327,7 +327,9 @@ def test_scan_ingestor_consumer_groups(scan_ingestor, backend):
     client, app = backend
 
     # Mock the actual redis connection's xgroup_create method
-    with mock.patch.object(scan_ingestor.redis._redis_conn, "xgroup_create") as mock_xgroup_create:
+    with mock.patch.object(
+        scan_ingestor.redis._managed_connection._redis_conn, "xgroup_create"
+    ) as mock_xgroup_create:
         # Test update_consumer_groups method
         scan_ingestor.update_consumer_groups()
         # Verify consumer groups were created for all deployments

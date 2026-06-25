@@ -35,8 +35,8 @@ class HealthRouter(BaseRouter):
             # Try to ping Redis to verify connection
             if self.datasources and hasattr(self.datasources, "redis") and self.datasources.redis:
                 redis_connector = self.datasources.redis.connector
-                if hasattr(redis_connector, "_redis_conn") and redis_connector._redis_conn:  # type: ignore
-                    redis_connector._redis_conn.ping()  # type: ignore
+                if hasattr(redis_connector, "_managed_connection") and redis_connector._managed_connection._redis_conn:  # type: ignore
+                    redis_connector._managed_connection._redis_conn.ping()  # type: ignore
                     services["redis"] = {"status": "healthy", "message": "Connection successful"}
                 else:
                     raise Exception("Redis connection not established")

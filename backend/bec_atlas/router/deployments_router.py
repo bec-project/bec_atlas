@@ -335,7 +335,7 @@ class DeploymentsRouter(BaseRouter):
             redis.update_deployment_info(deployment)
 
         try:
-            redis.connector._redis_conn.acl_save()
+            redis.connector._managed_connection._redis_conn.acl_save()
         except Exception:
             logger.error("Failed to save ACLs to disk")
 

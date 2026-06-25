@@ -83,7 +83,7 @@ class IngestorBase(ABC):
         """
         for deployment in self.available_deployments:
             try:
-                self.redis._redis_conn.xgroup_create(
+                self.redis._managed_connection._redis_conn.xgroup_create(
                     name=self.get_stream_key(deployment["id"]).endpoint,
                     groupname="ingestor",
                     mkstream=True,
@@ -113,7 +113,7 @@ class IngestorBase(ABC):
             to_process = []
             for deployment in self.available_deployments:
                 try:
-                    pending_messages = self.redis._redis_conn.xautoclaim(
+                    pending_messages = self.redis._managed_connection._redis_conn.xautoclaim(
                         self.get_stream_key(deployment["id"]).endpoint,
                         "ingestor",
                         self.consumer_name,
@@ -153,7 +153,7 @@ class IngestorBase(ABC):
                     self.get_stream_key(deployment["id"]).endpoint: ">"
                     for deployment in self.available_deployments
                 }
-                data = self.redis._redis_conn.xreadgroup(
+                data = self.redis._managed_connection._redis_conn.xreadgroup(
                     groupname="ingestor",
                     consumername=self.consumer_name,
                     streams=streams,
@@ -176,8 +176,8 @@ class IngestorBase(ABC):
                 for key, val in msg.items():
                     out[key.decode()] = MsgpackSerialization.loads(val)
                 self.handle_message(out, stream.decode())
-                self.redis._redis_conn.xack(stream, "ingestor", message[0])
-                self.redis._redis_conn.xdel(stream, message[0])
+                self.redis._managed_connection._redis_conn.xack(stream, "ingestor", message[0])
+                self.redis._managed_connection._redis_conn.xdel(stream, message[0])
 
     @abstractmethod
     def handle_message(self, msg_dict: dict, stream_key: str):
