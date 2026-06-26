@@ -176,41 +176,43 @@ class SciLogLogbookManager:
         # Should be patched in the SciLog SDK but for now, we set it directly
         scilog_msg._logbook = self.scilog
 
-        files = []
-        tmp_dir = None
-        for msg_part in msg.message:
-            if isinstance(msg_part, messages.MessagingServiceTextContent):
-                scilog_msg.add_text(msg_part.content)
-            elif isinstance(msg_part, messages.MessagingServiceFileContent):
-                # We have to write the file to disk because the SciLog SDK only accepts file paths for attachments.
-                if not tmp_dir:
-                    tmp_dir = f"{self.temp_dir}/{uuid.uuid4()}"
-                    os.makedirs(tmp_dir, exist_ok=True)
-                file_name = msg_part.filename
-                file_path = f"{tmp_dir}/{file_name}"
-                with open(file_path, "wb") as f:
-                    f.write(msg_part.data)
-                files.append(file_path)
-                dimensions = {}
-                if msg_part.width is not None:
-                    dimensions["width"] = msg_part.width
-                if msg_part.height is not None:
-                    dimensions["height"] = msg_part.height
-                scilog_msg.add_file(file_path, **dimensions)
-            elif isinstance(msg_part, messages.MessagingServiceTagsContent):
-                scilog_msg.add_tag(msg_part.tags)
+        try:
+            files = []
+            tmp_dir = None
+            for msg_part in msg.message:
+                if isinstance(msg_part, messages.MessagingServiceTextContent):
+                    scilog_msg.add_text(msg_part.content)
+                elif isinstance(msg_part, messages.MessagingServiceFileContent):
+                    # We have to write the file to disk because the SciLog SDK only accepts file paths for attachments.
+                    if not tmp_dir:
+                        tmp_dir = f"{self.temp_dir}/{uuid.uuid4()}"
+                        os.makedirs(tmp_dir, exist_ok=True)
+                    file_name = msg_part.filename
+                    file_path = f"{tmp_dir}/{file_name}"
+                    with open(file_path, "wb") as f:
+                        f.write(msg_part.data)
+                    files.append(file_path)
+                    dimensions = {}
+                    if msg_part.width is not None:
+                        dimensions["width"] = msg_part.width
+                    if msg_part.height is not None:
+                        dimensions["height"] = msg_part.height
+                    scilog_msg.add_file(file_path, **dimensions)
+                elif isinstance(msg_part, messages.MessagingServiceTagsContent):
+                    scilog_msg.add_tag(msg_part.tags)
 
-        scilog_msg.send()
-        # Cleanup files after sending the message to avoid leaving temporary files on disk.
-        for file_path in files:
-            try:
-                print(f"Removing temporary file: {file_path}")
-                os.remove(file_path)
-            except Exception as e:
-                logger.error(f"Failed to remove temporary file {file_path}: {e}")
-        # Remove the temporary directory
-        if tmp_dir:
-            try:
-                os.rmdir(tmp_dir)
-            except Exception as e:
-                logger.error(f"Failed to remove temporary directory {tmp_dir}: {e}")
+            scilog_msg.send()
+        finally:
+            # Cleanup files after sending the message to avoid leaving temporary files on disk.
+            for file_path in files:
+                try:
+                    print(f"Removing temporary file: {file_path}")
+                    os.remove(file_path)
+                except Exception as e:
+                    logger.error(f"Failed to remove temporary file {file_path}: {e}")
+            # Remove the temporary directory
+            if tmp_dir:
+                try:
+                    os.rmdir(tmp_dir)
+                except Exception as e:
+                    logger.error(f"Failed to remove temporary directory {tmp_dir}: {e}")
