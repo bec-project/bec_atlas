@@ -156,6 +156,7 @@ class SciLogLogbookManager:
 
         return inner_fetch(self)
 
+    @reauthenticate
     def ingest_data(self, msg: messages.MessagingServiceMessage, logbook_id: str):
         """
         Ingest data into the logbook.
