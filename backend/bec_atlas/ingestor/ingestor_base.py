@@ -15,7 +15,6 @@ from redis.exceptions import ResponseError
 from bec_atlas.datasources.endpoints import RedisAtlasEndpoints
 from bec_atlas.datasources.mongodb.mongodb import MongoDBDatasource
 from bec_atlas.datasources.redis_datasource import RedisDatasource
-from bec_atlas.model import Deployments
 
 logger = logging.getLogger(__name__)
 
