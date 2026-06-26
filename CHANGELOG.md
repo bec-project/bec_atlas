@@ -1,3 +1,15 @@
+# [1.5.0](https://github.com/bec-project/bec_atlas/compare/v1.4.4...v1.5.0) (2026-06-26)
+
+
+### Bug Fixes
+
+* ensure cleanup of temporary files and directories in fetch_logbooks_for_pgroup method ([aa1845b](https://github.com/bec-project/bec_atlas/commit/aa1845b2c088703ffdbd6d52832972377856c697))
+
+
+### Features
+
+* add reauthentication decorator to ingest_data method ([3d455f0](https://github.com/bec-project/bec_atlas/commit/3d455f03e76c6b4a18b265125a9904609a8e49c4))
+
 ## [1.4.4](https://github.com/bec-project/bec_atlas/compare/v1.4.3...v1.4.4) (2026-06-26)
 
 
