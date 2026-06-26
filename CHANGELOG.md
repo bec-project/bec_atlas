@@ -1,3 +1,10 @@
+## [1.4.4](https://github.com/bec-project/bec_atlas/compare/v1.4.3...v1.4.4) (2026-06-26)
+
+
+### Bug Fixes
+
+* update Redis connection references to use managed_connection ([5c6a486](https://github.com/bec-project/bec_atlas/commit/5c6a486ad653d9e8203301eb724c116b7a3036f1))
+
 ## [1.4.3](https://github.com/bec-project/bec_atlas/compare/v1.4.2...v1.4.3) (2026-06-11)
 
 
