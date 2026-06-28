@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING
 from unittest import mock
 
+import numpy as np
 import pytest
 from bec_lib import messages
 from bson import ObjectId
@@ -180,6 +181,41 @@ def test_scan_ingestor_scan_history(scan_ingestor, backend):
     assert out["start_time"] == 1732610545.0
     assert out["end_time"] == 1732610600.0
     assert out["file_path"] == "/path/to/scan/data.h5"
+
+
+@pytest.mark.timeout(60)
+def test_scan_ingestor_create_scan_with_numpy_values(scan_ingestor, backend):
+    """
+    Test that NumPy values in scan status payloads are normalized before Mongo insert.
+    """
+    client, app = backend
+    mongo: MongoDBDatasource = app.datasources.mongodb
+    deployment = mongo.find_one("deployments", {}, dtype=Deployments)
+    assert deployment is not None, "No deployment found in test data"
+    session = mongo.find_one("sessions", {"deployment_id": deployment.id}, dtype=Session)
+    assert session is not None, f"No session found for deployment {deployment.id}"
+
+    scan_id = "test-scan-numpy-123"
+    msg = messages.ScanStatusMessage(
+        metadata={},
+        scan_id=scan_id,
+        status="open",
+        session_id=str(session.id),
+        info={
+            "positions": np.array([[1, 2], [3, 4]]),
+            "num_points": np.int64(4),
+            "completed": np.bool_(True),
+        },
+        timestamp=1732610545.15924,
+    )
+
+    scan_ingestor.update_scan_status(msg, deployment_id=str(deployment.id))
+
+    inserted_scan = mongo.db["scans"].find_one({"_id": scan_id})
+    assert inserted_scan is not None
+    assert inserted_scan["info"]["positions"] == [[1, 2], [3, 4]]
+    assert inserted_scan["info"]["num_points"] == 4
+    assert inserted_scan["info"]["completed"] is True
 
 
 @pytest.mark.timeout(60)

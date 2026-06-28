@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import threading
 
+import numpy as np
 from bec_lib import messages
 from bec_lib.endpoints import EndpointInfo, MessageEndpoints
 from bec_lib.logger import bec_logger
@@ -23,6 +24,21 @@ class DataIngestor(IngestorBase):
 
     def get_stream_key(self, deployment_id: str) -> EndpointInfo:
         return MessageEndpoints.atlas_deployment_ingest(deployment_name=deployment_id)
+
+    @staticmethod
+    def _normalize_mongo_value(value):
+        """Convert Python values into BSON-compatible Python types."""
+        if isinstance(value, np.ndarray):
+            return [DataIngestor._normalize_mongo_value(item) for item in value.tolist()]
+        if isinstance(value, np.generic):
+            return DataIngestor._normalize_mongo_value(value.item())
+        if isinstance(value, dict):
+            return {key: DataIngestor._normalize_mongo_value(val) for key, val in value.items()}
+        if isinstance(value, list):
+            return [DataIngestor._normalize_mongo_value(item) for item in value]
+        if isinstance(value, tuple):
+            return [DataIngestor._normalize_mongo_value(item) for item in value]
+        return value
 
     def handle_message(self, msg_dict: dict, stream_key: str):
         """
@@ -98,7 +114,7 @@ class DataIngestor(IngestorBase):
             )
             msg_conv.session_id = session.id
 
-            out = msg_conv.model_dump(exclude_none=True)
+            out = self._normalize_mongo_value(msg_conv.model_dump(exclude_none=True))
             out["_id"] = msg.scan_id
 
             self.datasource.db["scans"].insert_one(out)
