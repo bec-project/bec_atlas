@@ -1,3 +1,10 @@
+# [1.6.0](https://github.com/bec-project/bec_atlas/compare/v1.5.0...v1.6.0) (2026-07-02)
+
+
+### Features
+
+* add normalization for NumPy values in MongoDB insertions ([742db56](https://github.com/bec-project/bec_atlas/commit/742db56107cf580d6ced2edbb5cf3bb703f38fc1))
+
 # [1.5.0](https://github.com/bec-project/bec_atlas/compare/v1.4.4...v1.5.0) (2026-06-26)
 
 
