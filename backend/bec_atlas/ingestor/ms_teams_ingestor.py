@@ -89,6 +89,10 @@ class MSTeamsIngestor:
     <td>{message.username}</td>
     </tr>
     <tr>
+    <td style="padding: 6px 0;"><strong>Contact:</strong></td>
+    <td>{message.contact}</td>
+    </tr>
+    <tr>
     <td style="padding: 6px 0;"><strong>Timestamp:</strong></td>
     <td>{formatted_timestamp}</td>
     </tr>
