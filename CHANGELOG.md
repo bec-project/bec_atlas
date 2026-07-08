@@ -1,3 +1,10 @@
+# [1.7.0](https://github.com/bec-project/bec_atlas/compare/v1.6.0...v1.7.0) (2026-07-08)
+
+
+### Features
+
+* add contact information to feedback message display ([f19149b](https://github.com/bec-project/bec_atlas/commit/f19149b6ea1fce812fb0f98e5f9bbce98a5d7370))
+
 # [1.6.0](https://github.com/bec-project/bec_atlas/compare/v1.5.0...v1.6.0) (2026-07-02)
 
 
