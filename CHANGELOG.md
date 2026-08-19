@@ -1,3 +1,10 @@
+# [1.8.0](https://github.com/bec-project/bec_atlas/compare/v1.7.0...v1.8.0) (2026-08-19)
+
+
+### Features
+
+* add test environment deployment for PXII ([e5cca1e](https://github.com/bec-project/bec_atlas/commit/e5cca1ee2a4ce0266f389d05eefb7f874117ab96))
+
 # [1.7.0](https://github.com/bec-project/bec_atlas/compare/v1.6.0...v1.7.0) (2026-07-08)
 
 
