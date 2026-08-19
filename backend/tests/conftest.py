@@ -129,6 +129,7 @@ def backend(redis_server):
         "bec_atlas.router.redis_router.BECAsyncRedisManager", PatchedBECAsyncRedisManager
     ):
         with TestClient(app.app) as _client:
+            app.user_router.ldap.authenticate_and_get_info = mock.Mock(return_value=None)
             app.user_router.use_ssl = False  # disable ssl to allow for httponly cookies
             yield _client, app
 
