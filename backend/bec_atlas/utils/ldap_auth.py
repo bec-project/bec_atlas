@@ -2,6 +2,7 @@ import logging
 
 from ldap3 import BASE, NONE, ROUND_ROBIN, SUBTREE, Connection, Server, ServerPool
 from ldap3.core.exceptions import LDAPBindError
+from ldap3.utils.conv import escape_filter_chars
 from ldap3.utils.dn import escape_rdn
 
 logger = logging.getLogger(__name__)
@@ -21,17 +22,16 @@ class LDAPUserService:
         """
         Authenticate the user against the LDAP server and extract user details.
         """
-        principal = escape_rdn(principal)  # escape characters to prevent injection
         # Determine DN based on input type
         if "@" in principal:
             # Email login
             bind_dn = principal
             search_base = self.base_dn
-            search_filter = f"(userPrincipalName={principal})"
+            search_filter = f"(userPrincipalName={escape_filter_chars(principal)})"
             search_scope = SUBTREE
         else:
             # Standard username login
-            bind_dn = f"CN={principal},{self.base_dn}"
+            bind_dn = f"CN={escape_rdn(principal)},{self.base_dn}"
             search_base = bind_dn
             search_filter = "(objectClass=*)"
             search_scope = BASE
@@ -76,7 +76,9 @@ def make_server_pool(hosts):
 
 
 def make_server(host):
-    return Server(f"ldaps://{host}", get_info=NONE, connect_timeout=5)
+    if "://" not in host:
+        host = f"ldaps://{host}"
+    return Server(host, get_info=NONE, connect_timeout=5)
 
 
 if __name__ == "__main__":  # pragma: no cover
