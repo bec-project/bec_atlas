@@ -148,6 +148,13 @@ PXII:
         - unx-sls_x10sa_bs
       experiment_access:
         - unx-sls_x10sa_bs
+    x10sa-bec-002.psi.ch:
+      name: test
+      description: Test environment for PXII
+      deployment_access:
+        - unx-sls_x10sa_bs
+      experiment_access:
+        - unx-sls_x10sa_bs
 PXIII:
   xname: x06da
   managers:
