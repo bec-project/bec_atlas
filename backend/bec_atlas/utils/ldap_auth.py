@@ -72,7 +72,8 @@ class LDAPUserService:
 
 def make_server_pool(hosts):
     servers = [make_server(host) for host in hosts]
-    return ServerPool(servers, ROUND_ROBIN, active=True, exhaust=True)
+    # Try each configured host once per authentication attempt, then fail.
+    return ServerPool(servers, ROUND_ROBIN, active=1, exhaust=False)
 
 
 def make_server(host):
