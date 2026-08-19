@@ -1,3 +1,19 @@
+# [1.9.0](https://github.com/bec-project/bec_atlas/compare/v1.8.0...v1.9.0) (2026-08-19)
+
+
+### Bug Fixes
+
+* entry.entry_attributes_as_dict contains empty lists for missing entries ([57b5ce9](https://github.com/bec-project/bec_atlas/commit/57b5ce9792e34b4643beeb2888a43c3bd84088b7))
+* escape principal and search filter ([be26c6b](https://github.com/bec-project/bec_atlas/commit/be26c6b05cfa6ddb8a267effc855f56a8c040c7f))
+* leave the connection context as early as possible ([1f1eecd](https://github.com/bec-project/bec_atlas/commit/1f1eecdef05f259ca12b635c9bb80a858800815d))
+* update server pool configuration to try each host once per authentication attempt ([1439799](https://github.com/bec-project/bec_atlas/commit/1439799b68f749ecf4fea6bfcbdea269cfc9a2e5))
+
+
+### Features
+
+* safety check on number of entries received ([8b48c8d](https://github.com/bec-project/bec_atlas/commit/8b48c8da4f0b0ad0ab61197ee6054e9ef0a62fd5))
+* safety check on username and memberOf entries ([11aa8a8](https://github.com/bec-project/bec_atlas/commit/11aa8a85903b5a6e37807653e37cbffcfdc43988))
+
 # [1.8.0](https://github.com/bec-project/bec_atlas/compare/v1.7.0...v1.8.0) (2026-08-19)
 
 
