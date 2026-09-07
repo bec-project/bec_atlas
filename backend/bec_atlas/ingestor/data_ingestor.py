@@ -265,14 +265,19 @@ class DataIngestor(IngestorBase):
             return
 
         if session.experiment_id is None:
+            logger.info(f"[Scilog]: No experiment ID found for session {session.id}.")
             return
 
         out = self.scilog_manager.fetch_logbooks_for_pgroup(session.experiment_id)
         if not out:
+            logger.info(f"[Scilog]: No logbooks found for experiment ID {session.experiment_id}.")
             return
         target_logbook = out[0]  # Take the first logbook found
 
         if not target_logbook:
+            logger.info(
+                f"[Scilog]: No target logbook found for experiment ID {session.experiment_id}."
+            )
             return
 
         logger.info(
