@@ -1,3 +1,11 @@
+## [1.9.1](https://github.com/bec-project/bec_atlas/compare/v1.9.0...v1.9.1) (2026-09-07)
+
+
+### Bug Fixes
+
+* handle oversized scan status by retrying with cleared positions and acknowledging if still too large ([c61782a](https://github.com/bec-project/bec_atlas/commit/c61782a6be954bf7ae7fdb438164c8111a1d8275))
+* update redis server configuration to use RESP2 protocol for compatibility ([8753b2b](https://github.com/bec-project/bec_atlas/commit/8753b2b20c21b710664fc5ad1e344f5737dc183f))
+
 # [1.9.0](https://github.com/bec-project/bec_atlas/compare/v1.8.0...v1.9.0) (2026-08-19)
 
 
