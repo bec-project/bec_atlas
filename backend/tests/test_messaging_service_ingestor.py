@@ -1,4 +1,3 @@
-import time
 from unittest import mock
 
 import pytest
@@ -37,10 +36,19 @@ def ingestor(backend):
     with mock.patch(
         "bec_atlas.ingestor.message_service_ingestor.SignalManager"
     ) as MockSignalManager:
-        ingestor = MessageServiceIngestor(config=app.config)
+        # Exercise handlers directly without starting the background queue consumer.
+        with mock.patch.object(MessageServiceIngestor, "start_receiver"):
+            ingestor = MessageServiceIngestor(config=app.config)
         MockSignalManager.assert_called_once_with(ingestor, app.config.get("signal", {}))
         yield ingestor
         ingestor.shutdown()
+
+
+@pytest.fixture
+def message_processed(ingestor):
+    processed = threading.Event()
+    ingestor.signal_manager.process.side_effect = lambda *args, **kwargs: processed.set()
+    return processed
 
 
 def test_process_message(ingestor):
@@ -54,29 +62,24 @@ def test_process_message(ingestor):
     )
     deployment = _deployment_info_message()
     ingestor.process_message(msg, deployment)
-    assert ingestor.signal_manager.process.called_once_with(msg, deployment)
+    ingestor.signal_manager.process.assert_called_once_with(msg, deployment)
 
 
 def test_handle_message(ingestor):
-    """
-    Test that the handle_message method updates deployment subscriptions and processes messages correctly.
-    To this end, we will use fakeredis to post a new message to the stream key and trigger the entire flow
-    of the handle_message method.
-    """
-    deployment_id = "678aa8d4875568640bd92176"
+    """Load deployment info from Redis, register its subscription, and dispatch the message."""
+    deployment = _deployment_info_message()
+    deployment_id = deployment.deployment_id
     msg = messages.MessagingServiceMessage(
         service_name="signal",
         message=[messages.MessagingServiceTextContent(content="Hello, Signal!")],
         scope=["user1", "user2"],
     )
     ingestor.redis.xadd(
-        MessageEndpoints.atlas_deployment_info(deployment_name=deployment_id),
-        {"data": _deployment_info_message()},
+        MessageEndpoints.atlas_deployment_info(deployment_name=deployment_id), {"data": deployment}
     )
-    ingestor.redis.xadd(ingestor.get_stream_key(deployment_id), {"data": msg})
-    time.sleep(1)  # Wait for the ingestor loop to process the message
+    ingestor.handle_message({"data": msg}, ingestor.get_stream_key(deployment_id).endpoint)
 
-    assert deployment_id in ingestor._deployment_info_cache
+    assert ingestor._deployment_info_cache[deployment_id] == deployment
 
     # make sure that we've started a new subscription for the deployment info stream key
     assert ingestor.redis.any_stream_is_registered(
@@ -84,31 +87,29 @@ def test_handle_message(ingestor):
         ingestor._handle_deployment_info_update,
     )
 
-    assert ingestor.signal_manager.process.called_once_with(
-        msg, ingestor._deployment_info_cache[deployment_id]
-    )
+    ingestor.signal_manager.process.assert_called_once_with(msg, deployment)
 
 
 def test_handle_message_after_deployment_info_update(ingestor):
-    """
-    Test that the handle_message method processes messages correctly after a deployment info update. This is to ensure that we correctly update the deployment info cache and use the updated info to process messages.
-    """
-    deployment_id = "678aa8d4875568640bd92176"
+    """A deployment update replaces cached info used to dispatch subsequent messages."""
+    deployment = _deployment_info_message()
+    deployment_id = deployment.deployment_id
     msg = messages.MessagingServiceMessage(
         service_name="signal",
         message=[messages.MessagingServiceTextContent(content="Hello, Signal!")],
         scope=["user1", "user2"],
     )
-    ingestor.redis.xadd(
-        MessageEndpoints.atlas_deployment_info(deployment_name=deployment_id),
-        {"data": _deployment_info_message()},
+    ingestor._handle_deployment_info_update(
+        {"data": deployment}, parent=ingestor, deployment_id=deployment_id
     )
-    ingestor.redis.xadd(ingestor.get_stream_key(deployment_id), {"data": msg})
-    time.sleep(1)  # Wait for the ingestor loop to process the message
-    ingestor._update_deployment_subscriptions(deployment_id)
-    assert deployment_id in ingestor._deployment_info_cache
+    updated_deployment = deployment.model_copy(deep=True)
+    updated_deployment.name = "Updated Deployment"
+    updated_deployment.messaging_services[0].group_id = "updated_signal_group"
+    ingestor._handle_deployment_info_update(
+        {"data": updated_deployment}, parent=ingestor, deployment_id=deployment_id
+    )
 
-    time.sleep(1)  # Wait for the ingestor loop to process the message
-    assert ingestor.signal_manager.process.called_once_with(
-        msg, ingestor._deployment_info_cache[deployment_id]
-    )
+    ingestor.handle_message({"data": msg}, ingestor.get_stream_key(deployment_id).endpoint)
+
+    assert ingestor._deployment_info_cache[deployment_id] == updated_deployment
+    ingestor.signal_manager.process.assert_called_once_with(msg, updated_deployment)
