@@ -70,7 +70,7 @@ class SciLogLogbookManager:
             list[scilog_models.Logbook]: A list of logbooks for the given proposal group.
         """
 
-        logbooks = self.scilog.get_logbooks(where={"updateACL": {"in": [pgroup]}})
+        logbooks = self.scilog.get_logbooks(where={"updateACL": {"inq": [pgroup]}})
         return logbooks
 
     def process(
