@@ -141,7 +141,7 @@ def test_fetch_logbooks_for_pgroup(logbook_manager, mock_scilog, sample_logbook)
 
     assert len(logbooks) == 1
     assert logbooks[0].id == "logbook_123"
-    mock_scilog.get_logbooks.assert_called_once_with(where={"updateACL": {"in": ["p20240001"]}})
+    mock_scilog.get_logbooks.assert_called_once_with(where={"updateACL": {"inq": ["p20240001"]}})
 
 
 @pytest.mark.timeout(60)
