@@ -7,6 +7,7 @@ from bec_lib import messages
 from bec_lib.endpoints import EndpointInfo, MessageEndpoints
 from bec_lib.logger import bec_logger
 from bson import ObjectId
+from pymongo.errors import DocumentTooLarge
 
 from bec_atlas.ingestor.ingestor_base import IngestorBase
 from bec_atlas.ingestor.ms_teams_ingestor import MSTeamsIngestor
@@ -117,7 +118,23 @@ class DataIngestor(IngestorBase):
             out = self._normalize_mongo_value(msg_conv.model_dump(exclude_none=True))
             out["_id"] = msg.scan_id
 
-            self.datasource.db["scans"].insert_one(out)
+            try:
+                self.datasource.db["scans"].insert_one(out)
+            except DocumentTooLarge as exc:
+                logger.error(
+                    f"Scan {msg.scan_id} could not be inserted because its BSON document is "
+                    f"too large. Retrying with info.positions cleared: {exc}"
+                )
+                out.setdefault("info", {})["positions"] = []
+                try:
+                    self.datasource.db["scans"].insert_one(out)
+                except DocumentTooLarge as retry_exc:
+                    logger.error(
+                        f"Scan {msg.scan_id} is still too large after clearing info.positions. "
+                        "Acknowledging the scan status without storing it to prevent repeated "
+                        f"retries: {retry_exc}"
+                    )
+                    return
         else:
             self.datasource.db["scans"].update_one(
                 {"_id": msg.scan_id}, {"$set": {"status": msg.status}}

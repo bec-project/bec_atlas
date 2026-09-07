@@ -1,10 +1,13 @@
+import copy
 from typing import TYPE_CHECKING
 from unittest import mock
 
 import numpy as np
 import pytest
 from bec_lib import messages
+from bec_lib.serialization import MsgpackSerialization
 from bson import ObjectId
+from pymongo.errors import DocumentTooLarge
 from scilog.models import Logbook
 
 from bec_atlas.ingestor.data_ingestor import DataIngestor
@@ -216,6 +219,89 @@ def test_scan_ingestor_create_scan_with_numpy_values(scan_ingestor, backend):
     assert inserted_scan["info"]["positions"] == [[1, 2], [3, 4]]
     assert inserted_scan["info"]["num_points"] == 4
     assert inserted_scan["info"]["completed"] is True
+
+
+@pytest.mark.timeout(60)
+def test_scan_ingestor_retries_large_scan_without_positions(scan_ingestor, backend):
+    """An oversized scan status is retried after clearing its planned positions."""
+    _, app = backend
+    mongo: MongoDBDatasource = app.datasources.mongodb
+    deployment = mongo.find_one("deployments", {}, dtype=Deployments)
+    assert deployment is not None
+    session = mongo.find_one("sessions", {"deployment_id": deployment.id}, dtype=Session)
+    assert session is not None
+
+    scan_id = "test-scan-too-large-retry"
+    msg = messages.ScanStatusMessage(
+        metadata={},
+        scan_id=scan_id,
+        status="open",
+        session_id=str(session.id),
+        info={"positions": np.array([[1, 2], [3, 4]]), "num_points": 2},
+    )
+    scans = scan_ingestor.datasource.db["scans"]
+    insert_one = scans.insert_one
+    attempted_documents = []
+
+    def fail_first_insert(document):
+        attempted_documents.append(copy.deepcopy(document))
+        if len(attempted_documents) == 1:
+            raise DocumentTooLarge("test document is too large")
+        return insert_one(document)
+
+    with mock.patch.object(scans, "insert_one", side_effect=fail_first_insert):
+        with mock.patch("bec_atlas.ingestor.data_ingestor.logger.error") as mock_log_error:
+            scan_ingestor.update_scan_status(msg, deployment_id=str(deployment.id))
+
+    assert attempted_documents[0]["info"]["positions"] == [[1, 2], [3, 4]]
+    assert attempted_documents[1]["info"]["positions"] == []
+    assert scans.find_one({"_id": scan_id})["info"]["positions"] == []
+    assert "Retrying with info.positions cleared" in mock_log_error.call_args.args[0]
+
+
+@pytest.mark.timeout(60)
+def test_scan_ingestor_acknowledges_scan_if_reduced_document_is_still_too_large(
+    scan_ingestor, backend
+):
+    """A persistently oversized status is logged and consumed instead of retried forever."""
+    _, app = backend
+    mongo: MongoDBDatasource = app.datasources.mongodb
+    deployment = mongo.find_one("deployments", {}, dtype=Deployments)
+    assert deployment is not None
+    session = mongo.find_one("sessions", {"deployment_id": deployment.id}, dtype=Session)
+    assert session is not None
+
+    scan_id = "test-scan-too-large-acknowledge"
+    msg = messages.ScanStatusMessage(
+        metadata={},
+        scan_id=scan_id,
+        status="open",
+        session_id=str(session.id),
+        info={"positions": [[1, 2]], "num_points": 1},
+    )
+    stream = f"internal/deployment/{deployment.id}/ingest".encode()
+    message_id = b"1-0"
+    stream_data = [(stream, [(message_id, {b"scan_status": MsgpackSerialization.dumps(msg)})])]
+    scans = scan_ingestor.datasource.db["scans"]
+    redis_connection = scan_ingestor.redis._managed_connection._redis_conn
+
+    with mock.patch.object(
+        scans, "insert_one", side_effect=DocumentTooLarge("test document is too large")
+    ) as mock_insert:
+        with mock.patch("bec_atlas.ingestor.data_ingestor.logger.error") as mock_log_error:
+            with mock.patch.object(redis_connection, "xack") as mock_xack:
+                with mock.patch.object(redis_connection, "xdel") as mock_xdel:
+                    scan_ingestor._handle_stream_messages(stream_data)
+
+    assert mock_insert.call_count == 2
+    assert mock_insert.call_args.args[0]["info"]["positions"] == []
+    assert any(
+        "Acknowledging the scan status without storing it" in call.args[0]
+        for call in mock_log_error.call_args_list
+    )
+    mock_xack.assert_called_once_with(stream, "ingestor", message_id)
+    mock_xdel.assert_called_once_with(stream, message_id)
+    assert scans.find_one({"_id": scan_id}) is None
 
 
 @pytest.mark.timeout(60)
