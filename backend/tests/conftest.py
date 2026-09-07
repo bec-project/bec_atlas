@@ -89,11 +89,14 @@ def redis_server():
 @pytest.fixture()
 def backend(redis_server):
 
+    # Use RESP2 until fakeredis correctly handles HELLO AUTH with restricted ACLs.
     def _fake_redis(host, port, **kwargs):
-        return fakeredis.FakeStrictRedis(server=redis_server)
+        return fakeredis.FakeStrictRedis(server=redis_server, protocol=2)
 
     mongo_client = mongomock.MongoClient("localhost", 27027)
-    fake_async_redis = TestRedis(server=redis_server, username="ingestor", password="ingestor")
+    fake_async_redis = TestRedis(
+        server=redis_server, username="ingestor", password="ingestor", protocol=2
+    )
     fake_async_redis.connection_pool.connection_kwargs["username"] = "ingestor"
     fake_async_redis.connection_pool.connection_kwargs["password"] = "ingestor"
 
