@@ -1,3 +1,13 @@
+## [1.9.2](https://github.com/bec-project/bec_atlas/compare/v1.9.1...v1.9.2) (2026-09-07)
+
+
+### Bug Fixes
+
+* add logging for missing experiment ID and logbooks in Scilog session handling ([e4c7a5d](https://github.com/bec-project/bec_atlas/commit/e4c7a5d48b951d1906119cb07c9fd5bef1de3306))
+* replace time.sleep with threading.Event for message processing synchronization in tests ([b2c97a8](https://github.com/bec-project/bec_atlas/commit/b2c97a8cc63abc7efb61c47d0719ba0e9b1b4fc5))
+* restrict live experiment controls to administrators in RedisRouter ([a75f4b2](https://github.com/bec-project/bec_atlas/commit/a75f4b2efaddfbbaab353096ecb41caae0524c28))
+* update query parameter from 'in' to 'inq' for logbook fetching ([ae377be](https://github.com/bec-project/bec_atlas/commit/ae377be3ca1f3c3944c89e0b21bf7a99e02828d4))
+
 ## [1.9.1](https://github.com/bec-project/bec_atlas/compare/v1.9.0...v1.9.1) (2026-09-07)
 
 
