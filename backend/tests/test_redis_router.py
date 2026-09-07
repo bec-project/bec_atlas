@@ -352,3 +352,38 @@ async def test_redis_get(logged_in_client, deployment, backend):
         assert response.status_code == 200
         test_response = {"data": {"data": {"test_key": "test"}}, "metadata": {"message": "test"}}
         assert response.json() == test_response
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("operation", ["redis_post", "redis_delete"])
+@pytest.mark.parametrize("groups, authorized", [([], False), (["staff"], False), (["admin"], True)])
+async def test_live_writes_require_admin_and_existing_permissions(operation, groups, authorized):
+    from fastapi import HTTPException
+
+    from bec_atlas.router.redis_router import RedisRouter
+
+    router = mock.Mock()
+    router.redis = mock.AsyncMock()
+    router.redis.pubsub = mock.Mock()
+    user = mock.Mock(groups=groups)
+    args = {"deployment": "beamline", "key": "queue", "current_user": user}
+    if operation == "redis_post":
+        args.update(value={"data": {}}, redis_op="set", msg_type="RawMessage")
+    handler = getattr(RedisRouter, operation).__wrapped__
+    if not authorized:
+        with pytest.raises(HTTPException) as error:
+            await handler(router, **args)
+        assert error.value.status_code == 403
+        router.redis.publish.assert_not_called()
+        return
+
+    await handler(router, **args)
+    router.validate_user_bec_access.assert_called_once_with(
+        user, "beamline", "queue", "set" if operation == "redis_post" else "delete", "write"
+    )
+    router.redis.publish.assert_awaited_once()
+    router.redis.publish.reset_mock()
+    router.validate_user_bec_access.side_effect = HTTPException(403, "Access denied")
+    with pytest.raises(HTTPException):
+        await handler(router, **args)
+    router.redis.publish.assert_not_called()

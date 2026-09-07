@@ -120,6 +120,11 @@ class RedisRouter(BaseRouter):
         Returns:
             dict: The response message
         """
+        if "admin" not in current_user.groups:
+            raise HTTPException(
+                status_code=403,
+                detail="Live experiment controls are restricted to administrators. Monitoring is read only.",
+            )
         self.validate_user_bec_access(current_user, deployment, key, redis_op, "write")
         msg_obj = getattr(messages, msg_type, None)
         if not isinstance(msg_obj, type) or not issubclass(msg_obj, messages.BECMessage):
@@ -142,6 +147,12 @@ class RedisRouter(BaseRouter):
     async def redis_delete(
         self, deployment: str, key: str, current_user: User = Depends(get_current_user)
     ):
+        if "admin" not in current_user.groups:
+            raise HTTPException(
+                status_code=403,
+                detail="Live experiment controls are restricted to administrators. Monitoring is read only.",
+            )
+        self.validate_user_bec_access(current_user, deployment, key, "delete", "write")
         request_endpoint = RedisAtlasEndpoints.redis_request(deployment)
         pubsub = self.redis.pubsub()
         pubsub.ignore_subscribe_messages = True
