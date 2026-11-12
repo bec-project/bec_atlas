@@ -1,95 +1,196 @@
-<mat-sidenav-container class="sidenav-container">
-  <mat-sidenav mode="side" opened>
-    <div>
-      <img
-        src="assets/BEC-Atlas-full-transparent.png"
-        alt="BEC"
-        width="80"
-        height="80"
-        style="margin: 10px"
-      />
+<div class="dashboard-layout">
+  <!-- Left Icon Sidebar -->
+  <div class="icon-sidebar">
+    <!-- Logo -->
+    <div class="logo-section">
+      <div class="logo-icon">
+        <img
+          src="assets/BEC-Atlas-full-transparent.png"
+          alt="Atlas"
+          class="logo-img"
+        />
+      </div>
     </div>
-    <mat-divider></mat-divider>
 
-    <!-- Username expansion panel -->
-    <mat-expansion-panel>
-      <mat-expansion-panel-header>
-        <mat-icon>account_circle</mat-icon>
-        <span class="menu-text">Username</span>
-      </mat-expansion-panel-header>
+    <!-- Navigation Icons -->
+    <nav class="nav-icons">
+      <button
+        class="nav-icon-btn"
+        [class.active]="selectedNavItem() === 'analytics'"
+        (click)="
+          selectNavItem({
+            id: 'analytics',
+            label: 'Analytics',
+            icon: 'analytics'
+          })
+        "
+      >
+        <mat-icon>analytics</mat-icon>
+        <span class="nav-label">Analytics</span>
+      </button>
 
-      <button mat-button>Profile</button>
-      <button mat-button>Settings</button>
-      <button mat-button (click)="logout()">Logout</button>
-    </mat-expansion-panel>
-
-    <mat-divider></mat-divider>
-
-    <!--  Data Browser -->
-    <mat-expansion-panel>
-      <mat-expansion-panel-header>
+      <button
+        class="nav-icon-btn"
+        [class.active]="selectedNavItem() === 'data'"
+        (click)="
+          selectNavItem({
+            id: 'data',
+            label: 'Data Browser',
+            icon: 'table_chart'
+          })
+        "
+      >
         <mat-icon>table_chart</mat-icon>
-        <span class="menu-text">Data Browser</span>
-      </mat-expansion-panel-header>
+        <span class="nav-label">Data</span>
+      </button>
 
       <button
-        mat-button
-        class="menu-item"
-        [routerLink]="['/dashboard/scan-table']"
+        class="nav-icon-btn"
+        [class.active]="selectedNavItem() === 'control'"
+        (click)="
+          selectNavItem({
+            id: 'control',
+            label: 'Experiment Control',
+            icon: 'science'
+          })
+        "
       >
-        Scan Data
-      </button>
-      <button mat-button class="menu-item">Device Data</button>
-    </mat-expansion-panel>
-
-    <!-- Experiment Control Expansion -->
-    <mat-expansion-panel
-      (opened)="panelOpened()"
-      [hideToggle]="hideExperimentPanel"
-    >
-      <mat-expansion-panel-header>
         <mat-icon>science</mat-icon>
-        <span class="menu-text">Experiment Control</span>
-      </mat-expansion-panel-header>
+        <span class="nav-label">Control</span>
+      </button>
 
       <button
-        mat-button
-        class="menu-item"
-        [routerLink]="['/dashboard/overview-grid']"
+        class="nav-icon-btn"
+        [class.active]="selectedNavItem() === 'settings'"
+        (click)="
+          selectNavItem({ id: 'settings', label: 'Settings', icon: 'settings' })
+        "
       >
-        <span class="menu-text">Control</span>
+        <mat-icon>settings</mat-icon>
+        <span class="nav-label">Settings</span>
       </button>
+    </nav>
+
+    <!-- Bottom Icons -->
+    <div class="bottom-icons">
       <button
-        mat-button
-        class="menu-item"
-        [routerLink]="['/dashboard/deployment-admin']"
+        class="nav-icon-btn"
+        (click)="openDeploymentDialog()"
       >
-        <span class="menu-text">Admin</span>
+        <mat-icon>help_outline</mat-icon>
+        <span class="nav-label">Help</span>
       </button>
 
-      <button mat-button class="menu-item" (click)="openDeploymentDialog()">
-        <span class="menu-text">{{ selectOrSwitchButtonTitle }}</span>
+      <button
+        class="nav-icon-btn"
+        (click)="logout()"
+      >
+        <mat-icon>account_circle</mat-icon>
+        <span class="nav-label">Profile</span>
       </button>
-    </mat-expansion-panel>
+    </div>
+  </div>
 
-    <!-- Help -->
-    <button mat-button class="menu-item">
-      <mat-icon>help</mat-icon>
-      <span class="menu-text">Help</span>
-    </button>
-    <div class="spacer"></div>
-    @if ((realm_name) && (deployment_name)) {
-    <div class="footer">
-      <mat-divider></mat-divider>
-      <div class="menu-text">{{ realm_name }}</div>
-      <div class="menu-text">{{ deployment_name }}</div>
+  <!-- Main Content with Navigation Panel -->
+  <div class="main-area">
+    <!-- Navigation Panel -->
+    @if (showNavPanel()) {
+    <div class="nav-panel">
+      <div class="panel-header">
+        <h2>{{ getCurrentNavContent()?.label || "Navigation" }}</h2>
+      </div>
+
+      <div class="panel-content">
+        @if (getCurrentNavContent()?.children) {
+        <!-- Show navigation sections based on selected item -->
+        <div class="section-items">
+          @for (child of getCurrentNavContent()!.children; track child.id) {
+          <div
+            class="nav-item"
+            [class.active]="selectedSubItem() === child.id"
+            (click)="navigateToChild(child)"
+          >
+            <mat-icon class="item-icon">{{ child.icon }}</mat-icon>
+            <span class="item-label">{{ child.label }}</span>
+          </div>
+          }
+        </div>
+        } @else {
+        <!-- For items without children, show a simple message or content -->
+        <div class="section-items">
+          <div class="nav-item">
+            <mat-icon class="item-icon">{{
+              getCurrentNavContent()?.icon
+            }}</mat-icon>
+            <span class="item-label"
+              >{{ getCurrentNavContent()?.label }} Dashboard</span
+            >
+          </div>
+        </div>
+        }
+      </div>
     </div>
     }
-  </mat-sidenav>
 
-  <mat-sidenav-content>
-    <div class="content">
-      <router-outlet></router-outlet>
+    <!-- Content Area -->
+    <div class="content-area">
+      <!-- Content Header -->
+      <div class="content-header">
+        <div class="header-title">
+          <h1>{{ getCurrentNavContent()?.label || "Dashboard" }}</h1>
+          <p class="header-subtitle">
+            Manage and monitor your
+            {{ getCurrentNavContent()?.label?.toLowerCase() || "workspace" }}
+          </p>
+        </div>
+        <div class="header-actions">
+          <button mat-raised-button color="primary" class="action-btn">
+            <mat-icon>add</mat-icon>
+            New Report
+          </button>
+          <button mat-stroked-button class="action-btn">
+            <mat-icon>filter_list</mat-icon>
+            Filter
+          </button>
+          <button mat-stroked-button class="action-btn">
+            <mat-icon>file_download</mat-icon>
+            Export
+          </button>
+        </div>
+      </div>
+
+      <!-- Main Content -->
+      <div class="main-content">
+        <router-outlet></router-outlet>
+
+        <!-- Empty State (shown when no specific route content) -->
+        <div class="empty-state" *ngIf="!getCurrentNavContent()">
+          <div class="empty-state-content">
+            <div class="empty-state-icon">
+              <mat-icon>analytics</mat-icon>
+            </div>
+            <h2>Welcome to BEC Atlas</h2>
+            <p>
+              Select a section from the sidebar to get started with your data
+              analytics and experiment control.
+            </p>
+            <button
+              mat-raised-button
+              color="primary"
+              (click)="
+                selectNavItem({
+                  id: 'analytics',
+                  label: 'Analytics',
+                  icon: 'analytics'
+                })
+              "
+            >
+              <mat-icon>trending_up</mat-icon>
+              Explore Analytics
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
-  </mat-sidenav-content>
-</mat-sidenav-container>
+  </div>
+</div>

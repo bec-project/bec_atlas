@@ -1,0 +1,89 @@
+@use "@angular/material" as mat;
+
+// Modern Angular Material M3 theming approach
+html {
+  // Enable automatic light/dark mode switching based on system preference
+  color-scheme: light dark;
+
+  // Define the M3 theme with primary and tertiary colors
+  @include mat.theme(
+    (
+      color: (
+        primary: mat.$azure-palette,
+        tertiary: mat.$magenta-palette,
+        theme-type: color-scheme,
+      ),
+      typography: (
+        plain-family:
+          'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        brand-family:
+          'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        bold-weight: 600,
+        medium-weight: 500,
+        regular-weight: 400,
+      ),
+      density: 0,
+    )
+  );
+}
+
+// Apply default surface colors to body
+body {
+  background: var(--mat-sys-surface);
+  color: var(--mat-sys-on-surface);
+}
+
+// CSS Custom Properties for BEC Atlas design tokens
+:root {
+  // Primary BEC Atlas brand colors
+  --bec-primary: #64748b;
+  --bec-primary-light: #94a3b8;
+  --bec-primary-dark: #475569;
+  --bec-secondary: #8c3168;
+  --bec-secondary-light: #be4f8b;
+  --bec-secondary-dark: #6b1e4a;
+
+  // Glass effect and surface colors
+  --surface-glass: rgba(248, 250, 252, 0.85);
+  --surface-glass-border: rgba(226, 232, 240, 0.6);
+  --surface-tint: rgba(248, 250, 252, 0.6);
+
+  // Accent colors for UI elements
+  --accent-primary: var(--bec-primary);
+  --accent-primary-dark: var(--bec-primary-dark);
+  --accent-secondary: var(--bec-secondary);
+  --accent-secondary-light: var(--bec-secondary-light);
+
+  // System color tokens
+  --sys-color-surface: #ffffff;
+  --sys-color-surface-variant: #f8fafc;
+  --sys-color-on-surface: #1e293b;
+  --sys-color-on-surface-variant: #64748b;
+  --sys-color-outline: #e2e8f0;
+  --sys-color-outline-variant: #f1f5f9;
+}
+
+// Dark mode color overrides
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bec-primary: #94a3b8;
+    --bec-primary-light: #cbd5e1;
+    --bec-primary-dark: #64748b;
+    --bec-secondary: #be4f8b;
+    --bec-secondary-light: #d946ef;
+    --bec-secondary-dark: #8c3168;
+
+    // Glass effect and surface colors for dark mode
+    --surface-glass: rgba(30, 41, 59, 0.85);
+    --surface-glass-border: rgba(71, 85, 105, 0.6);
+    --surface-tint: rgba(30, 41, 59, 0.6);
+
+    // System color tokens for dark mode
+    --sys-color-surface: #0f172a;
+    --sys-color-surface-variant: #1e293b;
+    --sys-color-on-surface: #f8fafc;
+    --sys-color-on-surface-variant: #94a3b8;
+    --sys-color-outline: #334155;
+    --sys-color-outline-variant: #475569;
+  }
+}
