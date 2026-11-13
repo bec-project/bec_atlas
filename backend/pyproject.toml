@@ -25,7 +25,7 @@ dependencies = [
     "ldap3",
     "typer",
     "requests",
-    "scilog~=2.3",
+    "scilog~=4.0",
 ]
 
 
